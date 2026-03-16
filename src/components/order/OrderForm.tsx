@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import AddressInput from "./AddressInput";
 import QuantitySelector from "./QuantitySelector";
 import PriceBreakdown from "./PriceBreakdown";
@@ -96,7 +97,8 @@ export default function OrderForm() {
       </div>
 
       <div className="mb-4">
-        <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
+        <label className="flex items-center gap-1.5 text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
+          <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={20} height={20} className="inline-block" />
           M-Pesa Number
         </label>
         <div className="flex border-[1.5px] border-blue-200 rounded-xl overflow-hidden bg-blue-50">
@@ -163,7 +165,15 @@ export default function OrderForm() {
         loading={loading}
         disabled={!canSubmit}
       >
-        {loading ? "Sending to your phone..." : `Order & Pay KES ${total} via M-Pesa`}
+        <span className="flex items-center justify-center gap-2">
+          {loading ? "Sending to your phone..." : (
+            <>
+              Order &amp; Pay KES {total} via
+              <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={24} height={24} className="inline-block" />
+              M-Pesa
+            </>
+          )}
+        </span>
       </Button>
 
       <div className="text-center mt-2.5 text-text-light text-[11px] flex justify-center gap-4">

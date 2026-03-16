@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import StatusStepper from "@/components/tracking/StatusStepper";
 import StatusCard from "@/components/tracking/StatusCard";
@@ -131,7 +132,9 @@ export default function OrderPage({
       <div className="min-h-screen bg-blue-50">
         <Navbar minimal />
         <div className="flex flex-col items-center px-6 pt-12 text-center">
-          <div className="text-[56px] mb-4 animate-pulse-drop">💧</div>
+          <div className="mb-4 animate-pulse-drop">
+            <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={64} height={64} className="mx-auto" />
+          </div>
           <h1 className="text-[22px] font-bold text-blue-900 mb-2">
             Check your phone
           </h1>
@@ -233,7 +236,7 @@ export default function OrderPage({
               <span>{order.delivery_address}</span>
             </div>
             <div className="flex gap-2.5">
-              <span>💳</span>
+              <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={16} height={16} />
               <span>KES {order.price_total} paid via M-Pesa</span>
             </div>
             {order.mpesa_ref && (
