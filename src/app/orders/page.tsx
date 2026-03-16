@@ -132,7 +132,7 @@ export default function OrdersPage() {
     <div className="min-h-screen bg-blue-50">
       <Navbar />
       <div className="px-4 py-5">
-        <h1 className="font-display text-[22px] text-blue-900 font-bold mb-1">
+        <h1 className="text-[22px] text-blue-900 font-bold mb-1">
           Your Orders
         </h1>
         <p className="text-text-mid text-xs mb-5">
@@ -185,7 +185,7 @@ export default function OrdersPage() {
                   className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm animate-fade-in"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-display font-bold text-blue-500 text-sm">
+                    <span className="font-bold text-blue-500 text-sm">
                       #{shortId}
                     </span>
                     <Badge status={order.status} />

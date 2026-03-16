@@ -86,7 +86,7 @@ export default function OTPLogin({
 
   return (
     <div className="max-w-sm mx-auto bg-white rounded-2xl p-6 shadow-md border border-blue-200">
-      <h2 className="font-display font-bold text-xl text-blue-900 text-center mb-1">
+      <h2 className="font-bold text-xl text-blue-900 text-center mb-1">
         {title}
       </h2>
 

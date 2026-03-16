@@ -126,7 +126,7 @@ export default function AdminPage() {
         {/* OVERVIEW */}
         {nav === "overview" && (
           <div className="animate-fade-in">
-            <h2 className="font-display text-xl text-blue-900 font-bold mb-3.5">
+            <h2 className="text-xl text-blue-900 font-bold mb-3.5">
               Today&apos;s Overview
             </h2>
             <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -141,7 +141,7 @@ export default function AdminPage() {
                   className="bg-white rounded-xl p-3.5 border border-blue-200"
                 >
                   <div className="text-lg mb-1">{kpi.icon}</div>
-                  <div className="font-display text-[22px] font-bold text-blue-900">
+                  <div className="text-[22px] font-bold text-blue-900">
                     {kpi.value}
                   </div>
                   <div className="text-[11px] text-text-mid">{kpi.label}</div>
@@ -175,7 +175,7 @@ export default function AdminPage() {
         {/* ORDERS */}
         {nav === "orders" && (
           <div className="animate-fade-in">
-            <h2 className="font-display text-xl text-blue-900 font-bold mb-3.5">
+            <h2 className="text-xl text-blue-900 font-bold mb-3.5">
               All Orders
             </h2>
             {loading ? (
@@ -192,7 +192,7 @@ export default function AdminPage() {
                       className="bg-white rounded-xl p-3.5 border border-blue-200"
                     >
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className="font-display font-bold text-blue-500 text-sm">
+                        <span className="font-bold text-blue-500 text-sm">
                           #{shortId}
                         </span>
                         <Badge status={o.status} />
@@ -215,7 +215,7 @@ export default function AdminPage() {
         {/* DISTRIBUTORS */}
         {nav === "distributors" && (
           <div className="animate-fade-in">
-            <h2 className="font-display text-xl text-blue-900 font-bold mb-3.5">
+            <h2 className="text-xl text-blue-900 font-bold mb-3.5">
               Distributors
             </h2>
             <div className="space-y-2.5 mb-4">
@@ -254,7 +254,7 @@ export default function AdminPage() {
         {/* ZONES */}
         {nav === "zones" && (
           <div className="animate-fade-in">
-            <h2 className="font-display text-xl text-blue-900 font-bold mb-3.5">
+            <h2 className="text-xl text-blue-900 font-bold mb-3.5">
               Delivery Zones
             </h2>
             <div className="space-y-2.5 mb-4">
@@ -290,7 +290,7 @@ export default function AdminPage() {
         {/* PRICING */}
         {nav === "pricing" && (
           <div className="animate-fade-in">
-            <h2 className="font-display text-xl text-blue-900 font-bold mb-3.5">
+            <h2 className="text-xl text-blue-900 font-bold mb-3.5">
               Pricing
             </h2>
             <div className="bg-white rounded-xl p-4 border border-blue-200 mb-3.5">

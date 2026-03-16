@@ -87,7 +87,7 @@ export default function RiderSignupPage() {
         <Navbar />
         <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
           <div className="text-6xl mb-4">🎉</div>
-          <h1 className="font-display text-2xl font-bold text-blue-900 mb-2">
+          <h1 className="text-2xl font-bold text-blue-900 mb-2">
             Application Received!
           </h1>
           <p className="text-text-mid text-sm mb-6 max-w-xs">
@@ -129,12 +129,9 @@ export default function RiderSignupPage() {
 
       {/* Header */}
       <div
-        className="px-5 pt-6 pb-10 relative overflow-hidden"
-        style={{
-          background: "linear-gradient(160deg, #1A4B8C 0%, #0A2342 100%)",
-        }}
+        className="px-5 pt-6 pb-10 relative overflow-hidden bg-blue-900"
       >
-        <h1 className="font-display text-2xl font-bold text-white leading-tight mb-1">
+        <h1 className="text-2xl font-bold text-white leading-tight mb-1">
           Deliver with MiMaji
         </h1>
         <p className="text-blue-200 text-sm">
@@ -196,7 +193,7 @@ export default function RiderSignupPage() {
           {/* Step 1: Personal Info */}
           {step === 1 && (
             <div className="animate-fade-in space-y-4">
-              <h2 className="font-display font-bold text-blue-900 text-lg">
+              <h2 className="font-bold text-blue-900 text-lg">
                 Personal Details
               </h2>
 
@@ -262,7 +259,7 @@ export default function RiderSignupPage() {
           {/* Step 2: Delivery Details */}
           {step === 2 && (
             <div className="animate-fade-in space-y-4">
-              <h2 className="font-display font-bold text-blue-900 text-lg">
+              <h2 className="font-bold text-blue-900 text-lg">
                 Delivery Details
               </h2>
 
@@ -341,7 +338,7 @@ export default function RiderSignupPage() {
           {/* Step 3: Availability */}
           {step === 3 && (
             <div className="animate-fade-in space-y-4">
-              <h2 className="font-display font-bold text-blue-900 text-lg">
+              <h2 className="font-bold text-blue-900 text-lg">
                 Your Availability
               </h2>
 

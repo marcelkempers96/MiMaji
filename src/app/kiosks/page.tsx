@@ -150,12 +150,9 @@ export default function KiosksPage() {
 
       {/* Header */}
       <div
-        className="px-5 pt-6 pb-10 relative overflow-hidden"
-        style={{
-          background: "linear-gradient(160deg, #1A4B8C 0%, #0A2342 100%)",
-        }}
+        className="px-5 pt-6 pb-10 relative overflow-hidden bg-blue-900"
       >
-        <h1 className="font-display text-2xl font-bold text-white leading-tight mb-1">
+        <h1 className="text-2xl font-bold text-white leading-tight mb-1">
           Water Kiosks & Shops
         </h1>
         <p className="text-blue-200 text-sm">
@@ -269,7 +266,7 @@ export default function KiosksPage() {
                   </div>
                   <div className="text-xs text-text-mid">{selectedKiosk.address}</div>
                 </div>
-                <span className="font-display font-bold text-blue-700 text-sm">
+                <span className="font-bold text-blue-700 text-sm">
                   KES {selectedKiosk.jugPrice}
                 </span>
               </div>
@@ -304,7 +301,7 @@ export default function KiosksPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-display font-bold text-blue-700 text-base">
+                  <div className="font-bold text-blue-700 text-base">
                     KES {kiosk.jugPrice}
                   </div>
                   <div className="text-[10px] text-text-light">per 20L jug</div>
@@ -347,7 +344,7 @@ export default function KiosksPage() {
       {/* CTA for providers */}
       <div className="mx-4 mb-6 bg-blue-900 rounded-2xl p-5 text-center">
         <div className="text-2xl mb-2">🏪</div>
-        <h3 className="font-display font-bold text-white text-lg mb-1">
+        <h3 className="font-bold text-white text-lg mb-1">
           Own a water kiosk?
         </h3>
         <p className="text-blue-200 text-sm mb-4">

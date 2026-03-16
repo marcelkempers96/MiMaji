@@ -10,7 +10,7 @@ export default function DistributorLoginPage() {
     <div className="min-h-screen bg-blue-50 flex flex-col items-center justify-center px-4">
       <div className="mb-8 text-center">
         <div className="text-4xl mb-3">💧</div>
-        <h1 className="font-display text-2xl font-bold text-blue-900 mb-1">
+        <h1 className="text-2xl font-bold text-blue-900 mb-1">
           Distributor Portal
         </h1>
         <p className="text-text-mid text-sm">

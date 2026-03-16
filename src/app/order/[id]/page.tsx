@@ -132,7 +132,7 @@ export default function OrderPage({
         <Navbar minimal />
         <div className="flex flex-col items-center px-6 pt-12 text-center">
           <div className="text-[56px] mb-4 animate-pulse-drop">💧</div>
-          <h1 className="font-display text-[22px] font-bold text-blue-900 mb-2">
+          <h1 className="text-[22px] font-bold text-blue-900 mb-2">
             Check your phone
           </h1>
           <p className="text-text-mid text-sm mb-6">
@@ -191,11 +191,11 @@ export default function OrderPage({
       <Navbar />
       <div className="px-4 py-5">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-display text-sm text-blue-500 font-bold">
+          <span className="text-sm text-blue-500 font-bold">
             ORDER #{shortId}
           </span>
         </div>
-        <h1 className="font-display text-[22px] text-blue-900 font-bold mb-5">
+        <h1 className="text-[22px] text-blue-900 font-bold mb-5">
           {order.status === "delivered"
             ? "Water delivered! 💧"
             : order.status === "out_for_delivery"

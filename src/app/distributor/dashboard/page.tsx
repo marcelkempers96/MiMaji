@@ -184,7 +184,7 @@ export default function DistributorDashboard() {
             <div className="text-blue-200 text-[10px] font-semibold tracking-wider">
               {stat.label}
             </div>
-            <div className="font-display text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-white">
               {stat.value}
             </div>
           </div>
@@ -241,7 +241,7 @@ export default function DistributorDashboard() {
                     <div className="text-blue-200 text-[11px] font-bold mb-1.5">
                       🚐 IN PROGRESS
                     </div>
-                    <div className="font-display font-bold text-white text-[15px] mb-1.5">
+                    <div className="font-bold text-white text-[15px] mb-1.5">
                       #{shortId} — {order.quantity} × 20L jugs
                     </div>
                     <div className="text-blue-200 text-xs mb-1">
@@ -277,7 +277,7 @@ export default function DistributorDashboard() {
                     className="bg-white rounded-2xl p-4 border border-blue-200"
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-display font-bold text-blue-500 text-sm">
+                      <span className="font-bold text-blue-500 text-sm">
                         #{shortId}
                       </span>
                       <Badge status={order.status} />
@@ -304,7 +304,7 @@ export default function DistributorDashboard() {
                       {timeAgo(order.created_at)}
                     </span>
                   </div>
-                  <div className="font-display font-bold text-blue-900 mb-1.5">
+                  <div className="font-bold text-blue-900 mb-1.5">
                     #{shortId} — {order.quantity} × 20L jugs
                   </div>
                   <div className="text-xs text-text-mid mb-0.5">

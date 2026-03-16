@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getPricePerJug } from "@/lib/pricing";
 
 interface QuantitySelectorProps {
   value: number;
@@ -16,6 +17,7 @@ export default function QuantitySelector({
   max = 10,
 }: QuantitySelectorProps) {
   const [animating, setAnimating] = useState(false);
+  const pricePerJug = getPricePerJug(value);
 
   useEffect(() => {
     if (animating) {
@@ -35,7 +37,7 @@ export default function QuantitySelector({
   return (
     <div>
       <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-2.5">
-        💧 How many jugs?
+        How many jugs?
       </label>
       <div className="flex items-center gap-4">
         <button
@@ -50,7 +52,7 @@ export default function QuantitySelector({
           −
         </button>
         <span
-          className={`font-display text-[32px] font-bold text-blue-900 min-w-[40px] text-center ${
+          className={`text-[32px] font-bold text-blue-900 min-w-[40px] text-center ${
             animating ? "animate-bounce-number" : ""
           }`}
         >
@@ -67,7 +69,10 @@ export default function QuantitySelector({
         >
           +
         </button>
-        <span className="text-text-light text-xs">20L each</span>
+        <div className="text-right">
+          <div className="text-sm font-bold text-blue-700">KES {pricePerJug}</div>
+          <div className="text-text-light text-[10px]">per jug · 20L</div>
+        </div>
       </div>
     </div>
   );

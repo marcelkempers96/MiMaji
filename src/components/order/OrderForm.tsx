@@ -6,9 +6,7 @@ import AddressInput from "./AddressInput";
 import QuantitySelector from "./QuantitySelector";
 import PriceBreakdown from "./PriceBreakdown";
 import Button from "../shared/Button";
-
-const JUG_PRICE = 200;
-const DELIVERY_FEE = 100;
+import { calculateTotal } from "@/lib/pricing";
 
 export default function OrderForm() {
   const router = useRouter();
@@ -19,22 +17,43 @@ export default function OrderForm() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showVoucher, setShowVoucher] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherApplied, setVoucherApplied] = useState(false);
 
-  const total = quantity * JUG_PRICE + DELIVERY_FEE;
+  const { total } = calculateTotal(quantity);
   const canSubmit = address.length > 0 && phone.length >= 9 && !loading;
 
   const formatPhone = (value: string) => {
     return value.replace(/\D/g, "").slice(0, 9);
   };
 
+  const handleApplyVoucher = () => {
+    if (voucherCode.trim()) {
+      setVoucherApplied(true);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
+
+    // Check if user is logged in (in production: check Supabase auth)
+    const isLoggedIn = localStorage.getItem("mimaji-user");
+    if (!isLoggedIn) {
+      // Store order intent and redirect to signup
+      localStorage.setItem(
+        "mimaji-order-intent",
+        JSON.stringify({ address, lat, lng, quantity, phone })
+      );
+      router.push("/signup");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
       const phoneFormatted = `254${phone}`;
-
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,13 +65,8 @@ export default function OrderForm() {
           phone: phoneFormatted,
         }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to create order");
-      }
-
+      if (!res.ok) throw new Error(data.error || "Failed to create order");
       router.push(`/order/${data.orderId}?step=payment`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -61,7 +75,7 @@ export default function OrderForm() {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-lg -mt-6 mx-4 relative z-10 animate-fade-in">
+    <div className="bg-white rounded-2xl p-5 shadow-md -mt-6 mx-4 relative z-10 border border-blue-200 animate-fade-in">
       <div className="mb-4">
         <AddressInput
           value={address}
@@ -78,16 +92,12 @@ export default function OrderForm() {
       </div>
 
       <div className="mb-4">
-        <PriceBreakdown
-          quantity={quantity}
-          jugPrice={JUG_PRICE}
-          deliveryFee={DELIVERY_FEE}
-        />
+        <PriceBreakdown quantity={quantity} />
       </div>
 
-      <div className="mb-5">
+      <div className="mb-4">
         <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
-          📱 M-Pesa Number
+          M-Pesa Number
         </label>
         <div className="flex border-[1.5px] border-blue-200 rounded-xl overflow-hidden bg-blue-50">
           <span className="px-3 py-2.5 bg-blue-200 text-blue-900 text-sm font-semibold whitespace-nowrap">
@@ -103,6 +113,44 @@ export default function OrderForm() {
         </div>
       </div>
 
+      {/* Voucher code */}
+      <div className="mb-5">
+        {!showVoucher ? (
+          <button
+            onClick={() => setShowVoucher(true)}
+            className="text-blue-500 text-sm font-semibold"
+          >
+            🎟 Have a voucher code?
+          </button>
+        ) : (
+          <div className="animate-fade-in">
+            <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
+              Voucher Code
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={voucherCode}
+                onChange={(e) => {
+                  setVoucherCode(e.target.value.toUpperCase());
+                  setVoucherApplied(false);
+                }}
+                placeholder="Enter code"
+                className="flex-1 px-3.5 py-2.5 rounded-xl border-[1.5px] border-blue-200 text-sm text-blue-900 bg-blue-50 font-mono"
+              />
+              <Button
+                size="md"
+                variant={voucherApplied ? "ghost" : "outline"}
+                onClick={handleApplyVoucher}
+                disabled={!voucherCode.trim()}
+              >
+                {voucherApplied ? "✓ Applied" : "Apply"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {error && (
         <div className="mb-3 text-error text-sm text-center bg-red-50 rounded-lg p-2">
           {error}
@@ -115,7 +163,7 @@ export default function OrderForm() {
         loading={loading}
         disabled={!canSubmit}
       >
-        {loading ? "Sending to your phone..." : "Order & Pay via M-Pesa"}
+        {loading ? "Sending to your phone..." : `Order & Pay KES ${total} via M-Pesa`}
       </Button>
 
       <div className="text-center mt-2.5 text-text-light text-[11px] flex justify-center gap-4">

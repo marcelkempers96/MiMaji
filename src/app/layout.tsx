@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ClientProviders from "@/components/shared/ClientProviders";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,11 +31,13 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@400;700;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased font-body">
+        <ClientProviders>{children}</ClientProviders>
+      </body>
     </html>
   );
 }
