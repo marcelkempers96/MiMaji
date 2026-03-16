@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import OrderForm from "@/components/order/OrderForm";
@@ -18,9 +19,21 @@ export default function Home() {
           <br />
           delivered today.
         </h1>
-        <p className="text-blue-200 text-sm">
+        <p className="text-blue-200 text-sm mb-6">
           20-litre jugs · Nairobi · From KES 360
         </p>
+
+        {/* Hero banner image */}
+        <div className="relative w-full rounded-xl overflow-hidden">
+          <Image
+            src="/images/hero-banner.png"
+            alt="Order water online and track your delivery — 20L water jugs with live delivery tracking"
+            width={1400}
+            height={800}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+        </div>
       </section>
 
       <OrderForm />
