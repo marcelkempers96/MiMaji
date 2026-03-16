@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-blue-900: #0A2342;
+  --color-blue-700: #1A4B8C;
+  --color-blue-500: #2B7FD4;
+  --color-blue-200: #BDDBF5;
+  --color-blue-100: #D6E8F7;
+  --color-blue-50: #EEF6FD;
+  --color-text-dark: #0A2342;
+  --color-text-mid: #3D5A80;
+  --color-text-light: #7FA5C8;
+  --color-success: #1A8C5B;
+  --color-warning: #B87A00;
+  --color-error: #C0392B;
+  --font-display: "Fraunces", serif;
+  --font-body: "DM Sans", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text-dark);
+  background: var(--color-blue-50);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animations */
+@keyframes pulse-drop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-top {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+}
+
+@keyframes bounce-number {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.animate-pulse-drop {
+  animation: pulse-drop 1.5s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.animate-slide-in-top {
+  animation: slide-in-top 0.3s ease-out forwards;
+}
+
+.animate-bounce-number {
+  animation: bounce-number 0.2s ease-out;
+}
+
+.stagger-1 { animation-delay: 100ms; }
+.stagger-2 { animation-delay: 200ms; }
+.stagger-3 { animation-delay: 300ms; }
+.stagger-4 { animation-delay: 400ms; }
+
+/* Button press effect */
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+/* Focus styles */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-blue-500) !important;
+  box-shadow: 0 0 0 3px rgba(43, 127, 212, 0.15);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-blue-50);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-blue-200);
+  border-radius: 2px;
+}
