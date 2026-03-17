@@ -22,7 +22,6 @@ export default function OTPLogin({
   const handleSendOTP = async () => {
     if (phone.length < 9) return;
     setLoading(true);
-    // In production: call Supabase Auth signInWithOtp
     await new Promise((r) => setTimeout(r, 1000));
     setOtpSent(true);
     setLoading(false);
@@ -40,7 +39,6 @@ export default function OTPLogin({
 
   const handleOTPChange = (index: number, value: string) => {
     if (value.length > 1) {
-      // Handle paste
       const digits = value.replace(/\D/g, "").slice(0, 6).split("");
       const newOtp = [...otp];
       digits.forEach((d, i) => {
@@ -77,7 +75,6 @@ export default function OTPLogin({
   const handleVerify = async (code?: string) => {
     setLoading(true);
     const otpCode = code || otp.join("");
-    // In production: call Supabase Auth verifyOtp
     await new Promise((r) => setTimeout(r, 1000));
     setLoading(false);
     onVerified(`254${phone}`);
@@ -85,7 +82,7 @@ export default function OTPLogin({
   };
 
   return (
-    <div className="max-w-sm mx-auto bg-white rounded-2xl p-6 shadow-md border border-blue-200">
+    <div className="max-w-sm mx-auto bg-white rounded-2xl p-6" style={{ boxShadow: "var(--shadow-elevated)" }}>
       <h2 className="font-bold text-xl text-blue-900 text-center mb-1">
         {title}
       </h2>
@@ -95,11 +92,11 @@ export default function OTPLogin({
           <p className="text-text-mid text-sm text-center mb-6">
             We&apos;ll send a verification code to your phone
           </p>
-          <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
+          <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
             Phone Number
           </label>
-          <div className="flex border-[1.5px] border-blue-200 rounded-xl overflow-hidden mb-4">
-            <span className="px-3 py-2.5 bg-blue-200 text-blue-900 text-sm font-semibold">
+          <div className="flex rounded-2xl overflow-hidden mb-4 bg-blue-50">
+            <span className="px-3 py-3 bg-blue-100 text-blue-900 text-sm font-semibold">
               +254
             </span>
             <input
@@ -109,7 +106,7 @@ export default function OTPLogin({
                 setPhone(e.target.value.replace(/\D/g, "").slice(0, 9))
               }
               placeholder="712 345 678"
-              className="flex-1 px-3 py-2.5 text-sm bg-blue-50 border-none text-blue-900"
+              className="flex-1 px-3 py-3 text-sm bg-transparent border-none text-blue-900"
             />
           </div>
           <Button
@@ -139,7 +136,7 @@ export default function OTPLogin({
                 value={digit}
                 onChange={(e) => handleOTPChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
-                className="w-11 h-12 text-center text-lg font-bold border-[1.5px] border-blue-200 rounded-lg bg-blue-50 text-blue-900"
+                className="w-11 h-12 text-center text-lg font-bold rounded-xl bg-blue-50 text-blue-900"
               />
             ))}
           </div>
@@ -160,7 +157,7 @@ export default function OTPLogin({
             ) : (
               <button
                 onClick={handleSendOTP}
-                className="text-blue-500 text-xs font-semibold"
+                className="text-blue-700 text-xs font-semibold"
               >
                 Resend code
               </button>

@@ -30,52 +30,27 @@ export default function DistributorDashboard() {
     if (data && data.length > 0) {
       setOrders(data);
     } else {
-      // Demo data
       setOrders([
         {
-          id: "d1e2f3g4",
-          customer_id: "",
-          distributor_id: null,
-          zone_id: "",
-          delivery_address: "14 Muthangari Rd, Kilimani",
-          lat: -1.29,
-          lng: 36.78,
-          quantity: 2,
-          price_total: 500,
-          status: "paid" as OrderStatus,
-          mpesa_ref: null,
+          id: "d1e2f3g4", customer_id: "", distributor_id: null, zone_id: "",
+          delivery_address: "14 Muthangari Rd, Kilimani", lat: -1.29, lng: 36.78,
+          quantity: 2, price_total: 500, status: "paid" as OrderStatus, mpesa_ref: null,
           created_at: new Date(Date.now() - 180000).toISOString(),
           updated_at: new Date().toISOString(),
           customer: { full_name: "John K.", phone: "+254 720 *** ***" },
         },
         {
-          id: "h5i6j7k8",
-          customer_id: "",
-          distributor_id: null,
-          zone_id: "",
-          delivery_address: "Lavington Mall Rd, Lavington",
-          lat: -1.28,
-          lng: 36.77,
-          quantity: 3,
-          price_total: 700,
-          status: "paid" as OrderStatus,
-          mpesa_ref: null,
+          id: "h5i6j7k8", customer_id: "", distributor_id: null, zone_id: "",
+          delivery_address: "Lavington Mall Rd, Lavington", lat: -1.28, lng: 36.77,
+          quantity: 3, price_total: 700, status: "paid" as OrderStatus, mpesa_ref: null,
           created_at: new Date(Date.now() - 420000).toISOString(),
           updated_at: new Date().toISOString(),
           customer: { full_name: "Mary W.", phone: "+254 712 *** ***" },
         },
         {
-          id: "l9m0n1o2",
-          customer_id: "",
-          distributor_id: "dist-1",
-          zone_id: "",
-          delivery_address: "Valley Arcade, Lavington",
-          lat: -1.28,
-          lng: 36.77,
-          quantity: 4,
-          price_total: 900,
-          status: "out_for_delivery" as OrderStatus,
-          mpesa_ref: null,
+          id: "l9m0n1o2", customer_id: "", distributor_id: "dist-1", zone_id: "",
+          delivery_address: "Valley Arcade, Lavington", lat: -1.28, lng: 36.77,
+          quantity: 4, price_total: 900, status: "out_for_delivery" as OrderStatus, mpesa_ref: null,
           created_at: new Date(Date.now() - 1800000).toISOString(),
           updated_at: new Date().toISOString(),
           customer: { full_name: "Peter M.", phone: "+254 733 *** ***" },
@@ -89,7 +64,6 @@ export default function DistributorDashboard() {
     fetchOrders();
   }, [fetchOrders]);
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("distributor-orders")
@@ -157,7 +131,7 @@ export default function DistributorDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-bg">
         <Navbar variant="distributor" />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
@@ -167,11 +141,11 @@ export default function DistributorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-bg">
       <Navbar variant="distributor" />
 
       {/* Stats Bar */}
-      <div className="bg-blue-700 px-4 py-3.5 flex justify-between">
+      <div className="bg-blue-700 px-4 py-4 flex justify-between rounded-b-3xl">
         {[
           { label: "DELIVERED TODAY", value: todayDelivered.toString() },
           { label: "EARNED TODAY", value: `KES ${todayEarnings.toLocaleString()}` },
@@ -204,11 +178,12 @@ export default function DistributorDashboard() {
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`flex-1 py-2 px-1 rounded-xl text-xs font-bold border-[1.5px] transition-all ${
+              className={`flex-1 py-2.5 px-1 rounded-full text-xs font-semibold transition-all ${
                 tab === key
-                  ? "bg-blue-700 text-white border-blue-700"
-                  : "bg-white text-blue-500 border-blue-200"
+                  ? "bg-blue-700 text-white shadow-sm"
+                  : "bg-white text-text-mid"
               }`}
+              style={tab !== key ? { boxShadow: "var(--shadow-soft)" } : undefined}
             >
               {label}
             </button>
@@ -218,8 +193,10 @@ export default function DistributorDashboard() {
         {/* Orders */}
         {displayOrders.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-4xl mb-3">
-              {tab === "done" ? "💧" : "📦"}
+            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
             </div>
             <div className="text-text-mid text-sm">
               {tab === "done"
@@ -238,22 +215,22 @@ export default function DistributorDashboard() {
                     key={order.id}
                     className="bg-blue-700 rounded-2xl p-4 animate-slide-in-top"
                   >
-                    <div className="text-blue-200 text-[11px] font-bold mb-1.5">
-                      🚐 IN PROGRESS
+                    <div className="text-blue-200 text-[11px] font-semibold mb-1.5">
+                      IN PROGRESS
                     </div>
                     <div className="font-bold text-white text-[15px] mb-1.5">
-                      #{shortId} — {order.quantity} × 20L jugs
+                      #{shortId} — {order.quantity} &times; 20L jugs
                     </div>
                     <div className="text-blue-200 text-xs mb-1">
-                      📍 {order.delivery_address}
+                      {order.delivery_address}
                     </div>
                     <div className="text-blue-200 text-xs mb-3.5">
-                      📱 {order.customer?.phone || "N/A"} · KES{" "}
+                      {order.customer?.phone || "N/A"} &middot; KES{" "}
                       {order.price_total}
                     </div>
                     <div className="flex gap-2">
-                      <button className="flex-1 py-2.5 bg-white/15 text-white border border-white/40 rounded-xl text-xs">
-                        🗺 Navigate
+                      <button className="flex-1 py-2.5 bg-white/15 text-white border border-white/40 rounded-full text-xs font-semibold">
+                        Navigate
                       </button>
                       <Button
                         variant="outline"
@@ -263,7 +240,7 @@ export default function DistributorDashboard() {
                           handleStatusUpdate(order.id, "delivered")
                         }
                       >
-                        Mark Delivered ✅
+                        Mark Delivered
                       </Button>
                     </div>
                   </div>
@@ -274,16 +251,17 @@ export default function DistributorDashboard() {
                 return (
                   <div
                     key={order.id}
-                    className="bg-white rounded-2xl p-4 border border-blue-200"
+                    className="bg-white rounded-2xl p-4"
+                    style={{ boxShadow: "var(--shadow-card)" }}
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-bold text-blue-500 text-sm">
+                      <span className="font-bold text-blue-700 text-sm">
                         #{shortId}
                       </span>
                       <Badge status={order.status} />
                     </div>
                     <div className="text-xs text-text-mid">
-                      {order.quantity} jugs · KES {order.price_total} ·{" "}
+                      {order.quantity} jugs &middot; KES {order.price_total} &middot;{" "}
                       {timeAgo(order.created_at)}
                     </div>
                   </div>
@@ -294,24 +272,25 @@ export default function DistributorDashboard() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-2xl p-4 border-l-4 border-l-blue-500 shadow-md animate-slide-in-top"
+                  className="bg-white rounded-2xl p-4 border-l-4 border-l-blue-500 animate-slide-in-top"
+                  style={{ boxShadow: "var(--shadow-card)" }}
                 >
                   <div className="flex justify-between mb-2">
-                    <span className="bg-blue-50 text-blue-500 text-[10px] font-extrabold px-2 py-0.5 rounded-lg tracking-wider">
-                      🔔 NEW ORDER
+                    <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider">
+                      NEW ORDER
                     </span>
                     <span className="text-text-light text-[11px]">
                       {timeAgo(order.created_at)}
                     </span>
                   </div>
                   <div className="font-bold text-blue-900 mb-1.5">
-                    #{shortId} — {order.quantity} × 20L jugs
+                    #{shortId} — {order.quantity} &times; 20L jugs
                   </div>
                   <div className="text-xs text-text-mid mb-0.5">
-                    📍 {order.delivery_address}
+                    {order.delivery_address}
                   </div>
                   <div className="text-xs text-text-mid mb-3">
-                    📱 {order.customer?.phone || "N/A"} ·{" "}
+                    {order.customer?.phone || "N/A"} &middot;{" "}
                     <strong className="text-blue-700">
                       KES {order.price_total}
                     </strong>
@@ -325,7 +304,7 @@ export default function DistributorDashboard() {
                           handleStatusUpdate(order.id, "out_for_delivery")
                         }
                       >
-                        🚐 Out for Delivery
+                        Out for Delivery
                       </Button>
                     </div>
                   ) : (

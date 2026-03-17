@@ -89,7 +89,6 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
         }
       );
     } else {
-      // Fallback: Nairobi center coords
       onChange(description, -1.2921, 36.8219);
     }
   };
@@ -104,12 +103,11 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
     }
   };
 
-  // Fallback: if Google Maps not loaded, just use text input
   if (!isGoogleLoaded) {
     return (
       <div>
-        <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
-          📍 Delivery Address
+        <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
+          Delivery Address
         </label>
         <input
           ref={inputRef}
@@ -120,7 +118,7 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
             onChange(e.target.value, -1.2921, 36.8219);
           }}
           placeholder="e.g. Kilimani, Nairobi"
-          className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] border-blue-200 text-sm text-blue-900 bg-blue-50 placeholder:text-text-light"
+          className="w-full px-4 py-3 rounded-2xl text-sm text-blue-900 bg-blue-50 placeholder:text-text-light"
         />
       </div>
     );
@@ -128,8 +126,8 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
 
   return (
     <div className="relative">
-      <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
-        📍 Delivery Address
+      <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
+        Delivery Address
       </label>
       <input
         ref={inputRef}
@@ -138,17 +136,16 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
         onChange={(e) => handleInputChange(e.target.value)}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         placeholder="e.g. Kilimani, Nairobi"
-        className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] border-blue-200 text-sm text-blue-900 bg-blue-50 placeholder:text-text-light"
+        className="w-full px-4 py-3 rounded-2xl text-sm text-blue-900 bg-blue-50 placeholder:text-text-light"
       />
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-blue-200 rounded-xl shadow-lg z-20 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl z-20 overflow-hidden" style={{ boxShadow: "0 8px 30px rgba(26, 58, 92, 0.12)" }}>
           {suggestions.map((s) => (
             <button
               key={s.place_id}
               onClick={() => handleSelect(s.place_id, s.description)}
-              className="w-full px-3 py-2.5 text-left text-sm text-text-mid hover:bg-blue-50 flex items-center gap-2 border-b border-blue-50 last:border-b-0"
+              className="w-full px-4 py-3 text-left text-sm text-text-mid hover:bg-blue-50 border-b border-blue-50 last:border-b-0 transition-colors"
             >
-              <span className="text-blue-500">📍</span>
               {s.description}
             </button>
           ))}

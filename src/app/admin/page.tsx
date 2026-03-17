@@ -30,14 +30,12 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Demo distributors
   const [distributors] = useState<DistributorEntry[]>([
     { id: "1", name: "Depot A — Westlands", phone: "0722 XXX XXX", zone: "Westlands", todayDeliveries: 12, active: true },
     { id: "2", name: "Depot B — Kilimani", phone: "0733 XXX XXX", zone: "Kilimani", todayDeliveries: 9, active: true },
     { id: "3", name: "Depot C — Karen", phone: "0711 XXX XXX", zone: "Karen", todayDeliveries: 4, active: false },
   ]);
 
-  // Demo zones
   const [zones] = useState<ZoneEntry[]>([
     { id: "1", name: "Westlands", active: true, distributorCount: 3 },
     { id: "2", name: "Kilimani", active: true, distributorCount: 2 },
@@ -51,7 +49,6 @@ export default function AdminPage() {
     { id: "10", name: "Thika Road", active: false, distributorCount: 0 },
   ]);
 
-  // Pricing
   const [jugPrice, setJugPrice] = useState("200");
   const [deliveryFee, setDeliveryFee] = useState("100");
 
@@ -94,24 +91,24 @@ export default function AdminPage() {
   ];
 
   const navItems: [AdminNav, string][] = [
-    ["overview", "📊 Overview"],
-    ["orders", "📦 Orders"],
-    ["distributors", "🚐 Distributors"],
-    ["zones", "🗺 Zones"],
-    ["pricing", "💰 Pricing"],
+    ["overview", "Overview"],
+    ["orders", "Orders"],
+    ["distributors", "Distributors"],
+    ["zones", "Zones"],
+    ["pricing", "Pricing"],
   ];
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-bg">
       <Navbar variant="admin" />
 
       {/* Nav tabs */}
-      <div className="bg-white border-b border-blue-200 flex overflow-x-auto px-2">
+      <div className="bg-white flex overflow-x-auto px-2 shadow-sm">
         {navItems.map(([id, label]) => (
           <button
             key={id}
             onClick={() => setNav(id)}
-            className={`px-3.5 py-3 whitespace-nowrap text-xs font-semibold border-b-[2.5px] transition-all ${
+            className={`px-4 py-3 whitespace-nowrap text-xs font-semibold border-b-2 transition-all ${
               nav === id
                 ? "text-blue-700 border-blue-700"
                 : "text-text-mid border-transparent hover:text-blue-500"
@@ -123,7 +120,6 @@ export default function AdminPage() {
       </div>
 
       <div className="p-4">
-        {/* OVERVIEW */}
         {nav === "overview" && (
           <div className="animate-fade-in">
             <h2 className="text-xl text-blue-900 font-bold mb-3.5">
@@ -131,16 +127,16 @@ export default function AdminPage() {
             </h2>
             <div className="grid grid-cols-2 gap-2.5 mb-4">
               {[
-                { label: "Orders Today", value: todayOrders.toString(), icon: "📦" },
-                { label: "Revenue Today", value: `KES ${(todayRevenue / 1000).toFixed(0)}K`, icon: "💰" },
-                { label: "Active Distributors", value: activeDistributors.toString(), icon: "🚐" },
-                { label: "Pending Orders", value: pendingOrders.toString(), icon: "⏳" },
+                { label: "Orders Today", value: todayOrders.toString() },
+                { label: "Revenue Today", value: `KES ${(todayRevenue / 1000).toFixed(0)}K` },
+                { label: "Active Distributors", value: activeDistributors.toString() },
+                { label: "Pending Orders", value: pendingOrders.toString() },
               ].map((kpi) => (
                 <div
                   key={kpi.label}
-                  className="bg-white rounded-xl p-3.5 border border-blue-200"
+                  className="bg-white rounded-2xl p-4"
+                  style={{ boxShadow: "var(--shadow-card)" }}
                 >
-                  <div className="text-lg mb-1">{kpi.icon}</div>
                   <div className="text-[22px] font-bold text-blue-900">
                     {kpi.value}
                   </div>
@@ -149,8 +145,7 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Zone breakdown */}
-            <div className="bg-white rounded-xl p-3.5 border border-blue-200">
+            <div className="bg-white rounded-2xl p-4" style={{ boxShadow: "var(--shadow-card)" }}>
               <div className="font-bold text-blue-900 text-sm mb-2.5">
                 Orders by Zone
               </div>
@@ -160,9 +155,9 @@ export default function AdminPage() {
                     <span>{z.zone}</span>
                     <span>{z.count} orders</span>
                   </div>
-                  <div className="bg-blue-100 rounded h-1.5">
+                  <div className="bg-blue-50 rounded-full h-1.5">
                     <div
-                      className="h-full bg-blue-500 rounded transition-all"
+                      className="h-full bg-blue-500 rounded-full transition-all"
                       style={{ width: `${z.pct}%` }}
                     />
                   </div>
@@ -172,7 +167,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ORDERS */}
         {nav === "orders" && (
           <div className="animate-fade-in">
             <h2 className="text-xl text-blue-900 font-bold mb-3.5">
@@ -189,20 +183,21 @@ export default function AdminPage() {
                   return (
                     <div
                       key={o.id}
-                      className="bg-white rounded-xl p-3.5 border border-blue-200"
+                      className="bg-white rounded-2xl p-4"
+                      style={{ boxShadow: "var(--shadow-card)" }}
                     >
                       <div className="flex justify-between items-center mb-1.5">
-                        <span className="font-bold text-blue-500 text-sm">
+                        <span className="font-bold text-blue-700 text-sm">
                           #{shortId}
                         </span>
                         <Badge status={o.status} />
                       </div>
                       <div className="text-xs text-text-mid">
-                        📍 {o.delivery_address} · {o.quantity} jugs ·{" "}
+                        {o.delivery_address} &middot; {o.quantity} jugs &middot;{" "}
                         <strong>KES {o.price_total}</strong>
                       </div>
                       <div className="text-[11px] text-text-light mt-0.5">
-                        🚐 {o.distributor_id || "Unassigned"}
+                        {o.distributor_id || "Unassigned"}
                       </div>
                     </div>
                   );
@@ -212,7 +207,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* DISTRIBUTORS */}
         {nav === "distributors" && (
           <div className="animate-fade-in">
             <h2 className="text-xl text-blue-900 font-bold mb-3.5">
@@ -222,14 +216,15 @@ export default function AdminPage() {
               {distributors.map((d) => (
                 <div
                   key={d.id}
-                  className="bg-white rounded-xl p-3.5 border border-blue-200"
+                  className="bg-white rounded-2xl p-4"
+                  style={{ boxShadow: "var(--shadow-card)" }}
                 >
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-blue-900 text-sm">
                       {d.name}
                     </span>
                     <span
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${
+                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
                         d.active
                           ? "text-success bg-emerald-50"
                           : "text-error bg-red-50"
@@ -239,7 +234,7 @@ export default function AdminPage() {
                     </span>
                   </div>
                   <div className="text-xs text-text-mid">
-                    {d.phone} · Zone: {d.zone}
+                    {d.phone} &middot; Zone: {d.zone}
                   </div>
                   <div className="text-xs text-text-mid mt-0.5">
                     Today: {d.todayDeliveries} deliveries
@@ -251,7 +246,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ZONES */}
         {nav === "zones" && (
           <div className="animate-fade-in">
             <h2 className="text-xl text-blue-900 font-bold mb-3.5">
@@ -261,7 +255,8 @@ export default function AdminPage() {
               {zones.map((z) => (
                 <div
                   key={z.id}
-                  className="bg-white rounded-xl p-3.5 border border-blue-200 flex justify-between items-center"
+                  className="bg-white rounded-2xl p-4 flex justify-between items-center"
+                  style={{ boxShadow: "var(--shadow-card)" }}
                 >
                   <div>
                     <div className="font-bold text-blue-900 text-sm">
@@ -272,7 +267,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <span
-                    className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
                       z.active
                         ? "text-success bg-emerald-50"
                         : "text-text-light bg-gray-100"
@@ -287,27 +282,18 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* PRICING */}
         {nav === "pricing" && (
           <div className="animate-fade-in">
             <h2 className="text-xl text-blue-900 font-bold mb-3.5">
               Pricing
             </h2>
-            <div className="bg-white rounded-xl p-4 border border-blue-200 mb-3.5">
+            <div className="bg-white rounded-2xl p-4 mb-3.5" style={{ boxShadow: "var(--shadow-card)" }}>
               <div className="font-bold text-blue-900 text-sm mb-3">
                 Base Pricing
               </div>
               {[
-                {
-                  label: "Price per 20L jug",
-                  value: jugPrice,
-                  onChange: setJugPrice,
-                },
-                {
-                  label: "Base delivery fee",
-                  value: deliveryFee,
-                  onChange: setDeliveryFee,
-                },
+                { label: "Price per 20L jug", value: jugPrice, onChange: setJugPrice },
+                { label: "Base delivery fee", value: deliveryFee, onChange: setDeliveryFee },
               ].map((field) => (
                 <div key={field.label} className="mb-3">
                   <div className="text-xs text-text-mid mb-1">
@@ -319,7 +305,7 @@ export default function AdminPage() {
                       type="text"
                       value={field.value}
                       onChange={(e) => field.onChange(e.target.value)}
-                      className="flex-1 px-3 py-2 border-[1.5px] border-blue-200 rounded-lg text-sm font-bold text-blue-900 bg-blue-50"
+                      className="flex-1 px-4 py-2.5 rounded-2xl text-sm font-bold text-blue-900 bg-blue-50"
                     />
                   </div>
                 </div>

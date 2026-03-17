@@ -13,10 +13,10 @@ export default function PriceBreakdown({ quantity }: PriceBreakdownProps) {
   const tiers = getPricingTable();
 
   return (
-    <div className="bg-blue-50 rounded-xl p-3.5 text-sm">
-      <div className="flex justify-between text-text-mid mb-1.5">
+    <div className="bg-blue-50 rounded-2xl p-4 text-sm">
+      <div className="flex justify-between text-text-mid mb-2">
         <span>
-          {quantity} jug{quantity > 1 ? "s" : ""} × KES {pricePerJug}
+          {quantity} jug{quantity > 1 ? "s" : ""} &times; KES {pricePerJug}
         </span>
         <span className="transition-all duration-200">KES {subtotal}</span>
       </div>
@@ -30,7 +30,7 @@ export default function PriceBreakdown({ quantity }: PriceBreakdownProps) {
           <span className="font-bold">- KES {savings}</span>
         </div>
       )}
-      <div className="border-t border-blue-200 pt-2 flex justify-between font-bold text-blue-900 text-[15px]">
+      <div className="border-t border-blue-100 pt-2.5 flex justify-between font-bold text-blue-900 text-[15px]">
         <span>Total</span>
         <span className="transition-all duration-200">KES {total}</span>
       </div>
@@ -38,18 +38,18 @@ export default function PriceBreakdown({ quantity }: PriceBreakdownProps) {
       {/* Pricing tiers toggle */}
       <button
         onClick={() => setShowTiers(!showTiers)}
-        className="mt-2 text-blue-500 text-xs font-semibold w-full text-center"
+        className="mt-2.5 text-blue-700 text-xs font-semibold w-full text-center"
       >
-        {showTiers ? "Hide pricing ▲" : "Order more, save more ▼"}
+        {showTiers ? "Hide pricing" : "Order more, save more"}
       </button>
 
       {showTiers && (
-        <div className="mt-2 bg-white rounded-lg p-2.5 border border-blue-200 animate-fade-in">
-          <div className="grid grid-cols-3 gap-1 text-[11px]">
+        <div className="mt-2.5 bg-white rounded-xl p-3 animate-fade-in" style={{ boxShadow: "var(--shadow-soft)" }}>
+          <div className="grid grid-cols-3 gap-1.5 text-[11px]">
             {tiers.map((tier) => (
               <div
                 key={tier.qty}
-                className={`text-center py-1.5 px-1 rounded ${
+                className={`text-center py-2 px-1 rounded-lg ${
                   (tier.qty === "9+" && quantity >= 9) ||
                   (tier.qty !== "9+" && parseInt(tier.qty) === quantity)
                     ? "bg-blue-700 text-white font-bold"

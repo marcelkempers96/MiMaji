@@ -28,22 +28,21 @@ export default function TrackPage() {
     rating: 4.9,
   };
 
-  // Simulate ETA countdown
   useEffect(() => {
     if (!tracking || step === "delivered") return;
     const timer = setInterval(() => {
       setEta((prev) => Math.max(0, prev - 1));
-    }, 60000); // every minute
+    }, 60000);
     return () => clearInterval(timer);
   }, [tracking, step]);
 
-  const steps: { key: TrackingStep; label: string; icon: string; time: string }[] = [
-    { key: "searching", label: "Finding rider", icon: "🔍", time: "2:30 PM" },
-    { key: "assigned", label: "Rider assigned", icon: "✅", time: "2:31 PM" },
-    { key: "picking_up", label: "Picking up water", icon: "🏪", time: "2:35 PM" },
-    { key: "on_the_way", label: "On the way to you", icon: "🏍", time: "2:42 PM" },
-    { key: "arriving", label: "Almost there", icon: "📍", time: "" },
-    { key: "delivered", label: "Delivered!", icon: "💧", time: "" },
+  const steps: { key: TrackingStep; label: string; time: string }[] = [
+    { key: "searching", label: "Finding rider", time: "2:30 PM" },
+    { key: "assigned", label: "Rider assigned", time: "2:31 PM" },
+    { key: "picking_up", label: "Picking up water", time: "2:35 PM" },
+    { key: "on_the_way", label: "On the way to you", time: "2:42 PM" },
+    { key: "arriving", label: "Almost there", time: "" },
+    { key: "delivered", label: "Delivered!", time: "" },
   ];
 
   const currentIdx = steps.findIndex((s) => s.key === step);
@@ -54,16 +53,21 @@ export default function TrackPage() {
     picking_up: "James is at the depot collecting your 20L jugs.",
     on_the_way: `James is on the way! Estimated arrival in ${eta} minutes.`,
     arriving: "James is almost at your location. Get ready!",
-    delivered: "Your water has been delivered. Enjoy! 💧",
+    delivered: "Your water has been delivered. Enjoy!",
   };
 
   if (!tracking) {
     return (
-      <div className="min-h-screen bg-white font-body">
+      <div className="min-h-screen bg-bg font-body">
         <Navbar />
         <div className="px-4 py-12 max-w-md mx-auto">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-4">📍</div>
+            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
             <h1 className="text-2xl font-bold text-blue-900 mb-2">
               Track My Water
             </h1>
@@ -72,8 +76,8 @@ export default function TrackPage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-blue-200 shadow-sm">
-            <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
+          <div className="bg-white rounded-2xl p-6" style={{ boxShadow: "var(--shadow-card)" }}>
+            <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
               Order Number
             </label>
             <input
@@ -81,7 +85,7 @@ export default function TrackPage() {
               value={orderId}
               onChange={(e) => setOrderId(e.target.value.toUpperCase())}
               placeholder="e.g. MJ-2847"
-              className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] border-blue-200 text-sm text-blue-900 bg-blue-50 mb-4 font-mono"
+              className="w-full px-4 py-3 rounded-2xl text-sm text-blue-900 bg-blue-50 mb-4 font-mono"
             />
             <Button
               size="lg"
@@ -94,7 +98,7 @@ export default function TrackPage() {
 
           <div className="mt-8 text-center text-text-light text-xs">
             You can also find your order number in your SMS confirmation or in{" "}
-            <a href="/orders" className="text-blue-500 font-semibold">
+            <a href="/orders" className="text-blue-700 font-semibold">
               My Orders
             </a>
           </div>
@@ -104,21 +108,28 @@ export default function TrackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white font-body">
+    <div className="min-h-screen bg-bg font-body">
       {/* Map area */}
       <div className="bg-blue-50 h-64 relative">
         {/* Back button */}
         <button
           onClick={() => setTracking(false)}
-          className="absolute top-4 left-4 z-10 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-blue-900 font-bold"
+          className="absolute top-4 left-4 z-10 w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-900 font-bold"
+          style={{ boxShadow: "var(--shadow-card)" }}
         >
-          ←
+          &larr;
         </button>
 
         {/* Simulated map */}
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
-            <div className="text-4xl mb-2">🗺</div>
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5A7A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                <line x1="9" y1="3" x2="9" y2="18"/>
+                <line x1="15" y1="6" x2="15" y2="21"/>
+              </svg>
+            </div>
             <p className="text-sm text-text-mid font-semibold">Live Map</p>
             <p className="text-xs text-text-light">Connect Google Maps API to enable</p>
           </div>
@@ -126,37 +137,44 @@ export default function TrackPage() {
 
         {/* Rider marker */}
         <div className="absolute bottom-12 left-1/3 animate-pulse">
-          <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center shadow-lg text-lg">
-            🏍
+          <div className="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center shadow-md text-sm font-bold">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="none">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+            </svg>
           </div>
         </div>
 
         {/* Destination marker */}
         <div className="absolute bottom-16 right-1/4">
-          <div className="w-10 h-10 rounded-full bg-white border-2 border-blue-700 flex items-center justify-center shadow-lg text-lg">
-            🏠
+          <div className="w-10 h-10 rounded-full bg-white border-2 border-blue-700 flex items-center justify-center shadow-md">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
           </div>
         </div>
 
         {/* ETA overlay */}
-        <div className="absolute top-4 right-4 bg-white rounded-xl px-4 py-2 shadow-md">
+        <div className="absolute top-4 right-4 bg-white rounded-2xl px-4 py-2" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="text-[10px] text-text-mid font-semibold uppercase">ETA</div>
           <div className="text-xl font-bold text-blue-900">{eta} min</div>
         </div>
       </div>
 
       {/* Bottom sheet */}
-      <div className="bg-white rounded-t-3xl -mt-6 relative z-10 shadow-lg border-t border-blue-200">
+      <div className="bg-white rounded-t-3xl -mt-6 relative z-10" style={{ boxShadow: "0 -4px 20px rgba(26, 58, 92, 0.08)" }}>
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 bg-blue-200 rounded-full" />
+          <div className="w-10 h-1 bg-blue-100 rounded-full" />
         </div>
 
         {/* Status message */}
         <div className="px-5 pb-4">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-blue-700 text-white flex items-center justify-center text-2xl">
-              {steps[currentIdx]?.icon || "🏍"}
+            <div className="w-12 h-12 rounded-full bg-blue-700 text-white flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="none">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
             </div>
             <div className="flex-1">
               <div className="font-bold text-blue-900">
@@ -169,7 +187,7 @@ export default function TrackPage() {
           </div>
 
           {/* Progress bar */}
-          <div className="bg-blue-100 rounded-full h-2 mb-4">
+          <div className="bg-blue-50 rounded-full h-2 mb-4">
             <div
               className="h-full bg-blue-700 rounded-full transition-all duration-500"
               style={{ width: `${((currentIdx + 1) / steps.length) * 100}%` }}
@@ -189,13 +207,13 @@ export default function TrackPage() {
                       {rider.name}
                     </div>
                     <div className="text-xs text-text-mid">
-                      {rider.vehicle} · {rider.plate}
+                      {rider.vehicle} &middot; {rider.plate}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-amber-500 font-bold">
-                    ★ {rider.rating}
+                    &#9733; {rider.rating}
                   </div>
                 </div>
               </div>
@@ -206,7 +224,7 @@ export default function TrackPage() {
                   className="flex-1"
                   onClick={() => window.open(`tel:${rider.phone}`)}
                 >
-                  📞 Call Rider
+                  Call Rider
                 </Button>
                 <Button
                   variant="outline"
@@ -214,7 +232,7 @@ export default function TrackPage() {
                   className="flex-1"
                   onClick={() => window.open(`sms:${rider.phone}`)}
                 >
-                  💬 Message
+                  Message
                 </Button>
               </div>
             </div>
@@ -232,13 +250,13 @@ export default function TrackPage() {
                         ? "bg-blue-700"
                         : i === currentIdx
                           ? "bg-blue-500 ring-2 ring-blue-200"
-                          : "bg-blue-200"
+                          : "bg-blue-100"
                     }`}
                   />
                   {i < steps.length - 1 && (
                     <div
                       className={`w-0.5 h-8 ${
-                        i < currentIdx ? "bg-blue-700" : "bg-blue-200"
+                        i < currentIdx ? "bg-blue-700" : "bg-blue-100"
                       }`}
                     />
                   )}
@@ -250,7 +268,7 @@ export default function TrackPage() {
                       i <= currentIdx ? "text-blue-900" : "text-text-light"
                     }`}
                   >
-                    {s.icon} {s.label}
+                    {s.label}
                   </div>
                   {s.time && i <= currentIdx && (
                     <div className="text-[11px] text-text-light">{s.time}</div>
@@ -261,12 +279,12 @@ export default function TrackPage() {
           </div>
 
           {/* Demo controls */}
-          <div className="bg-blue-50 rounded-xl p-3 mt-2">
+          <div className="bg-blue-50 rounded-2xl p-3 mt-2">
             <div className="text-[11px] text-text-light mb-2">
               Demo: Change delivery status
             </div>
-            <div className="flex gap-1 flex-wrap">
-              {steps.map((s) => (
+            <div className="flex gap-1.5 flex-wrap">
+              {steps.map((s, i) => (
                 <button
                   key={s.key}
                   onClick={() => {
@@ -275,13 +293,14 @@ export default function TrackPage() {
                     if (s.key === "arriving") setEta(3);
                     if (s.key === "delivered") setEta(0);
                   }}
-                  className={`px-2 py-1 rounded-lg text-[10px] font-semibold ${
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${
                     step === s.key
                       ? "bg-blue-700 text-white"
-                      : "bg-white text-blue-500 border border-blue-200"
+                      : "bg-white text-blue-500"
                   }`}
+                  style={step !== s.key ? { boxShadow: "var(--shadow-soft)" } : undefined}
                 >
-                  {s.icon}
+                  {i + 1}
                 </button>
               ))}
             </div>

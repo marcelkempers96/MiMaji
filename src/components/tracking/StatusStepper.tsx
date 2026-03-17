@@ -13,7 +13,7 @@ export default function StatusStepper({ status }: { status: OrderStatus }) {
   const currentIdx = steps.findIndex((s) => s.key === status);
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-blue-200">
+    <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-card)" }}>
       <div className="flex items-center relative">
         {steps.map((step, i) => (
           <div
@@ -24,7 +24,7 @@ export default function StatusStepper({ status }: { status: OrderStatus }) {
             {i < steps.length - 1 && (
               <div
                 className={`absolute top-3.5 left-1/2 w-full h-0.5 ${
-                  i < currentIdx ? "bg-blue-700" : "bg-blue-200"
+                  i < currentIdx ? "bg-blue-700" : "bg-blue-100"
                 }`}
               />
             )}
@@ -34,11 +34,11 @@ export default function StatusStepper({ status }: { status: OrderStatus }) {
                 i < currentIdx
                   ? "bg-blue-700 text-white"
                   : i === currentIdx
-                    ? "bg-blue-500 text-white ring-4 ring-blue-200 animate-pulse"
-                    : "bg-blue-200 text-blue-500"
+                    ? "bg-blue-500 text-white ring-4 ring-blue-100 animate-pulse"
+                    : "bg-blue-100 text-blue-400"
               }`}
             >
-              {i < currentIdx ? "✓" : i + 1}
+              {i < currentIdx ? "\u2713" : i + 1}
             </div>
             {/* Label */}
             <span

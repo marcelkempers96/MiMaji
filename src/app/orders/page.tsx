@@ -29,7 +29,6 @@ export default function OrdersPage() {
     if (data && data.length > 0) {
       setOrders(data);
     } else {
-      // Demo data
       setOrders([
         {
           id: "a1b2c3d4",
@@ -113,7 +112,7 @@ export default function OrdersPage() {
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-bg">
         <Navbar />
         <div className="px-4 py-12">
           <OTPLogin
@@ -129,7 +128,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-bg">
       <Navbar />
       <div className="px-4 py-5">
         <h1 className="text-[22px] text-blue-900 font-bold mb-1">
@@ -151,11 +150,12 @@ export default function OrdersPage() {
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-[1.5px] transition-all capitalize ${
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all capitalize ${
                 tab === key
-                  ? "bg-blue-700 text-white border-blue-700"
-                  : "bg-white text-blue-500 border-blue-200 hover:border-blue-500"
+                  ? "bg-blue-700 text-white shadow-sm"
+                  : "bg-white text-text-mid hover:bg-blue-50"
               }`}
+              style={tab !== key ? { boxShadow: "var(--shadow-soft)" } : undefined}
             >
               {label}
             </button>
@@ -168,7 +168,11 @@ export default function OrdersPage() {
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-4xl mb-3">💧</div>
+            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
+            </div>
             <div className="font-bold text-blue-900 mb-1">No orders yet</div>
             <div className="text-text-mid text-sm mb-4">
               Place your first order!
@@ -182,20 +186,21 @@ export default function OrdersPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm animate-fade-in"
+                  className="bg-white rounded-2xl p-4 animate-fade-in"
+                  style={{ boxShadow: "var(--shadow-card)" }}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-bold text-blue-500 text-sm">
+                    <span className="font-bold text-blue-700 text-sm">
                       #{shortId}
                     </span>
                     <Badge status={order.status} />
                   </div>
                   <div className="text-sm text-text-mid mb-1">
-                    📍 {order.delivery_address}
+                    {order.delivery_address}
                   </div>
                   <div className="text-sm text-text-mid mb-3">
-                    💧 {order.quantity} jug{order.quantity > 1 ? "s" : ""} · KES{" "}
-                    {order.price_total} · {formatTime(order.created_at)}
+                    {order.quantity} jug{order.quantity > 1 ? "s" : ""} &middot; KES{" "}
+                    {order.price_total} &middot; {formatTime(order.created_at)}
                   </div>
                   <Button
                     variant={
@@ -210,8 +215,8 @@ export default function OrdersPage() {
                     }
                   >
                     {order.status !== "delivered"
-                      ? "Track Order →"
-                      : "Order Again →"}
+                      ? "Track Order"
+                      : "Order Again"}
                   </Button>
                 </div>
               );

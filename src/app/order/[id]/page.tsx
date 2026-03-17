@@ -34,7 +34,6 @@ export default function OrderPage({
   const [elapsed, setElapsed] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Fetch order
   useEffect(() => {
     async function fetchOrder() {
       const { data } = await supabase
@@ -46,7 +45,6 @@ export default function OrderPage({
       if (data) {
         setOrder(data);
       } else {
-        // Demo fallback
         setOrder({
           id,
           status: isPaymentStep ? "pending_payment" : "paid",
@@ -62,7 +60,6 @@ export default function OrderPage({
     fetchOrder();
   }, [id, isPaymentStep]);
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel(`order-${id}`)
@@ -77,7 +74,6 @@ export default function OrderPage({
         (payload) => {
           const updated = payload.new as OrderData;
           setOrder((prev) => (prev ? { ...prev, ...updated } : null));
-          // Auto-redirect from payment page when paid
           if (
             isPaymentStep &&
             updated.status !== "pending_payment"
@@ -93,7 +89,6 @@ export default function OrderPage({
     };
   }, [id, isPaymentStep, router]);
 
-  // Payment timeout counter
   useEffect(() => {
     if (!isPaymentStep) return;
     const timer = setInterval(() => {
@@ -104,7 +99,7 @@ export default function OrderPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-bg">
         <Navbar minimal />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
@@ -115,7 +110,7 @@ export default function OrderPage({
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-bg">
         <Navbar minimal />
         <div className="text-center py-20 text-text-mid">Order not found</div>
       </div>
@@ -129,7 +124,7 @@ export default function OrderPage({
   // Payment pending view
   if (isPaymentStep && order.status === "pending_payment") {
     return (
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-bg">
         <Navbar minimal />
         <div className="flex flex-col items-center px-6 pt-12 text-center">
           <div className="mb-4 animate-pulse-drop">
@@ -145,13 +140,13 @@ export default function OrderPage({
           </p>
 
           {/* Progress */}
-          <div className="w-full max-w-xs bg-white rounded-2xl p-5 shadow-md mb-6">
+          <div className="w-full max-w-xs bg-white rounded-2xl p-5 mb-6" style={{ boxShadow: "var(--shadow-elevated)" }}>
             <div className="flex items-center justify-center gap-2 mb-3 text-warning font-bold text-sm">
-              ⏱ Waiting for payment...
+              Waiting for payment...
             </div>
-            <div className="bg-blue-200 rounded h-1.5 overflow-hidden">
+            <div className="bg-blue-50 rounded-full h-1.5 overflow-hidden">
               <div
-                className="h-full bg-blue-500 rounded transition-all duration-1000 ease-linear"
+                className="h-full bg-blue-700 rounded-full transition-all duration-1000 ease-linear"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -162,13 +157,13 @@ export default function OrderPage({
           </div>
 
           {/* Order summary */}
-          <div className="w-full max-w-xs bg-white rounded-xl p-4 border border-blue-200 mb-5">
+          <div className="w-full max-w-xs bg-white rounded-2xl p-4 mb-5" style={{ boxShadow: "var(--shadow-card)" }}>
             <div className="text-text-mid text-xs mb-1">Order summary</div>
             <div className="font-bold text-blue-900 text-[15px]">
-              {order.quantity} × 20L jugs — KES {order.price_total}
+              {order.quantity} &times; 20L jugs — KES {order.price_total}
             </div>
             <div className="text-text-mid text-xs mt-1">
-              📍 {order.delivery_address}
+              {order.delivery_address}
             </div>
           </div>
 
@@ -190,17 +185,17 @@ export default function OrderPage({
 
   // Order tracking view
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-bg">
       <Navbar />
       <div className="px-4 py-5">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm text-blue-500 font-bold">
+          <span className="text-sm text-blue-700 font-bold">
             ORDER #{shortId}
           </span>
         </div>
         <h1 className="text-[22px] text-blue-900 font-bold mb-5">
           {order.status === "delivered"
-            ? "Water delivered! 💧"
+            ? "Water delivered!"
             : order.status === "out_for_delivery"
               ? "Your water is on the way!"
               : order.status === "confirmed"
@@ -219,29 +214,26 @@ export default function OrderPage({
         </div>
 
         {/* Order details */}
-        <div className="bg-white rounded-2xl p-4 border border-blue-200 mb-4">
+        <div className="bg-white rounded-2xl p-4 mb-4" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="font-bold text-blue-900 text-sm mb-3">
             Order Details
           </div>
           <div className="space-y-2 text-sm text-text-mid">
             <div className="flex gap-2.5">
-              <span>💧</span>
               <span>
-                {order.quantity} × 20L water jug
+                {order.quantity} &times; 20L water jug
                 {order.quantity > 1 ? "s" : ""}
               </span>
             </div>
             <div className="flex gap-2.5">
-              <span>📍</span>
               <span>{order.delivery_address}</span>
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex gap-2.5 items-center">
               <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={16} height={16} />
               <span>KES {order.price_total} paid via M-Pesa</span>
             </div>
             {order.mpesa_ref && (
               <div className="flex gap-2.5">
-                <span>🧾</span>
                 <span className="font-mono text-blue-700">
                   Ref: {order.mpesa_ref}
                 </span>

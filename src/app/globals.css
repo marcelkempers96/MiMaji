@@ -1,19 +1,28 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-blue-900: #0A2342;
-  --color-blue-700: #1A4B8C;
-  --color-blue-500: #2B7FD4;
-  --color-blue-200: #BDDBF5;
-  --color-blue-100: #D6E8F7;
-  --color-blue-50: #EEF6FD;
-  --color-text-dark: #0A2342;
-  --color-text-mid: #3D5A80;
-  --color-text-light: #7FA5C8;
-  --color-success: #1A8C5B;
-  --color-warning: #B87A00;
-  --color-error: #C0392B;
+  /* Soft, calming blue palette inspired by mockup design */
+  --color-blue-900: #1A3A5C;
+  --color-blue-700: #2E7BD6;
+  --color-blue-500: #4A9AE8;
+  --color-blue-400: #6BB3F0;
+  --color-blue-200: #C8DFF5;
+  --color-blue-100: #E1EDFB;
+  --color-blue-50: #F0F6FD;
+  --color-bg: #F4F7FB;
+  --color-text-dark: #1A3A5C;
+  --color-text-mid: #5A7A9A;
+  --color-text-light: #94B3CC;
+  --color-success: #22A96A;
+  --color-warning: #D4941C;
+  --color-error: #D44D3C;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Soft shadows matching mockup aesthetic */
+  --shadow-card: 0 2px 12px rgba(26, 58, 92, 0.06);
+  --shadow-card-hover: 0 4px 20px rgba(26, 58, 92, 0.1);
+  --shadow-soft: 0 1px 6px rgba(26, 58, 92, 0.04);
+  --shadow-elevated: 0 8px 30px rgba(26, 58, 92, 0.1);
 }
 
 * {
@@ -23,7 +32,7 @@
 body {
   font-family: var(--font-body);
   color: var(--color-text-dark);
-  background: #ffffff;
+  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -31,22 +40,22 @@ body {
 /* Animations */
 @keyframes pulse-drop {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.06); }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slide-in-top {
-  from { opacity: 0; transform: translateY(-16px); }
+  from { opacity: 0; transform: translateY(-12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes bounce-number {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+  50% { transform: scale(1.12); }
 }
 
 @keyframes slide-up {
@@ -82,10 +91,25 @@ body {
   transform: scale(0.97);
 }
 
+/* Soft card style */
+.card {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
+  border: none;
+}
+
+.card-elevated {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-elevated);
+  border: none;
+}
+
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: var(--color-blue-500) !important;
-  box-shadow: 0 0 0 3px rgba(43, 127, 212, 0.15);
+  border-color: var(--color-blue-400) !important;
+  box-shadow: 0 0 0 3px rgba(74, 154, 232, 0.12);
 }
 
 ::-webkit-scrollbar {
@@ -94,7 +118,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb {

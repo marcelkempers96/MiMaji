@@ -36,20 +36,20 @@ export default function QuantitySelector({
 
   return (
     <div>
-      <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-2.5">
+      <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-3">
         How many jugs?
       </label>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-5">
         <button
           onClick={() => handleChange(-1)}
           disabled={value <= min}
-          className={`w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold text-white transition-all btn-press ${
+          className={`w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold text-white transition-all btn-press ${
             value <= min
               ? "bg-blue-200 cursor-not-allowed"
-              : "bg-blue-700 hover:bg-blue-900"
+              : "bg-blue-700 hover:bg-blue-500 shadow-sm"
           }`}
         >
-          −
+          &minus;
         </button>
         <span
           className={`text-[32px] font-bold text-blue-900 min-w-[40px] text-center ${
@@ -61,17 +61,17 @@ export default function QuantitySelector({
         <button
           onClick={() => handleChange(1)}
           disabled={value >= max}
-          className={`w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold text-white transition-all btn-press ${
+          className={`w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold text-white transition-all btn-press ${
             value >= max
               ? "bg-blue-200 cursor-not-allowed"
-              : "bg-blue-700 hover:bg-blue-900"
+              : "bg-blue-700 hover:bg-blue-500 shadow-sm"
           }`}
         >
           +
         </button>
         <div className="text-right">
           <div className="text-sm font-bold text-blue-700">KES {pricePerJug}</div>
-          <div className="text-text-light text-[10px]">per jug · 20L</div>
+          <div className="text-text-light text-[10px]">per jug &middot; 20L</div>
         </div>
       </div>
     </div>

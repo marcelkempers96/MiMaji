@@ -1,12 +1,12 @@
 const steps = [
-  { n: "1", icon: "📋", title: "Order", sub: "Pick quantity & address" },
-  { n: "2", icon: "📱", title: "Pay", sub: "M-Pesa STK Push" },
-  { n: "3", icon: "🏍", title: "Receive", sub: "Boda delivers to your door" },
+  { n: "1", title: "Order", sub: "Pick quantity & address" },
+  { n: "2", title: "Pay", sub: "M-Pesa STK Push" },
+  { n: "3", title: "Receive", sub: "Boda delivers to your door" },
 ];
 
 export default function HowItWorks() {
   return (
-    <section className="px-4 py-7">
+    <section className="px-4 py-8">
       <h2 className="text-center text-lg text-blue-900 font-bold mb-5">
         How it works
       </h2>
@@ -14,14 +14,13 @@ export default function HowItWorks() {
         {steps.map((s, i) => (
           <div
             key={s.n}
-            className={`text-center bg-blue-50 rounded-xl p-3.5 border border-blue-200 animate-fade-in stagger-${i + 1}`}
-            style={{ opacity: 0 }}
+            className={`text-center bg-white rounded-2xl p-4 animate-fade-in stagger-${i + 1}`}
+            style={{ opacity: 0, boxShadow: "var(--shadow-card)" }}
           >
             <div className="text-[28px] text-blue-200 font-black">
               {s.n}
             </div>
-            <div className="text-xl mb-1">{s.icon}</div>
-            <div className="font-bold text-xs text-blue-900">{s.title}</div>
+            <div className="font-bold text-xs text-blue-900 mt-1">{s.title}</div>
             <div className="text-[10px] text-text-light mt-0.5">{s.sub}</div>
           </div>
         ))}

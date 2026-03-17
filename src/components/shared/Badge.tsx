@@ -32,7 +32,7 @@ export default function Badge({ status }: { status: OrderStatus }) {
   const s = statusMap[status] || statusMap.paid;
   return (
     <span
-      className={`${s.bg} ${s.text} rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider`}
+      className={`${s.bg} ${s.text} rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide`}
     >
       {s.label}
     </span>

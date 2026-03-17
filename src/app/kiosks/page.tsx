@@ -22,96 +22,12 @@ interface Kiosk {
 }
 
 const demoKiosks: Kiosk[] = [
-  {
-    id: "1",
-    name: "AquaPure Westlands",
-    address: "Waiyaki Way, Westlands",
-    zone: "Westlands",
-    phone: "+254 722 XXX XXX",
-    hours: "6:00 AM – 8:00 PM",
-    jugPrice: 200,
-    rating: 4.8,
-    reviews: 124,
-    verified: true,
-    distance: "0.8 km",
-    lat: -1.2673,
-    lng: 36.8112,
-  },
-  {
-    id: "2",
-    name: "Clean Water Hub",
-    address: "Argwings Kodhek Rd, Kilimani",
-    zone: "Kilimani",
-    phone: "+254 733 XXX XXX",
-    hours: "7:00 AM – 9:00 PM",
-    jugPrice: 200,
-    rating: 4.6,
-    reviews: 89,
-    verified: true,
-    distance: "1.2 km",
-    lat: -1.2921,
-    lng: 36.7856,
-  },
-  {
-    id: "3",
-    name: "Maji Fresh Depot",
-    address: "Ngong Road, Karen",
-    zone: "Karen",
-    phone: "+254 711 XXX XXX",
-    hours: "6:30 AM – 7:00 PM",
-    jugPrice: 180,
-    rating: 4.5,
-    reviews: 67,
-    verified: true,
-    distance: "2.5 km",
-    lat: -1.3187,
-    lng: 36.7112,
-  },
-  {
-    id: "4",
-    name: "Blue Drop Water",
-    address: "Moi Avenue, CBD",
-    zone: "CBD",
-    phone: "+254 720 XXX XXX",
-    hours: "6:00 AM – 10:00 PM",
-    jugPrice: 150,
-    rating: 4.3,
-    reviews: 203,
-    verified: false,
-    distance: "3.1 km",
-    lat: -1.2834,
-    lng: 36.8235,
-  },
-  {
-    id: "5",
-    name: "SafiWater Kileleshwa",
-    address: "Gatundu Rd, Kileleshwa",
-    zone: "Kileleshwa",
-    phone: "+254 712 XXX XXX",
-    hours: "7:00 AM – 8:00 PM",
-    jugPrice: 200,
-    rating: 4.7,
-    reviews: 56,
-    verified: true,
-    distance: "1.8 km",
-    lat: -1.2756,
-    lng: 36.7789,
-  },
-  {
-    id: "6",
-    name: "Parklands Water Point",
-    address: "3rd Parklands Ave",
-    zone: "Parklands",
-    phone: "+254 723 XXX XXX",
-    hours: "6:00 AM – 9:00 PM",
-    jugPrice: 190,
-    rating: 4.4,
-    reviews: 41,
-    verified: true,
-    distance: "2.0 km",
-    lat: -1.2589,
-    lng: 36.8178,
-  },
+  { id: "1", name: "AquaPure Westlands", address: "Waiyaki Way, Westlands", zone: "Westlands", phone: "+254 722 XXX XXX", hours: "6:00 AM – 8:00 PM", jugPrice: 200, rating: 4.8, reviews: 124, verified: true, distance: "0.8 km", lat: -1.2673, lng: 36.8112 },
+  { id: "2", name: "Clean Water Hub", address: "Argwings Kodhek Rd, Kilimani", zone: "Kilimani", phone: "+254 733 XXX XXX", hours: "7:00 AM – 9:00 PM", jugPrice: 200, rating: 4.6, reviews: 89, verified: true, distance: "1.2 km", lat: -1.2921, lng: 36.7856 },
+  { id: "3", name: "Maji Fresh Depot", address: "Ngong Road, Karen", zone: "Karen", phone: "+254 711 XXX XXX", hours: "6:30 AM – 7:00 PM", jugPrice: 180, rating: 4.5, reviews: 67, verified: true, distance: "2.5 km", lat: -1.3187, lng: 36.7112 },
+  { id: "4", name: "Blue Drop Water", address: "Moi Avenue, CBD", zone: "CBD", phone: "+254 720 XXX XXX", hours: "6:00 AM – 10:00 PM", jugPrice: 150, rating: 4.3, reviews: 203, verified: false, distance: "3.1 km", lat: -1.2834, lng: 36.8235 },
+  { id: "5", name: "SafiWater Kileleshwa", address: "Gatundu Rd, Kileleshwa", zone: "Kileleshwa", phone: "+254 712 XXX XXX", hours: "7:00 AM – 8:00 PM", jugPrice: 200, rating: 4.7, reviews: 56, verified: true, distance: "1.8 km", lat: -1.2756, lng: 36.7789 },
+  { id: "6", name: "Parklands Water Point", address: "3rd Parklands Ave", zone: "Parklands", phone: "+254 723 XXX XXX", hours: "6:00 AM – 9:00 PM", jugPrice: 190, rating: 4.4, reviews: 41, verified: true, distance: "2.0 km", lat: -1.2589, lng: 36.8178 },
 ];
 
 type ViewMode = "list" | "map";
@@ -137,52 +53,50 @@ export default function KiosksPage() {
     const full = Math.floor(rating);
     return (
       <span className="text-amber-400 text-xs">
-        {"★".repeat(full)}
-        {"☆".repeat(5 - full)}
+        {"\u2605".repeat(full)}
+        {"\u2606".repeat(5 - full)}
         <span className="text-text-mid ml-1">{rating}</span>
       </span>
     );
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 font-body">
+    <div className="min-h-screen bg-bg font-body">
       <Navbar />
 
       {/* Header */}
-      <div
-        className="px-5 pt-6 pb-10 relative overflow-hidden bg-blue-900"
-      >
-        <h1 className="text-2xl font-bold text-white leading-tight mb-1">
-          Water Kiosks & Shops
+      <div className="bg-gradient-to-b from-blue-50 to-bg px-5 pt-8 pb-12">
+        <h1 className="text-2xl font-bold text-blue-900 leading-tight mb-1">
+          Water Kiosks &amp; Shops
         </h1>
-        <p className="text-blue-200 text-sm">
+        <p className="text-text-mid text-sm">
           Find verified water providers near you in Nairobi
         </p>
       </div>
 
       {/* Controls */}
-      <div className="-mt-5 mx-4 bg-white rounded-2xl p-4 shadow-lg relative z-10 mb-4">
+      <div className="-mt-5 mx-4 bg-white rounded-2xl p-4 relative z-10 mb-4" style={{ boxShadow: "var(--shadow-elevated)" }}>
         {/* View toggle */}
         <div className="flex gap-2 mb-3">
           <button
             onClick={() => setView("list")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold border-[1.5px] transition-all ${
+            className={`flex-1 py-2.5 rounded-full text-xs font-semibold transition-all ${
               view === "list"
-                ? "bg-blue-700 text-white border-blue-700"
-                : "bg-white text-blue-500 border-blue-200"
+                ? "bg-blue-700 text-white shadow-sm"
+                : "bg-blue-50 text-text-mid"
             }`}
           >
-            📋 List View
+            List View
           </button>
           <button
             onClick={() => setView("map")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold border-[1.5px] transition-all ${
+            className={`flex-1 py-2.5 rounded-full text-xs font-semibold transition-all ${
               view === "map"
-                ? "bg-blue-700 text-white border-blue-700"
-                : "bg-white text-blue-500 border-blue-200"
+                ? "bg-blue-700 text-white shadow-sm"
+                : "bg-blue-50 text-text-mid"
             }`}
           >
-            🗺 Map View
+            Map View
           </button>
         </div>
 
@@ -192,10 +106,10 @@ export default function KiosksPage() {
             <button
               key={zone}
               onClick={() => setSelectedZone(zone)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap border transition-all ${
+              className={`px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
                 selectedZone === zone
-                  ? "bg-blue-700 text-white border-blue-700"
-                  : "bg-blue-50 text-blue-500 border-blue-200"
+                  ? "bg-blue-700 text-white"
+                  : "bg-blue-50 text-text-mid"
               }`}
             >
               {zone === "all" ? "All Zones" : zone}
@@ -210,13 +124,13 @@ export default function KiosksPage() {
             <button
               key={s}
               onClick={() => setSortBy(s)}
-              className={`px-2 py-0.5 rounded text-[11px] font-semibold capitalize ${
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize ${
                 sortBy === s
                   ? "text-blue-700 bg-blue-50"
                   : "text-text-light hover:text-blue-500"
               }`}
             >
-              {s === "distance" ? "📍 Nearest" : s === "price" ? "💰 Price" : "⭐ Rating"}
+              {s === "distance" ? "Nearest" : s === "price" ? "Price" : "Rating"}
             </button>
           ))}
         </div>
@@ -224,44 +138,45 @@ export default function KiosksPage() {
 
       {/* Map View */}
       {view === "map" && (
-        <div className="mx-4 mb-4 bg-white rounded-2xl overflow-hidden border border-blue-200 shadow-sm">
-          <div className="h-64 bg-blue-100 flex items-center justify-center relative">
+        <div className="mx-4 mb-4 bg-white rounded-2xl overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
+          <div className="h-64 bg-blue-50 flex items-center justify-center relative">
             <div className="text-center text-text-mid">
-              <div className="text-4xl mb-2">🗺</div>
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5A7A9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                  <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+                </svg>
+              </div>
               <p className="text-sm font-semibold text-blue-900">Interactive Map</p>
               <p className="text-xs">Connect Google Maps API key to enable</p>
             </div>
-            {/* Map pin indicators */}
             {filtered.map((k, i) => (
               <button
                 key={k.id}
                 onClick={() => setSelectedKiosk(k)}
                 className="absolute animate-fade-in"
-                style={{
-                  left: `${20 + (i * 12) % 60}%`,
-                  top: `${15 + (i * 17) % 55}%`,
-                }}
+                style={{ left: `${20 + (i * 12) % 60}%`, top: `${15 + (i * 17) % 55}%` }}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-md transition-all ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs shadow-sm transition-all ${
                     selectedKiosk?.id === k.id
                       ? "bg-blue-700 text-white scale-125"
-                      : "bg-white text-blue-700 border-2 border-blue-500"
+                      : "bg-white text-blue-700 border-2 border-blue-400"
                   }`}
                 >
-                  💧
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
                 </div>
               </button>
             ))}
           </div>
           {selectedKiosk && (
-            <div className="p-3 border-t border-blue-200 animate-fade-in">
+            <div className="p-3 border-t border-blue-50 animate-fade-in">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-bold text-blue-900 text-sm flex items-center gap-1.5">
                     {selectedKiosk.name}
                     {selectedKiosk.verified && (
-                      <span className="text-blue-500 text-[10px]">✓ Verified</span>
+                      <span className="text-blue-500 text-[10px]">Verified</span>
                     )}
                   </div>
                   <div className="text-xs text-text-mid">{selectedKiosk.address}</div>
@@ -284,20 +199,21 @@ export default function KiosksPage() {
           {filtered.map((kiosk) => (
             <div
               key={kiosk.id}
-              className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm animate-fade-in"
+              className="bg-white rounded-2xl p-4 animate-fade-in"
+              style={{ boxShadow: "var(--shadow-card)" }}
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">
                   <div className="font-bold text-blue-900 text-sm flex items-center gap-1.5">
                     {kiosk.name}
                     {kiosk.verified && (
-                      <span className="bg-blue-50 text-blue-500 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                        ✓ VERIFIED
+                      <span className="bg-blue-50 text-blue-700 text-[9px] font-semibold px-2 py-0.5 rounded-full">
+                        Verified
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-text-mid mt-0.5">
-                    📍 {kiosk.address}
+                    {kiosk.address}
                   </div>
                 </div>
                 <div className="text-right">
@@ -309,8 +225,8 @@ export default function KiosksPage() {
               </div>
 
               <div className="flex items-center gap-3 mb-3 text-xs">
-                <span className="text-text-mid">📏 {kiosk.distance}</span>
-                <span className="text-text-mid">🕐 {kiosk.hours}</span>
+                <span className="text-text-mid">{kiosk.distance}</span>
+                <span className="text-text-mid">{kiosk.hours}</span>
               </div>
 
               <div className="flex items-center justify-between mb-3">
@@ -333,7 +249,7 @@ export default function KiosksPage() {
                   size="sm"
                   onClick={() => window.open(`tel:${kiosk.phone}`)}
                 >
-                  📞 Call
+                  Call
                 </Button>
               </div>
             </div>
@@ -342,8 +258,7 @@ export default function KiosksPage() {
       </div>
 
       {/* CTA for providers */}
-      <div className="mx-4 mb-6 bg-blue-900 rounded-2xl p-5 text-center">
-        <div className="text-2xl mb-2">🏪</div>
+      <div className="mx-4 mb-6 bg-blue-700 rounded-2xl p-5 text-center">
         <h3 className="font-bold text-white text-lg mb-1">
           Own a water kiosk?
         </h3>
@@ -355,7 +270,7 @@ export default function KiosksPage() {
           className="!border-white !text-white hover:!bg-white/10"
           onClick={() => (window.location.href = "/join/provider")}
         >
-          Register your kiosk →
+          Register your kiosk
         </Button>
       </div>
 

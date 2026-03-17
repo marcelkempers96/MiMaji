@@ -38,10 +38,8 @@ export default function OrderForm() {
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
-    // Check if user is logged in (in production: check Supabase auth)
     const isLoggedIn = localStorage.getItem("mimaji-user");
     if (!isLoggedIn) {
-      // Store order intent and redirect to signup
       localStorage.setItem(
         "mimaji-order-intent",
         JSON.stringify({ address, lat, lng, quantity, phone })
@@ -76,8 +74,8 @@ export default function OrderForm() {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-md -mt-6 mx-4 relative z-10 border border-blue-200 animate-fade-in">
-      <div className="mb-4">
+    <div className="bg-white rounded-2xl p-6 -mt-6 mx-4 relative z-10 animate-fade-in" style={{ boxShadow: "0 8px 30px rgba(26, 58, 92, 0.1)" }}>
+      <div className="mb-5">
         <AddressInput
           value={address}
           onChange={(addr, la, ln) => {
@@ -88,21 +86,21 @@ export default function OrderForm() {
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-5">
         <QuantitySelector value={quantity} onChange={setQuantity} />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-5">
         <PriceBreakdown quantity={quantity} />
       </div>
 
-      <div className="mb-4">
-        <label className="flex items-center gap-1.5 text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
+      <div className="mb-5">
+        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
           <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={20} height={20} className="inline-block" />
           M-Pesa Number
         </label>
-        <div className="flex border-[1.5px] border-blue-200 rounded-xl overflow-hidden bg-blue-50">
-          <span className="px-3 py-2.5 bg-blue-200 text-blue-900 text-sm font-semibold whitespace-nowrap">
+        <div className="flex rounded-2xl overflow-hidden bg-blue-50">
+          <span className="px-3 py-3 bg-blue-100 text-blue-900 text-sm font-semibold whitespace-nowrap">
             +254
           </span>
           <input
@@ -110,23 +108,23 @@ export default function OrderForm() {
             value={phone}
             onChange={(e) => setPhone(formatPhone(e.target.value))}
             placeholder="712 345 678"
-            className="flex-1 px-3 py-2.5 border-none bg-transparent text-sm text-blue-900"
+            className="flex-1 px-3 py-3 border-none bg-transparent text-sm text-blue-900"
           />
         </div>
       </div>
 
       {/* Voucher code */}
-      <div className="mb-5">
+      <div className="mb-6">
         {!showVoucher ? (
           <button
             onClick={() => setShowVoucher(true)}
-            className="text-blue-500 text-sm font-semibold"
+            className="text-blue-700 text-sm font-semibold"
           >
-            🎟 Have a voucher code?
+            Have a voucher code?
           </button>
         ) : (
           <div className="animate-fade-in">
-            <label className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
               Voucher Code
             </label>
             <div className="flex gap-2">
@@ -138,7 +136,7 @@ export default function OrderForm() {
                   setVoucherApplied(false);
                 }}
                 placeholder="Enter code"
-                className="flex-1 px-3.5 py-2.5 rounded-xl border-[1.5px] border-blue-200 text-sm text-blue-900 bg-blue-50 font-mono"
+                className="flex-1 px-4 py-3 rounded-2xl text-sm text-blue-900 bg-blue-50 font-mono"
               />
               <Button
                 size="md"
@@ -146,7 +144,7 @@ export default function OrderForm() {
                 onClick={handleApplyVoucher}
                 disabled={!voucherCode.trim()}
               >
-                {voucherApplied ? "✓ Applied" : "Apply"}
+                {voucherApplied ? "Applied" : "Apply"}
               </Button>
             </div>
           </div>
@@ -154,7 +152,7 @@ export default function OrderForm() {
       </div>
 
       {error && (
-        <div className="mb-3 text-error text-sm text-center bg-red-50 rounded-lg p-2">
+        <div className="mb-3 text-error text-sm text-center bg-red-50 rounded-2xl p-3">
           {error}
         </div>
       )}
@@ -176,10 +174,10 @@ export default function OrderForm() {
         </span>
       </Button>
 
-      <div className="text-center mt-2.5 text-text-light text-[11px] flex justify-center gap-4">
-        <span>🔒 Secure</span>
-        <span>⚡ Instant</span>
-        <span>🌍 Local</span>
+      <div className="text-center mt-3 text-text-light text-[11px] flex justify-center gap-4">
+        <span>Secure</span>
+        <span>Instant</span>
+        <span>Local</span>
       </div>
     </div>
   );
