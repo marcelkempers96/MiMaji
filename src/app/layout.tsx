@@ -1,19 +1,12 @@
 import type { Metadata } from "next";
-import ClientProviders from "@/components/shared/ClientProviders";
+import Providers from "@/context/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MiMaji — Fresh Water Delivered Today",
+  title: "MiMaji — Water Delivery",
   description:
-    "Order 20-litre water jugs delivered to your door in Nairobi. Pay with M-Pesa. Fast, reliable, local.",
+    "Order water delivered to your door in Nairobi. Pay with M-Pesa. Fast, reliable, local.",
   keywords: ["water delivery", "Nairobi", "M-Pesa", "20L jugs", "MiMaji"],
-  openGraph: {
-    title: "MiMaji — Fresh Water Delivered Today",
-    description: "Order 20L water jugs in Nairobi. Pay via M-Pesa.",
-    url: "https://mimaji.co.ke",
-    siteName: "MiMaji",
-    type: "website",
-  },
 };
 
 export default function RootLayout({
@@ -35,8 +28,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased font-body">
-        <ClientProviders>{children}</ClientProviders>
+      <body className="font-sans antialiased bg-background text-text-primary">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

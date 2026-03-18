@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets } from "lucide-react";
-import Link from "next/link";
+import TopBar from "@/components/layout/TopBar";
 import ProductCard from "@/components/ui/ProductCard";
 import Button from "@/components/ui/Button";
 import { products } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 
-export default function HomePage() {
+export default function BuyWaterPage() {
   const router = useRouter();
-  const { addItem, removeItem } = useCart();
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const { addItem, removeItem, items } = useCart();
+  const [selectedProducts, setSelectedProducts] = useState<string[]>(
+    () => items.map((i) => i.id)
+  );
   const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("hard");
 
   const filteredProducts = products.filter((p) => p.category === activeCategory);
@@ -31,29 +32,15 @@ export default function HomePage() {
   };
 
   const handleContinue = () => {
-    router.push("/location");
+    router.push("/cart");
   };
 
   return (
-    <div className="bg-background min-h-screen max-w-md mx-auto px-4 pb-28">
-      {/* Header */}
-      <div className="flex items-center justify-between py-4">
-        <div className="flex items-center gap-2">
-          <Droplets size={24} className="text-primary" />
-          <span className="text-[20px] font-bold text-primary">MiMaji</span>
-        </div>
-        <Link href="/login" className="text-primary text-sm font-semibold">
-          Log In
-        </Link>
-      </div>
-
-      {/* Tagline */}
-      <p className="text-text-secondary text-[14px] mb-5">
-        Water delivered to your door in minutes
-      </p>
+    <div className="bg-background min-h-screen max-w-md mx-auto pb-28">
+      <TopBar title="Buy Water" />
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 px-4 mt-2 mb-5">
         <button
           onClick={() => setActiveCategory("hard")}
           className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
@@ -77,7 +64,7 @@ export default function HomePage() {
       </div>
 
       {/* Product List */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 px-4">
         {filteredProducts.map((product) => (
           <ProductCard
             key={product.id}

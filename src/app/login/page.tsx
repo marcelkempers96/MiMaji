@@ -1,106 +1,120 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import Button from "@/components/shared/Button";
+import { useState, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Droplets } from "lucide-react";
+import TopBar from "@/components/layout/TopBar";
+import Button from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
 
-  const handleLogin = async () => {
-    if (phone.length < 9 || !password) return;
-    setLoading(true);
-    setError("");
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    router.push("/");
+  const [phone, setPhone] = useState("");
+  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [otp, setOtp] = useState(["", "", "", ""]);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleSendOtp = () => {
+    if (phone.trim().length > 0) {
+      setStep("otp");
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleVerify = () => {
+    login(phone, "Jane");
+    const redirect = searchParams.get("redirect");
+    router.push(redirect || "/dashboard");
   };
 
   return (
-    <div className="min-h-screen bg-bg font-body">
-      <Navbar minimal />
+    <div className="min-h-screen bg-background">
+      <TopBar title="Log In" />
 
-      <div className="px-4 py-12 max-w-md mx-auto">
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-blue-900 mb-1">Welcome back</h1>
-          <p className="text-text-mid text-sm">Sign in to your MiMaji account</p>
+      <div className="flex flex-col items-center justify-center px-6 pt-20">
+        {/* Logo */}
+        <div className="flex items-center gap-2 mb-10">
+          <Droplets size={48} className="text-primary" />
+          <span className="text-[24px] font-bold text-primary">MiMaji</span>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: "var(--shadow-elevated)" }}>
-          <div>
-            <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
-              Phone Number
-            </label>
-            <div className="flex rounded-2xl overflow-hidden bg-blue-50">
-              <span className="px-3 py-3 bg-blue-100 text-blue-900 text-sm font-semibold">
-                +254
-              </span>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 9));
-                  setError("");
-                }}
-                placeholder="712 345 678"
-                className="flex-1 px-3 py-3 border-none bg-transparent text-sm text-blue-900"
-              />
-            </div>
-          </div>
+        {/* Phone Input */}
+        <div className="w-full max-w-sm">
+          <label className="block text-sm font-medium text-text-primary mb-2">
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="07XX XXX XXX"
+            className="rounded-xl border border-gray-200 h-12 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary"
+          />
 
-          <div>
-            <label className="block text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-              }}
-              placeholder="Enter your password"
-              className="w-full px-4 py-3 rounded-2xl text-sm text-blue-900 bg-blue-50"
-            />
-          </div>
-
-          {error && (
-            <div className="text-error text-sm text-center bg-red-50 rounded-2xl p-3">
-              {error}
-            </div>
+          {step === "phone" && (
+            <Button
+              fullWidth
+              className="mt-4"
+              onClick={handleSendOtp}
+            >
+              Send OTP
+            </Button>
           )}
-
-          <Button
-            size="lg"
-            onClick={handleLogin}
-            loading={loading}
-            disabled={phone.length < 9 || !password}
-          >
-            Log In
-          </Button>
-
-          <p className="text-center text-sm text-text-mid">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-blue-700 font-semibold">
-              Sign Up
-            </Link>
-          </p>
         </div>
-      </div>
 
-      <Footer />
+        {/* OTP Section */}
+        {step === "otp" && (
+          <div className="w-full max-w-sm mt-6">
+            <label className="block text-sm font-medium text-text-primary mb-2">
+              Enter OTP
+            </label>
+            <div className="flex gap-3 justify-center">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  className="w-12 h-12 rounded-lg border border-gray-200 text-center text-xl font-bold text-text-primary outline-none focus:border-primary"
+                />
+              ))}
+            </div>
+            <Button
+              fullWidth
+              className="mt-4"
+              onClick={handleVerify}
+            >
+              Verify
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }
