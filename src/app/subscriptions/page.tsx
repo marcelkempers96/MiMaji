@@ -22,7 +22,7 @@ export default function SubscriptionsPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>("standard");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <TopBar title="Subscription Plan" />
 
       <div className="px-4 pt-4">

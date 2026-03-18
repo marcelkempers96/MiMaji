@@ -36,7 +36,7 @@ export default function BuyWaterPage() {
   };
 
   return (
-    <div className="bg-background min-h-screen max-w-md mx-auto pb-28">
+    <div className="bg-background min-h-screen max-w-md mx-auto pb-36">
       <TopBar title="Buy Water" />
 
       {/* Filter Tabs */}
@@ -75,8 +75,8 @@ export default function BuyWaterPage() {
         ))}
       </div>
 
-      {/* Sticky Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-4 max-w-md mx-auto">
+      {/* Sticky Bottom - above nav bar */}
+      <div className="fixed bottom-16 left-0 right-0 bg-background px-4 py-3 max-w-md mx-auto">
         <Button
           variant="primary"
           fullWidth

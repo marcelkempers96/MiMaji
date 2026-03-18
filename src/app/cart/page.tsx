@@ -22,7 +22,7 @@ export default function CartPage() {
   };
 
   return (
-    <div className="bg-background min-h-screen max-w-md mx-auto pb-28">
+    <div className="bg-background min-h-screen max-w-md mx-auto pb-36">
       <TopBar title="Your Cart" />
 
       {items.length === 0 ? (
@@ -109,7 +109,7 @@ export default function CartPage() {
 
       {/* Bottom: Checkout */}
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-4 max-w-md mx-auto">
+        <div className="fixed bottom-16 left-0 right-0 bg-background px-4 py-3 max-w-md mx-auto">
           <Button variant="primary" fullWidth onClick={handleCheckout}>
             Checkout
           </Button>

@@ -12,7 +12,6 @@ import {
   FileText,
   MessageCircle,
 } from "lucide-react";
-import BottomTabBar from "@/components/layout/BottomTabBar";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
 
@@ -96,7 +95,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <BottomTabBar activeTab="home" />
     </div>
   );
 }

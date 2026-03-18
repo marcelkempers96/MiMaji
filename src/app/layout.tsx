@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Providers from "@/context/Providers";
+import AppShell from "@/components/layout/AppShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,7 +30,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased bg-background text-text-primary">
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );

@@ -6,7 +6,7 @@ import { mockOrders } from "@/data/orders";
 
 export default function OrdersPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <TopBar title="Order History" />
 
       <div className="px-4 pt-4">
