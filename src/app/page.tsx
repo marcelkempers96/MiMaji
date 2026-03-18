@@ -180,7 +180,7 @@ function MobileFooter() {
 
       <div className="border-t border-[#E0E0E0] pt-4 flex items-center justify-between">
         <p className="text-text-secondary/50 text-xs">&copy; 2026 MiMaji</p>
-        <p className="text-text-secondary/50 text-xs">v2.1.0</p>
+        <p className="text-text-secondary/50 text-xs">v2.2.0</p>
       </div>
     </footer>
   );
@@ -370,7 +370,7 @@ function DesktopHome() {
           </div>
           <div className="border-t border-white/20 pt-6 flex items-center justify-between">
             <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
-            <p className="text-white/40 text-xs">v2.1.0</p>
+            <p className="text-white/40 text-xs">v2.2.0</p>
           </div>
         </div>
       </footer>
