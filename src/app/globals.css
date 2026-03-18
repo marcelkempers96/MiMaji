@@ -18,6 +18,16 @@
   --color-error: #D44D3C;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
+  /* v2.2.0 design system colors */
+  --color-primary: #2979C1;
+  --color-primary-light: #EAF2FB;
+  --color-surface: #FFFFFF;
+  --color-background: #F0F4F8;
+  --color-text-primary: #1A2A3A;
+  --color-text-secondary: #8899AA;
+  --color-cta-alt: #E8544E;
+  --color-rating: #F5A623;
+
   /* Soft shadows matching mockup aesthetic */
   --shadow-card: 0 2px 12px rgba(26, 58, 92, 0.06);
   --shadow-card-hover: 0 4px 20px rgba(26, 58, 92, 0.1);
