@@ -96,7 +96,7 @@ export default function OrderForm() {
 
       <div className="mb-5">
         <label className="flex items-center gap-1.5 text-[11px] font-semibold text-text-mid uppercase tracking-wider mb-2">
-          <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={20} height={20} className="inline-block" />
+          <Image src="/images/mpesa-logo.svg" alt="M-Pesa" width={20} height={20} className="inline-block" />
           M-Pesa Number
         </label>
         <div className="flex rounded-2xl overflow-hidden bg-blue-50">
@@ -167,7 +167,7 @@ export default function OrderForm() {
           {loading ? "Sending to your phone..." : (
             <>
               Order &amp; Pay KES {total} via
-              <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={24} height={24} className="inline-block" />
+              <Image src="/images/mpesa-logo.svg" alt="M-Pesa" width={24} height={24} className="inline-block" />
               M-Pesa
             </>
           )}

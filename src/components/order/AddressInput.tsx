@@ -27,13 +27,26 @@ export default function AddressInput({ value, onChange }: AddressInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.google?.maps?.places) {
-      setIsGoogleLoaded(true);
-      autocompleteService.current =
-        new window.google.maps.places.AutocompleteService();
-      const div = document.createElement("div");
-      placesService.current = new window.google.maps.places.PlacesService(div);
-    }
+    const initGoogle = () => {
+      if (window.google?.maps?.places) {
+        setIsGoogleLoaded(true);
+        autocompleteService.current =
+          new window.google.maps.places.AutocompleteService();
+        const div = document.createElement("div");
+        placesService.current = new window.google.maps.places.PlacesService(div);
+        return true;
+      }
+      return false;
+    };
+
+    if (initGoogle()) return;
+
+    // Poll for Google Maps to load (script loads afterInteractive)
+    const interval = setInterval(() => {
+      if (initGoogle()) clearInterval(interval);
+    }, 500);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchSuggestions = useCallback(

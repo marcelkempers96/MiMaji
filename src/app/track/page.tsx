@@ -131,7 +131,7 @@ export default function TrackPage() {
               </svg>
             </div>
             <p className="text-sm text-text-mid font-semibold">Live Map</p>
-            <p className="text-xs text-text-light">Connect Google Maps API to enable</p>
+            <p className="text-xs text-text-light">Tracking your delivery</p>
           </div>
         </div>
 

@@ -128,7 +128,7 @@ export default function OrderPage({
         <Navbar minimal />
         <div className="flex flex-col items-center px-6 pt-12 text-center">
           <div className="mb-4 animate-pulse-drop">
-            <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={64} height={64} className="mx-auto" />
+            <Image src="/images/mpesa-logo.svg" alt="M-Pesa" width={64} height={64} className="mx-auto" />
           </div>
           <h1 className="text-[22px] font-bold text-blue-900 mb-2">
             Check your phone
@@ -229,7 +229,7 @@ export default function OrderPage({
               <span>{order.delivery_address}</span>
             </div>
             <div className="flex gap-2.5 items-center">
-              <Image src="/images/mpesa-logo.png" alt="M-Pesa" width={16} height={16} />
+              <Image src="/images/mpesa-logo.svg" alt="M-Pesa" width={16} height={16} />
               <span>KES {order.price_total} paid via M-Pesa</span>
             </div>
             {order.mpesa_ref && (

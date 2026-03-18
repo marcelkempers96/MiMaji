@@ -150,7 +150,7 @@ export default function KiosksPage() {
                 </svg>
               </div>
               <p className="text-sm font-semibold text-blue-900">Interactive Map</p>
-              <p className="text-xs">Connect Google Maps API key to enable</p>
+              <p className="text-xs text-text-mid">Tap a pin to see kiosk details</p>
             </div>
             {filtered.map((k, i) => (
               <button
