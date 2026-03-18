@@ -88,6 +88,9 @@ export default function HomePage() {
         ))}
       </div>
 
+      {/* Version */}
+      <p className="text-center text-text-secondary/50 text-xs mt-8 mb-2">v2.0.0</p>
+
       {/* Sticky Bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-background px-4 py-4 max-w-md mx-auto">
         <Button
