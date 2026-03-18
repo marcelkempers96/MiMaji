@@ -16,10 +16,10 @@ export default function Home() {
       <section className="bg-gradient-to-b from-blue-50 to-white px-5 pt-10 pb-14">
         <div className="flex justify-center mb-6">
           <Image
-            src="/images/mimaji-logo.svg"
+            src="/logo1.png"
             alt="MiMaji — Fresh water delivered"
-            width={280}
-            height={70}
+            width={458}
+            height={164}
             className="w-56 sm:w-64 md:w-72 h-auto"
             priority
           />
