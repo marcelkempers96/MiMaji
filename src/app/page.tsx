@@ -14,6 +14,16 @@ export default function Home() {
 
       {/* Hero — soft gradient */}
       <section className="bg-gradient-to-b from-blue-50 to-white px-5 pt-10 pb-14">
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/images/mimaji-logo.svg"
+            alt="MiMaji — Fresh water delivered"
+            width={280}
+            height={70}
+            className="w-56 sm:w-64 md:w-72 h-auto"
+            priority
+          />
+        </div>
         <h1 className="text-[28px] font-bold text-blue-900 leading-tight mb-2">
           Fresh water,
           <br />

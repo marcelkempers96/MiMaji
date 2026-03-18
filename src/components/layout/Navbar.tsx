@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useLang } from "@/lib/LangContext";
 import { t } from "@/lib/i18n";
 
@@ -20,7 +21,7 @@ export default function Navbar({
   if (variant === "distributor") {
     return (
       <nav className="bg-white px-5 py-3.5 flex items-center justify-between shadow-sm">
-        <span className="font-bold text-blue-700 text-base">MiMaji</span>
+        <Image src="/images/mimaji-logo.svg" alt="MiMaji" width={120} height={34} className="h-8 w-auto" />
         <span className="bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-[11px] font-semibold">
           {t("nav.distributor", lang)}
         </span>
@@ -31,7 +32,10 @@ export default function Navbar({
   if (variant === "admin") {
     return (
       <nav className="bg-white px-5 py-3.5 flex items-center justify-between shadow-sm">
-        <span className="font-bold text-blue-700 text-base">MiMaji Admin</span>
+        <div className="flex items-center gap-2">
+          <Image src="/images/mimaji-logo.svg" alt="MiMaji" width={120} height={34} className="h-8 w-auto" />
+          <span className="text-text-light text-xs font-medium">Admin</span>
+        </div>
         <span className="text-text-light text-[11px]">admin@mimaji.co.ke</span>
       </nav>
     );
@@ -50,13 +54,15 @@ export default function Navbar({
   return (
     <>
       <nav className="bg-white px-5 h-14 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-            </svg>
-          </div>
-          <span className="font-bold text-lg text-blue-900">MiMaji</span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/images/mimaji-logo.svg"
+            alt="MiMaji"
+            width={140}
+            height={40}
+            className="h-9 w-auto"
+            priority
+          />
         </Link>
 
         {!minimal && (

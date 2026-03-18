@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 70" fill="none">
+  <!-- Location pin with water drop -->
+  <g transform="translate(5, 2)">
+    <!-- Pin outer shape -->
+    <path d="M30 4C17.3 4 7 14.3 7 27c0 17.4 23 37 23 37s23-19.6 23-37C53 14.3 42.7 4 30 4z" fill="#2563EB" stroke="#1E40AF" stroke-width="1.5"/>
+    <!-- White circle inside pin -->
+    <circle cx="30" cy="25" r="16" fill="white"/>
+    <!-- Water drop -->
+    <path d="M30 14c0 0-9 9.5-9 14.5a9 9 0 0 0 18 0C39 23.5 30 14 30 14z" fill="#3B82F6"/>
+    <!-- Water waves -->
+    <path d="M23 30c2-1.5 4.5-1.5 7 0s5 1.5 7 0" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    <path d="M23 33.5c2-1.5 4.5-1.5 7 0s5 1.5 7 0" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  </g>
+  <!-- MiMaji text -->
+  <text x="68" y="48" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="38">
+    <tspan fill="#1E3A5F">Mi</tspan><tspan fill="#2563EB">Maji</tspan>
+  </text>
+</svg>
