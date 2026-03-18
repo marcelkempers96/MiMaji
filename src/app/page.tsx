@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone } from "lucide-react";
+import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -159,6 +159,10 @@ function MobileFooter() {
         <Link href="#" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <FileText size={16} />
           Terms & Privacy
+        </Link>
+        <Link href="/vendor-login" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+          <LogIn size={16} />
+          Vendor Login
         </Link>
       </div>
 
@@ -347,6 +351,7 @@ function DesktopHome() {
                 <Link href="#" className="text-white/60 text-sm hover:text-white transition-colors">About MiMaji</Link>
                 <Link href="#" className="text-white/60 text-sm hover:text-white transition-colors">Docs</Link>
                 <Link href="#" className="text-white/60 text-sm hover:text-white transition-colors">Terms & Privacy</Link>
+                <Link href="/vendor-login" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Login</Link>
               </div>
             </div>
             <div>
