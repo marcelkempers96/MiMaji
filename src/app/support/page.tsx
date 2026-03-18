@@ -5,7 +5,7 @@ import TopBar from "@/components/layout/TopBar";
 
 export default function SupportPage() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 max-w-md mx-auto">
       <TopBar title="Support" />
       <div className="flex flex-col items-center justify-center px-6 pt-32">
         <MessageCircle size={48} className="text-text-secondary" />

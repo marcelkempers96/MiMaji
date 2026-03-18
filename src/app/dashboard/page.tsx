@@ -36,7 +36,7 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 max-w-md mx-auto">
       {/* Greeting Header */}
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-xl font-bold text-text-primary">

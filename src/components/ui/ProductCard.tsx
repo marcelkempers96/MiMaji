@@ -38,7 +38,9 @@ export default function ProductCard({
         <p className="text-[14px] font-bold text-text-primary truncate">
           {product.name}
         </p>
-        <p className="text-[13px] text-text-secondary">{product.size}</p>
+        <p className="text-[13px] text-text-secondary">
+          {product.size} — {product.category === "hard" ? "Hard Jug" : "Soft Bottle"}
+        </p>
         <p className="text-[16px] font-bold text-text-primary mt-1">
           KES {product.price.toLocaleString()}
         </p>
