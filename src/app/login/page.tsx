@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Button from "@/components/shared/Button";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,9 +20,19 @@ export default function LoginPage() {
     if (phone.length < 9 || !password) return;
     setLoading(true);
     setError("");
-    await new Promise((r) => setTimeout(r, 1000));
+    const result = await login(phone, password);
     setLoading(false);
-    router.push("/");
+    if (result.success) {
+      const redirect = localStorage.getItem("mimaji-redirect");
+      if (redirect) {
+        localStorage.removeItem("mimaji-redirect");
+        router.push(redirect);
+      } else {
+        router.push("/");
+      }
+    } else {
+      setError(result.error || "Login failed");
+    }
   };
 
   return (
@@ -73,6 +85,7 @@ export default function LoginPage() {
               }}
               placeholder="Enter your password"
               className="w-full px-4 py-3 rounded-2xl text-sm text-blue-900 bg-blue-50"
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             />
           </div>
 
@@ -97,6 +110,13 @@ export default function LoginPage() {
               Sign Up
             </Link>
           </p>
+        </div>
+
+        {/* Test account hint */}
+        <div className="mt-4 bg-blue-50 rounded-2xl p-4 text-center">
+          <div className="text-xs text-text-mid mb-1">Test Account</div>
+          <div className="text-xs text-blue-900 font-mono">+254 758 434 076</div>
+          <div className="text-xs text-blue-900 font-mono">mimaji2024</div>
         </div>
       </div>
 

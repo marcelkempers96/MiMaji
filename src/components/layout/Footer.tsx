@@ -10,7 +10,7 @@ export default function Footer() {
   return (
     <footer className="bg-white border-t border-blue-100">
       {/* Main footer */}
-      <div className="px-5 pt-8 pb-6">
+      <div className="px-5 pt-8 pb-6 max-w-6xl mx-auto">
         {/* Logo & tagline */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
@@ -24,8 +24,8 @@ export default function Footer() {
           <div className="text-text-mid text-sm">{t("footer.tagline", lang)}</div>
         </div>
 
-        {/* Links grid */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-6 text-sm">
+        {/* Links grid - responsive */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6 mb-6 text-sm">
           <div>
             <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
               {lang === "en" ? "Quick Links" : "Viungo vya Haraka"}
@@ -40,14 +40,29 @@ export default function Footer() {
               <Link href="/orders" className="block text-text-mid hover:text-blue-700 transition-colors">
                 {t("nav.orders", lang)}
               </Link>
+              <Link href="/subscriptions" className="block text-text-mid hover:text-blue-700 transition-colors">
+                {lang === "en" ? "Subscriptions" : "Usajili"}
+              </Link>
+            </div>
+          </div>
+
+          <div>
+            <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
+              {lang === "en" ? "Community" : "Jamii"}
+            </div>
+            <div className="space-y-2">
               <Link href="/impact" className="block text-text-mid hover:text-blue-700 transition-colors">
                 {t("footer.impact", lang)}
+              </Link>
+              <Link href="/rewards" className="block text-text-mid hover:text-blue-700 transition-colors">
+                {lang === "en" ? "Water Warriors" : "Mashujaa wa Maji"}
               </Link>
               <Link href="/referrals" className="block text-text-mid hover:text-blue-700 transition-colors">
                 {t("nav.referrals", lang)}
               </Link>
             </div>
           </div>
+
           <div>
             <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
               {lang === "en" ? "Join Us" : "Jiunge Nasi"}
@@ -59,44 +74,91 @@ export default function Footer() {
               <Link href="/join/provider" className="block text-text-mid hover:text-blue-700 transition-colors">
                 {t("nav.provider", lang)}
               </Link>
+              <Link href="/vendor" className="block text-text-mid hover:text-blue-700 transition-colors">
+                {lang === "en" ? "Vendor Portal" : "Lango la Muuzaji"}
+              </Link>
               <Link href="/distributor" className="block text-text-mid hover:text-blue-700 transition-colors">
                 {t("nav.distributor", lang)}
               </Link>
             </div>
           </div>
+
+          <div>
+            <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
+              {lang === "en" ? "Help" : "Msaada"}
+            </div>
+            <div className="space-y-2">
+              <Link href="/support" className="block text-text-mid hover:text-blue-700 transition-colors">
+                {lang === "en" ? "Help & FAQ" : "Msaada & Maswali"}
+              </Link>
+              <Link href="/contact" className="block text-text-mid hover:text-blue-700 transition-colors">
+                {t("footer.contact", lang)}
+              </Link>
+              <Link href="/profile" className="block text-text-mid hover:text-blue-700 transition-colors">
+                {lang === "en" ? "My Account" : "Akaunti Yangu"}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Impact banner in footer */}
+        <div className="bg-blue-50 rounded-2xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <div>
+              <div className="font-bold text-blue-900 text-sm">
+                {lang === "en" ? "Water is Life — Maji ni Uhai" : "Maji ni Uhai — Water is Life"}
+              </div>
+              <div className="text-xs text-text-mid leading-relaxed">
+                {lang === "en"
+                  ? "For every 100 litres ordered, we supply 10% (10 litres) to rural communities. "
+                  : "Kwa kila lita 100 zinazoagizwa, tunasambaza 10% (lita 10) kwa jamii za vijijini. "}
+                <Link href="/impact" className="text-blue-700 font-semibold">
+                  {lang === "en" ? "Learn more" : "Soma zaidi"} &rarr;
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Contact */}
-        <div className="mb-6">
-          <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
-            {t("footer.contact", lang)}
+        <div className="mb-6 lg:flex lg:items-start lg:justify-between">
+          <div>
+            <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
+              {t("footer.contact", lang)}
+            </div>
+            <div className="space-y-1 text-sm text-text-mid">
+              <div>WhatsApp: <a href="https://wa.me/254758434076" className="text-blue-700 hover:underline">+254 758 434 076</a></div>
+              <div>hello@mimaji.co.ke</div>
+              <div>Nairobi, Kenya</div>
+            </div>
           </div>
-          <div className="space-y-1 text-sm text-text-mid">
-            <div>WhatsApp: <a href="https://wa.me/254758434076" className="text-blue-700 hover:underline">+254 758 434 076</a></div>
-            <div>hello@mimaji.co.ke</div>
-            <div>Nairobi, Kenya</div>
-          </div>
-        </div>
 
-        {/* Language selector */}
-        <div className="mb-6">
-          <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
-            {t("footer.language", lang)}
-          </div>
-          <div className="flex gap-2">
-            {(["en", "sw"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                  lang === l
-                    ? "bg-blue-700 text-white shadow-sm"
-                    : "bg-blue-50 text-text-mid hover:bg-blue-100"
-                }`}
-              >
-                {l === "en" ? "English" : "Kiswahili"}
-              </button>
-            ))}
+          {/* Language selector */}
+          <div className="mt-4 lg:mt-0">
+            <div className="font-semibold text-xs uppercase tracking-wider text-text-light mb-2">
+              {t("footer.language", lang)}
+            </div>
+            <div className="flex gap-2">
+              {(["en", "sw"] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    lang === l
+                      ? "bg-blue-700 text-white shadow-sm"
+                      : "bg-blue-50 text-text-mid hover:bg-blue-100"
+                  }`}
+                >
+                  {l === "en" ? "English" : "Kiswahili"}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -104,13 +166,13 @@ export default function Footer() {
         <div className="flex flex-wrap gap-4 text-xs text-text-light mb-4">
           <Link href="#" className="hover:text-blue-700">{t("footer.privacy", lang)}</Link>
           <Link href="#" className="hover:text-blue-700">{t("footer.terms", lang)}</Link>
-          <Link href="#" className="hover:text-blue-700">{t("footer.faq", lang)}</Link>
+          <Link href="/support" className="hover:text-blue-700">{t("footer.faq", lang)}</Link>
           <Link href="#" className="hover:text-blue-700">{t("footer.about", lang)}</Link>
         </div>
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-blue-50 px-5 py-3 flex items-center justify-between">
+      <div className="border-t border-blue-50 px-5 py-3 flex items-center justify-between max-w-6xl mx-auto">
         <span className="text-text-light text-[11px]">
           &copy; {new Date().getFullYear()} MiMaji. {t("footer.rights", lang)}
         </span>

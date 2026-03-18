@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/LangContext";
 import { t } from "@/lib/i18n";
+import { useAuth } from "@/lib/AuthContext";
 
 interface NavbarProps {
   minimal?: boolean;
@@ -16,6 +17,7 @@ export default function Navbar({
 }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { lang } = useLang();
+  const { user } = useAuth();
 
   if (variant === "distributor") {
     return (
@@ -40,16 +42,18 @@ export default function Navbar({
   const navLinks = [
     { href: "/kiosks", label: t("nav.kiosks", lang), desc: lang === "en" ? "Find water near you" : "Pata maji karibu nawe" },
     { href: "/track", label: t("nav.track", lang), desc: lang === "en" ? "Live delivery tracking" : "Fuatilia uwasilishaji" },
+    { href: "/orders", label: t("nav.orders", lang), desc: lang === "en" ? "View order history" : "Tazama historia ya oda" },
+    { href: "/subscriptions", label: lang === "en" ? "Subscriptions" : "Usajili", desc: lang === "en" ? "Weekly water plans" : "Mipango ya maji ya kila wiki" },
+    { href: "/impact", label: t("nav.impact", lang), desc: lang === "en" ? "Our community impact" : "Athari yetu kwa jamii" },
+    { href: "/rewards", label: lang === "en" ? "Water Warriors" : "Mashujaa wa Maji", desc: lang === "en" ? "Earn rewards" : "Pata zawadi" },
+    { href: "/referrals", label: t("nav.referrals", lang), desc: lang === "en" ? "Get free water" : "Pata maji bure" },
     { href: "/join/rider", label: t("nav.rider", lang), desc: lang === "en" ? "Earn money delivering" : "Pata pesa kwa kusambaza" },
     { href: "/join/provider", label: t("nav.provider", lang), desc: lang === "en" ? "Join as a provider" : "Jiunge kama msambazaji" },
-    { href: "/impact", label: t("nav.impact", lang), desc: lang === "en" ? "Our community impact" : "Athari yetu kwa jamii" },
-    { href: "/referrals", label: t("nav.referrals", lang), desc: lang === "en" ? "Get free water" : "Pata maji bure" },
-    { href: "/orders", label: t("nav.orders", lang), desc: lang === "en" ? "View order history" : "Tazama historia ya oda" },
   ];
 
   return (
     <>
-      <nav className="bg-white px-5 h-14 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+      <nav className="bg-white px-5 h-14 flex items-center justify-between sticky top-0 z-50 shadow-sm max-w-full">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -72,15 +76,35 @@ export default function Navbar({
               <Link href="/impact" className="text-text-mid text-xs font-medium px-3 py-2 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors">
                 {t("nav.impact", lang)}
               </Link>
-              <Link href="/join/rider" className="text-text-mid text-xs font-medium px-3 py-2 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                {t("nav.rider", lang)}
+              <Link href="/rewards" className="text-text-mid text-xs font-medium px-3 py-2 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                {lang === "en" ? "Rewards" : "Zawadi"}
               </Link>
-              <Link href="/signup" className="bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-semibold hover:bg-blue-500 transition-colors ml-2 shadow-sm">
-                {t("nav.signup", lang)}
+              <Link href="/subscriptions" className="text-text-mid text-xs font-medium px-3 py-2 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                {lang === "en" ? "Plans" : "Mipango"}
               </Link>
-              <Link href="/orders" className="text-blue-700 bg-blue-50 px-4 py-2 rounded-full text-xs font-semibold hover:bg-blue-100 transition-colors">
-                {t("nav.orders", lang)}
+              <Link href="/contact" className="text-text-mid text-xs font-medium px-3 py-2 rounded-full hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                {lang === "en" ? "Contact" : "Wasiliana"}
               </Link>
+
+              {user ? (
+                <>
+                  <Link href="/orders" className="text-blue-700 bg-blue-50 px-4 py-2 rounded-full text-xs font-semibold hover:bg-blue-100 transition-colors">
+                    {t("nav.orders", lang)}
+                  </Link>
+                  <Link href="/profile" className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-xs font-bold hover:bg-blue-500 transition-colors ml-1">
+                    {user.fullName[0]}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/signup" className="bg-blue-700 text-white px-4 py-2 rounded-full text-xs font-semibold hover:bg-blue-500 transition-colors ml-2 shadow-sm">
+                    {t("nav.signup", lang)}
+                  </Link>
+                  <Link href="/login" className="text-blue-700 bg-blue-50 px-4 py-2 rounded-full text-xs font-semibold hover:bg-blue-100 transition-colors">
+                    {t("nav.login", lang)}
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile hamburger */}
@@ -120,24 +144,79 @@ export default function Navbar({
               <div className="border-t border-blue-50 my-2 pt-2" />
 
               <Link
-                href="/signup"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-blue-700 text-white shadow-sm"
-              >
-                <div>
-                  <div className="font-semibold text-sm">{t("nav.signup", lang)}</div>
-                  <div className="text-blue-200 text-xs">{lang === "en" ? "Create your account" : "Fungua akaunti"}</div>
-                </div>
-              </Link>
-
-              <Link
-                href="/login"
+                href="/contact"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-blue-50"
               >
                 <div>
-                  <div className="font-semibold text-blue-900 text-sm">{t("nav.login", lang)}</div>
-                  <div className="text-text-light text-xs">{lang === "en" ? "Sign in to your account" : "Ingia kwenye akaunti"}</div>
+                  <div className="font-semibold text-blue-900 text-sm">{lang === "en" ? "Contact Us" : "Wasiliana Nasi"}</div>
+                  <div className="text-text-light text-xs">{lang === "en" ? "Get in touch" : "Wasiliana nasi"}</div>
+                </div>
+              </Link>
+
+              <Link
+                href="/support"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-blue-50"
+              >
+                <div>
+                  <div className="font-semibold text-blue-900 text-sm">{lang === "en" ? "Help & Support" : "Msaada"}</div>
+                  <div className="text-text-light text-xs">{lang === "en" ? "FAQ & support" : "Maswali na msaada"}</div>
+                </div>
+              </Link>
+
+              <div className="border-t border-blue-50 my-2 pt-2" />
+
+              {user ? (
+                <>
+                  <Link
+                    href="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-blue-700 flex items-center justify-center text-white font-bold text-sm">
+                      {user.fullName[0]}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-blue-900 text-sm">{user.fullName}</div>
+                      <div className="text-text-light text-xs">{lang === "en" ? "View profile" : "Tazama wasifu"}</div>
+                    </div>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/signup"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-blue-700 text-white shadow-sm"
+                  >
+                    <div>
+                      <div className="font-semibold text-sm">{t("nav.signup", lang)}</div>
+                      <div className="text-blue-200 text-xs">{lang === "en" ? "Create your account" : "Fungua akaunti"}</div>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 p-3 rounded-2xl hover:bg-blue-50"
+                  >
+                    <div>
+                      <div className="font-semibold text-blue-900 text-sm">{t("nav.login", lang)}</div>
+                      <div className="text-text-light text-xs">{lang === "en" ? "Sign in to your account" : "Ingia kwenye akaunti"}</div>
+                    </div>
+                  </Link>
+                </>
+              )}
+
+              <Link
+                href="/vendor"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-blue-50"
+              >
+                <div>
+                  <div className="font-semibold text-blue-900 text-sm">{lang === "en" ? "Vendor Portal" : "Lango la Muuzaji"}</div>
+                  <div className="text-text-light text-xs">{lang === "en" ? "Manage your kiosk" : "Simamia kibanda chako"}</div>
                 </div>
               </Link>
 

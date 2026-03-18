@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Button from "@/components/shared/Button";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { signup } = useAuth();
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
@@ -40,9 +42,25 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    const result = await signup({
+      fullName: form.fullName,
+      phone: form.phone,
+      password: form.password,
+      address: form.address,
+      mpesaNumber: form.mpesaSameAsPhone ? `254${form.phone}` : `254${form.mpesaNumber}`,
+    });
     setLoading(false);
-    router.push("/");
+    if (result.success) {
+      const redirect = localStorage.getItem("mimaji-redirect");
+      if (redirect) {
+        localStorage.removeItem("mimaji-redirect");
+        router.push(redirect);
+      } else {
+        router.push("/");
+      }
+    } else {
+      setError(result.error || "Signup failed");
+    }
   };
 
   return (
@@ -174,6 +192,7 @@ export default function SignupPage() {
               onChange={(e) => updateForm("confirmPassword", e.target.value)}
               placeholder="Re-enter your password"
               className="w-full px-4 py-3 rounded-2xl text-sm text-blue-900 bg-blue-50"
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
             {form.confirmPassword && form.password !== form.confirmPassword && (
               <p className="text-error text-xs mt-1">Passwords do not match</p>

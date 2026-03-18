@@ -2,19 +2,20 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import Badge from "@/components/shared/Badge";
-import OTPLogin from "@/components/shared/OTPLogin";
 import Button from "@/components/shared/Button";
 import { supabase } from "@/lib/supabase";
 import { Order, OrderStatus } from "@/types";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
+import Link from "next/link";
 
 type TabFilter = "all" | "active" | "delivered";
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [phone, setPhone] = useState("");
+  const { user, isLoading: authLoading } = useAuth();
   const [tab, setTab] = useState<TabFilter>("all");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,8 +82,8 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (authenticated) fetchOrders();
-  }, [authenticated, fetchOrders]);
+    if (user) fetchOrders();
+  }, [user, fetchOrders]);
 
   const filteredOrders =
     tab === "active"
@@ -110,19 +111,45 @@ export default function OrdersPage() {
     return date.toLocaleDateString("en-KE", { weekday: "short", hour: "numeric", minute: "2-digit" });
   };
 
-  if (!authenticated) {
+  // Loading auth state
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-bg">
         <Navbar />
-        <div className="px-4 py-12">
-          <OTPLogin
-            title="View your orders"
-            onVerified={(p) => {
-              setPhone(p);
-              setAuthenticated(true);
-            }}
-          />
+        <div className="text-center py-20">
+          <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
         </div>
+      </div>
+    );
+  }
+
+  // Not logged in - prompt to sign in
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-bg">
+        <Navbar />
+        <div className="px-4 py-16 max-w-md mx-auto text-center">
+          <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-blue-900 mb-2">Sign in to view your orders</h1>
+          <p className="text-text-mid text-sm mb-6">Log in or create an account to track and manage your water deliveries.</p>
+          <div className="flex flex-col gap-3">
+            <Link href="/login">
+              <Button size="lg" onClick={() => localStorage.setItem("mimaji-redirect", "/orders")}>
+                Log In
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button variant="outline" size="lg" onClick={() => localStorage.setItem("mimaji-redirect", "/orders")}>
+                Create Account
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -130,12 +157,12 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-bg">
       <Navbar />
-      <div className="px-4 py-5">
+      <div className="px-4 py-5 max-w-3xl mx-auto">
         <h1 className="text-[22px] text-blue-900 font-bold mb-1">
           Your Orders
         </h1>
         <p className="text-text-mid text-xs mb-5">
-          +{phone.slice(0, 6)} *** ***
+          {user.fullName} &middot; +{user.phone.slice(0, 6)} *** ***
         </p>
 
         {/* Filter tabs */}
@@ -180,7 +207,7 @@ export default function OrdersPage() {
             <Button onClick={() => router.push("/")}>Order Water</Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
             {filteredOrders.map((order) => {
               const shortId = `MJ-${order.id.slice(0, 4).toUpperCase()}`;
               return (
@@ -224,6 +251,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

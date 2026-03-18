@@ -66,16 +66,18 @@ export default function KiosksPage() {
 
       {/* Header */}
       <div className="bg-gradient-to-b from-blue-50 to-bg px-5 pt-8 pb-12">
-        <h1 className="text-2xl font-bold text-blue-900 leading-tight mb-1">
-          Water Kiosks &amp; Shops
-        </h1>
-        <p className="text-text-mid text-sm">
-          Find verified water providers near you in Nairobi
-        </p>
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-2xl lg:text-3xl font-bold text-blue-900 leading-tight mb-1">
+            Water Kiosks &amp; Shops
+          </h1>
+          <p className="text-text-mid text-sm lg:text-base">
+            Find verified water providers near you in Nairobi
+          </p>
+        </div>
       </div>
 
       {/* Controls */}
-      <div className="-mt-5 mx-4 bg-white rounded-2xl p-4 relative z-10 mb-4" style={{ boxShadow: "var(--shadow-elevated)" }}>
+      <div className="-mt-5 mx-4 max-w-5xl lg:mx-auto bg-white rounded-2xl p-4 relative z-10 mb-4" style={{ boxShadow: "var(--shadow-elevated)" }}>
         {/* View toggle */}
         <div className="flex gap-2 mb-3">
           <button
@@ -191,11 +193,11 @@ export default function KiosksPage() {
       )}
 
       {/* List View */}
-      <div className="px-4 pb-6">
+      <div className="px-4 pb-6 max-w-5xl lg:mx-auto">
         <div className="text-xs text-text-mid mb-3">
           {filtered.length} water provider{filtered.length !== 1 ? "s" : ""} found
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
           {filtered.map((kiosk) => (
             <div
               key={kiosk.id}
@@ -258,7 +260,7 @@ export default function KiosksPage() {
       </div>
 
       {/* CTA for providers */}
-      <div className="mx-4 mb-6 bg-blue-700 rounded-2xl p-5 text-center">
+      <div className="mx-4 mb-6 bg-blue-700 rounded-2xl p-5 text-center max-w-5xl lg:mx-auto">
         <h3 className="font-bold text-white text-lg mb-1">
           Own a water kiosk?
         </h3>

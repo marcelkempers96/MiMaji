@@ -60,7 +60,7 @@ export default function TrackPage() {
     return (
       <div className="min-h-screen bg-bg font-body">
         <Navbar />
-        <div className="px-4 py-12 max-w-md mx-auto">
+        <div className="px-4 py-12 max-w-lg mx-auto">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -110,7 +110,7 @@ export default function TrackPage() {
   return (
     <div className="min-h-screen bg-bg font-body">
       {/* Map area */}
-      <div className="bg-blue-50 h-64 relative">
+      <div className="bg-blue-50 h-64 lg:h-96 relative">
         {/* Back button */}
         <button
           onClick={() => setTracking(false)}
@@ -162,7 +162,7 @@ export default function TrackPage() {
       </div>
 
       {/* Bottom sheet */}
-      <div className="bg-white rounded-t-3xl -mt-6 relative z-10" style={{ boxShadow: "0 -4px 20px rgba(26, 58, 92, 0.08)" }}>
+      <div className="bg-white rounded-t-3xl -mt-6 relative z-10 max-w-3xl lg:mx-auto" style={{ boxShadow: "0 -4px 20px rgba(26, 58, 92, 0.08)" }}>
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 bg-blue-100 rounded-full" />

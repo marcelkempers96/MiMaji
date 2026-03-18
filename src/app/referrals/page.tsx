@@ -33,16 +33,18 @@ export default function ReferralsPage() {
 
       {/* Hero */}
       <div className="bg-gradient-to-b from-blue-50 to-bg px-5 pt-10 pb-12">
-        <h1 className="text-2xl font-bold text-blue-900 mb-2">
-          Refer &amp; Earn Free Water
-        </h1>
-        <p className="text-text-mid text-sm">
-          Share MiMaji, get free water for you and your friends
-        </p>
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl lg:text-3xl font-bold text-blue-900 mb-2">
+            Refer &amp; Earn Free Water
+          </h1>
+          <p className="text-text-mid text-sm lg:text-base">
+            Share MiMaji, get free water for you and your friends
+          </p>
+        </div>
       </div>
 
       {/* How it works */}
-      <div className="-mt-5 mx-4 bg-white rounded-2xl p-5 relative z-10 mb-6" style={{ boxShadow: "var(--shadow-elevated)" }}>
+      <div className="-mt-5 mx-4 max-w-4xl lg:mx-auto bg-white rounded-2xl p-5 relative z-10 mb-6" style={{ boxShadow: "var(--shadow-elevated)" }}>
         <h2 className="font-bold text-blue-900 mb-4">How it works</h2>
         <div className="space-y-3">
           {[
@@ -64,7 +66,7 @@ export default function ReferralsPage() {
       </div>
 
       {/* Reward tiers */}
-      <div className="px-4 mb-6">
+      <div className="px-4 mb-6 max-w-4xl lg:mx-auto">
         <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-card)" }}>
           <h3 className="font-bold text-blue-900 mb-3">Reward tiers</h3>
           <div className="space-y-2">
@@ -91,7 +93,7 @@ export default function ReferralsPage() {
       </div>
 
       {/* Your referral code */}
-      <div className="px-4 mb-6">
+      <div className="px-4 mb-6 max-w-4xl lg:mx-auto">
         <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-card)" }}>
           <h3 className="font-bold text-blue-900 mb-3">Your referral code</h3>
           <div className="bg-blue-50 rounded-2xl p-4 text-center mb-4">
@@ -126,7 +128,7 @@ export default function ReferralsPage() {
       </div>
 
       {/* Progress */}
-      <div className="px-4 mb-6">
+      <div className="px-4 mb-6 max-w-4xl lg:mx-auto">
         <div className="bg-white rounded-2xl p-5" style={{ boxShadow: "var(--shadow-card)" }}>
           <h3 className="font-bold text-blue-900 mb-3">Your progress</h3>
           <div className="grid grid-cols-3 gap-3 mb-4 text-center">
