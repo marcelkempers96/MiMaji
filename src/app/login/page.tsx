@@ -1,18 +1,19 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
+import type { UserRole } from "@/context/AuthContext";
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, signup } = useAuth();
+  const { login, signup, user } = useAuth();
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [phone, setPhone] = useState("");
@@ -22,6 +23,19 @@ function LoginContent() {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect authenticated users based on role
+  useEffect(() => {
+    if (!user) return;
+    const redirect = searchParams.get("redirect");
+    if (redirect) {
+      router.push(redirect);
+    } else if (user.role === "vendor") {
+      router.push("/vendor-portal");
+    } else {
+      router.push("/dashboard");
+    }
+  }, [user, router, searchParams]);
 
   const handleLogin = async () => {
     const cleaned = phone.replace(/\s/g, "");
@@ -43,9 +57,7 @@ function LoginContent() {
       setLoading(false);
       return;
     }
-
-    const redirect = searchParams.get("redirect");
-    router.push(redirect || "/dashboard");
+    // Redirect is handled by the useEffect below once user state updates
   };
 
   const handleSignup = async () => {
@@ -72,9 +84,7 @@ function LoginContent() {
       setLoading(false);
       return;
     }
-
-    const redirect = searchParams.get("redirect");
-    router.push(redirect || "/dashboard");
+    // Redirect is handled by the useEffect below once user state updates
   };
 
   const handleSubmit = () => {
@@ -195,6 +205,20 @@ function LoginContent() {
               {mode === "login" ? "Sign Up" : "Log In"}
             </button>
           </p>
+
+          {mode === "login" && (
+            <div className="mt-6 bg-primary-light rounded-xl p-4">
+              <p className="text-primary text-xs font-semibold mb-2">Demo Accounts</p>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-text-secondary text-xs">
+                  Admin: <span className="font-mono font-medium text-text-primary">0700000000</span> / <span className="font-mono font-medium text-text-primary">admin123</span>
+                </p>
+                <p className="text-text-secondary text-xs">
+                  Vendor: <span className="font-mono font-medium text-text-primary">0711000000</span> / <span className="font-mono font-medium text-text-primary">vendor123</span>
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
