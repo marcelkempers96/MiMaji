@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 
-interface SavedLocation {
+export interface SavedLocation {
   id: string;
   label: string;
   address: string;
@@ -16,6 +16,8 @@ interface LocationContextType {
   savedLocations: SavedLocation[];
   selectLocation: (location: SavedLocation) => void;
   setCustomAddress: (address: string) => void;
+  addSavedLocation: (location: SavedLocation) => void;
+  removeSavedLocation: (id: string) => void;
 }
 
 const defaultSavedLocations: SavedLocation[] = [
@@ -30,12 +32,14 @@ const LocationContext = createContext<LocationContextType>({
   savedLocations: defaultSavedLocations,
   selectLocation: () => {},
   setCustomAddress: () => {},
+  addSavedLocation: () => {},
+  removeSavedLocation: () => {},
 });
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [neighbourhood, setNeighbourhood] = useState("Kilimani, Nairobi");
   const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null);
-  const [savedLocations] = useState<SavedLocation[]>(defaultSavedLocations);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>(defaultSavedLocations);
 
   const selectLocation = useCallback((location: SavedLocation) => {
     setSelectedLocation(location);
@@ -47,6 +51,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     setNeighbourhood(address);
   }, []);
 
+  const addSavedLocation = useCallback((location: SavedLocation) => {
+    setSavedLocations((prev) => [...prev, location]);
+  }, []);
+
+  const removeSavedLocation = useCallback((id: string) => {
+    setSavedLocations((prev) => prev.filter((loc) => loc.id !== id));
+  }, []);
+
   return (
     <LocationContext.Provider
       value={{
@@ -56,6 +68,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         savedLocations,
         selectLocation,
         setCustomAddress,
+        addSavedLocation,
+        removeSavedLocation,
       }}
     >
       {children}

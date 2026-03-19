@@ -74,9 +74,11 @@ export default function SubscriptionsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <TopBar title="Subscription Plans" showBack={true} />
-
       {/* Mobile */}
+      <div className="md:hidden">
+        <TopBar title="Subscription Plans" showBack={true} />
+      </div>
+
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
         <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} />
       </div>

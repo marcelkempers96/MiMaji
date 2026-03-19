@@ -2,24 +2,36 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, CreditCard, Smartphone } from "lucide-react";
+import { Droplets, Smartphone, Copy, CheckCircle2 } from "lucide-react";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
 
+type PaymentMethod = "stk-push" | "mpesa-app";
+
 export default function ConfirmOrderPage() {
   const router = useRouter();
   const { items, totalItems, total } = useCart();
   const { user } = useAuth();
   const { selectedLocation } = useLocation();
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const handleConfirm = async () => {
     if (!user?.phone) return;
 
+    if (paymentMethod === "mpesa-app") {
+      // For M-PESA app payment, just show instructions and redirect
+      setPaymentStatus("sent");
+      setTimeout(() => router.push("/track"), 3000);
+      return;
+    }
+
+    // STK Push flow
     setPaymentStatus("loading");
     setErrorMsg("");
 
@@ -41,12 +53,18 @@ export default function ConfirmOrderPage() {
       }
 
       setPaymentStatus("sent");
-      // Wait a moment then redirect to tracking
       setTimeout(() => router.push("/track"), 2000);
     } catch (err) {
       setPaymentStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Payment failed. Please try again.");
     }
+  };
+
+  const handleCopyPaybill = () => {
+    navigator.clipboard.writeText("123456").then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const amountSummary = () => {
@@ -88,17 +106,80 @@ export default function ConfirmOrderPage() {
 
           <div className="h-px bg-gray-100 my-4" />
 
-          {/* Payment Method */}
-          <div className="flex items-center gap-3 bg-[#E8F5E9] rounded-xl p-4 mb-4">
-            <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
-              <Smartphone size={20} className="text-white" />
+          {/* Payment Method Selection */}
+          <h3 className="font-bold text-sm text-text-primary mb-3">Payment Method</h3>
+
+          {/* Option 1: STK Push */}
+          <button
+            onClick={() => setPaymentMethod("stk-push")}
+            className={`w-full flex items-center gap-3 rounded-xl p-4 mb-3 transition-all text-left ${
+              paymentMethod === "stk-push"
+                ? "bg-[#E8F5E9] border-2 border-[#2ECC71]"
+                : "bg-surface border-2 border-transparent shadow-card"
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              paymentMethod === "stk-push" ? "bg-[#2ECC71]" : "bg-gray-100"
+            }`}>
+              <Smartphone size={20} className={paymentMethod === "stk-push" ? "text-white" : "text-text-secondary"} />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-sm text-text-primary">M-Pesa</p>
-              <p className="text-text-secondary text-xs">STK push to {user?.phone || "your phone"}</p>
+              <p className="font-bold text-sm text-text-primary">STK Push to M-PESA</p>
+              <p className="text-text-secondary text-xs">Receive a payment prompt on {user?.phone || "your phone"}</p>
             </div>
-            <CreditCard size={20} className="text-[#2ECC71]" />
-          </div>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              paymentMethod === "stk-push" ? "border-[#2ECC71] bg-[#2ECC71]" : "border-gray-300"
+            }`}>
+              {paymentMethod === "stk-push" && <CheckCircle2 size={14} className="text-white" />}
+            </div>
+          </button>
+
+          {/* Option 2: Pay via M-PESA App */}
+          <button
+            onClick={() => setPaymentMethod("mpesa-app")}
+            className={`w-full flex items-center gap-3 rounded-xl p-4 mb-4 transition-all text-left ${
+              paymentMethod === "mpesa-app"
+                ? "bg-[#E8F5E9] border-2 border-[#2ECC71]"
+                : "bg-surface border-2 border-transparent shadow-card"
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              paymentMethod === "mpesa-app" ? "bg-[#2ECC71]" : "bg-gray-100"
+            }`}>
+              <Smartphone size={20} className={paymentMethod === "mpesa-app" ? "text-white" : "text-text-secondary"} />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm text-text-primary">Pay via M-PESA App</p>
+              <p className="text-text-secondary text-xs">Pay manually using Paybill / Till number</p>
+            </div>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              paymentMethod === "mpesa-app" ? "border-[#2ECC71] bg-[#2ECC71]" : "border-gray-300"
+            }`}>
+              {paymentMethod === "mpesa-app" && <CheckCircle2 size={14} className="text-white" />}
+            </div>
+          </button>
+
+          {/* M-PESA App Instructions */}
+          {paymentMethod === "mpesa-app" && (
+            <div className="bg-[#FFF5EC] rounded-xl p-4 mb-4">
+              <p className="font-bold text-sm text-text-primary mb-2">Payment Instructions</p>
+              <ol className="text-text-secondary text-xs space-y-2 list-decimal list-inside">
+                <li>Open M-PESA on your phone</li>
+                <li>Select <span className="font-semibold text-text-primary">Lipa na M-PESA</span></li>
+                <li>Select <span className="font-semibold text-text-primary">Pay Bill</span></li>
+                <li>
+                  Enter Business Number: <span className="font-bold text-text-primary">123456</span>
+                  <button onClick={handleCopyPaybill} className="ml-2 inline-flex items-center gap-1 text-primary">
+                    {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
+                    <span className="text-[10px]">{copied ? "Copied!" : "Copy"}</span>
+                  </button>
+                </li>
+                <li>Enter Account Number: <span className="font-bold text-text-primary">{user?.phone || "Your phone"}</span></li>
+                <li>Enter Amount: <span className="font-bold text-text-primary">KES {total.toLocaleString()}</span></li>
+                <li>Enter your M-PESA PIN and confirm</li>
+              </ol>
+            </div>
+          )}
 
           {/* Total */}
           <div className="flex justify-between items-center">
@@ -107,10 +188,16 @@ export default function ConfirmOrderPage() {
           </div>
 
           {/* Status Messages */}
-          {paymentStatus === "sent" && (
+          {paymentStatus === "sent" && paymentMethod === "stk-push" && (
             <div className="mt-4 bg-[#E8F5E9] rounded-xl p-4 text-center">
-              <p className="text-[#2ECC71] font-bold text-sm">M-Pesa STK push sent!</p>
-              <p className="text-text-secondary text-xs mt-1">Check your phone and enter your M-Pesa PIN to complete payment.</p>
+              <p className="text-[#2ECC71] font-bold text-sm">M-PESA STK push sent!</p>
+              <p className="text-text-secondary text-xs mt-1">Check your phone and enter your M-PESA PIN to complete payment.</p>
+            </div>
+          )}
+          {paymentStatus === "sent" && paymentMethod === "mpesa-app" && (
+            <div className="mt-4 bg-[#E8F5E9] rounded-xl p-4 text-center">
+              <p className="text-[#2ECC71] font-bold text-sm">Order placed!</p>
+              <p className="text-text-secondary text-xs mt-1">Complete your M-PESA payment using the instructions above. Redirecting...</p>
             </div>
           )}
           {paymentStatus === "error" && (
@@ -130,8 +217,9 @@ export default function ConfirmOrderPage() {
             disabled={paymentStatus === "loading" || paymentStatus === "sent"}
           >
             {paymentStatus === "loading" ? "Sending M-Pesa request..." :
-             paymentStatus === "sent" ? "Waiting for payment..." :
-             "Pay with M-Pesa"}
+             paymentStatus === "sent" ? "Processing..." :
+             paymentMethod === "stk-push" ? "Pay with M-PESA" :
+             "Confirm Order"}
           </Button>
         </div>
       </div>

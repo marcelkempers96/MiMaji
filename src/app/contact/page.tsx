@@ -10,7 +10,10 @@ const WHATSAPP_LINK = `https://wa.me/254758434076`;
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
-      <TopBar title="Contact Us" showBack={true} />
+      {/* Mobile TopBar only */}
+      <div className="md:hidden">
+        <TopBar title="Contact Us" showBack={true} />
+      </div>
 
       {/* Mobile Layout */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">

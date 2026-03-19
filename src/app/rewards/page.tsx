@@ -57,7 +57,9 @@ export default function RewardsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <TopBar title="Water Warriors Rewards" showBack={true} />
+      <div className="md:hidden">
+        <TopBar title="Water Warriors Rewards" showBack={true} />
+      </div>
 
       {/* Mobile Layout */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">

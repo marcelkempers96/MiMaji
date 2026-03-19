@@ -10,12 +10,13 @@ import Button from "@/components/ui/Button";
 
 const menuItems = [
   { label: "My Orders", icon: FileText, href: "/orders" },
-  { label: "Saved Addresses", icon: MapPin, href: "/location" },
-  { label: "Payment Methods", icon: CreditCard, href: "#" },
+  { label: "Account & Profile", icon: User, href: "/account-settings" },
+  { label: "Saved Addresses", icon: MapPin, href: "/saved-addresses" },
+  { label: "Payment Methods", icon: CreditCard, href: "/payment-methods" },
   { label: "Water Warriors Rewards", icon: Star, href: "/rewards" },
   { label: "Subscriptions", icon: Settings, href: "/subscriptions" },
   { label: "Notifications", icon: Bell, href: "#" },
-  { label: "Privacy & Security", icon: Shield, href: "#" },
+  { label: "Privacy & Security", icon: Shield, href: "/privacy" },
   { label: "Help & Support", icon: HelpCircle, href: "/support" },
 ];
 
@@ -32,7 +33,9 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <TopBar title="Account" showBack={true} />
+      <div className="md:hidden">
+        <TopBar title="Account" showBack={true} />
+      </div>
 
       {/* Mobile */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
