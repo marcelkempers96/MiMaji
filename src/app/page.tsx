@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, order1, mpesa1, dev1 } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2 } from "lucide-react";
 
 import Link from "next/link";
@@ -71,25 +71,45 @@ export default function HomePage() {
           </AuthLink>
         </div>
 
+        {/* Delivering from 30 Locations Banner - Mobile */}
+        <Link href="/vendors">
+          <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-xl p-4 mb-5 flex items-center gap-3 hover:shadow-card transition-shadow">
+            <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+              <img src={mimajiLocations.src} alt="MiMaji delivery locations" className="object-cover w-full h-full" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm text-text-primary">Delivering from 30 Locations</p>
+              <p className="text-text-secondary text-xs mt-0.5">Across Nairobi — fast delivery near you</p>
+              <p className="text-primary text-xs font-semibold mt-1">See All Vendors →</p>
+            </div>
+          </div>
+        </Link>
+
         {/* How It Works */}
         <h2 className="text-base font-bold text-text-primary mb-3">How It Works</h2>
         <div className="bg-surface shadow-card rounded-xl p-4 mb-5">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</div>
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+              <img src={order1.src} alt="Choose water" className="object-cover w-full h-full" />
+            </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Choose Your Water</p>
               <p className="text-text-secondary text-xs">Hard jug 20L or soft bottle 5L/10L/20L</p>
             </div>
           </div>
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</div>
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+              <img src={mpesa1.src} alt="Pay with M-Pesa" className="object-cover w-full h-full" />
+            </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Pay with M-Pesa</p>
               <p className="text-text-secondary text-xs">Secure STK push payment to your phone</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-full bg-[#2ECC71] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</div>
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+              <img src={dev1.src} alt="Get it delivered" className="object-cover w-full h-full" />
+            </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Get It Delivered</p>
               <p className="text-text-secondary text-xs">Track your delivery in real-time. Average 35 min.</p>
@@ -119,6 +139,38 @@ export default function HomePage() {
               <p className="font-bold text-sm text-text-primary">First Order Free Delivery</p>
               <p className="text-text-secondary text-xs mt-0.5">No delivery fee on your first order</p>
             </div>
+          </div>
+        </div>
+
+        {/* Office Banner - Mobile */}
+        <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-xl p-5 mb-5 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <Building2 size={22} />
+            <h3 className="font-extrabold text-base">Water for Your Office</h3>
+          </div>
+          <p className="text-white/80 text-xs mb-3">
+            Keep your team hydrated with scheduled deliveries. Corporate accounts with volume discounts and monthly invoicing.
+          </p>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-full h-32 rounded-xl overflow-hidden">
+              <img src={officeBottle.src} alt="Office water delivery" className="object-cover w-full h-full rounded-xl" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href="/buy"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-4 py-2.5 text-xs transition-colors"
+            >
+              <ShoppingCart size={14} />
+              Order for Office
+            </Link>
+            <Link
+              href="/account-settings"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full px-4 py-2.5 text-xs transition-colors"
+            >
+              <Building2 size={14} />
+              Corporate Account
+            </Link>
           </div>
         </div>
 
@@ -326,23 +378,47 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
         </div>
       </section>
 
+      {/* Delivering from 30 Locations Banner - Desktop */}
+      <section className="bg-surface py-8 border-b border-[#E0E0E0]">
+        <div className="max-w-6xl mx-auto px-8">
+          <Link href="/vendors">
+            <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-2xl p-8 flex items-center gap-8 hover:shadow-card transition-shadow">
+              <div className="w-40 h-28 rounded-2xl overflow-hidden flex-shrink-0">
+                <img src={mimajiLocations.src} alt="MiMaji delivery locations in Nairobi" className="object-cover w-full h-full" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-extrabold text-xl text-text-primary">Delivering from 30 Locations in Nairobi</h3>
+                <p className="text-text-secondary text-sm mt-1">Fast delivery from vendors near you across the city</p>
+                <span className="text-primary text-sm font-semibold mt-2 inline-block">See All Vendors →</span>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="bg-surface py-16">
         <div className="max-w-6xl mx-auto px-8">
           <h2 className="text-2xl font-bold text-text-primary mb-8 text-center">How It Works</h2>
           <div className="grid grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-primary text-white text-2xl font-extrabold flex items-center justify-center mx-auto mb-4">1</div>
+              <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-4">
+                <img src={order1.src} alt="Choose your water" className="object-cover w-full h-full" />
+              </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Choose Your Water</h3>
               <p className="text-text-secondary text-sm">Browse hard jugs and soft bottles in 5L, 10L, and 20L sizes</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-primary text-white text-2xl font-extrabold flex items-center justify-center mx-auto mb-4">2</div>
+              <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-4">
+                <img src={mpesa1.src} alt="Pay with M-Pesa" className="object-cover w-full h-full" />
+              </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Pay with M-Pesa</h3>
               <p className="text-text-secondary text-sm">Secure payment via STK push directly to your phone</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-[#2ECC71] text-white text-2xl font-extrabold flex items-center justify-center mx-auto mb-4">3</div>
+              <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-4">
+                <img src={dev1.src} alt="Get it delivered" className="object-cover w-full h-full" />
+              </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Get It Delivered</h3>
               <p className="text-text-secondary text-sm">Track your delivery in real-time. Average delivery in 35 minutes</p>
             </div>
