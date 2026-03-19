@@ -86,7 +86,7 @@ export default function SupportPage() {
                   Call Us
                 </a>
                 <a
-                  href="mailto:hello@mimaji.co.ke"
+                  href="mailto:support@mimaji.co.ke"
                   className="block w-full bg-surface border border-[#E0E0E0] text-text-primary rounded-xl py-3 text-center font-semibold text-sm hover:bg-background transition-colors"
                 >
                   Email Us
@@ -155,13 +155,13 @@ function SupportContent() {
           </div>
           <ChevronRight size={16} className="text-text-secondary" />
         </a>
-        <a href="mailto:hello@mimaji.co.ke" className="bg-surface shadow-card rounded-xl p-4 flex items-center gap-3">
+        <a href="mailto:support@mimaji.co.ke" className="bg-surface shadow-card rounded-xl p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
             <Mail size={18} className="text-primary" />
           </div>
           <div className="flex-1">
             <p className="font-medium text-sm text-text-primary">Email</p>
-            <p className="text-text-secondary text-xs">hello@mimaji.co.ke</p>
+            <p className="text-text-secondary text-xs">support@mimaji.co.ke</p>
           </div>
           <ChevronRight size={16} className="text-text-secondary" />
         </a>

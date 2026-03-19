@@ -106,7 +106,7 @@ export default function InvoicesPage() {
                             </tbody>
                           </table>
                           <p class="total">Total: KES ${order.price_total.toLocaleString()}</p>
-                          <p style="color:#888; margin-top:40px; font-size:12px">MiMaji Water Delivery · hello@mimaji.co.ke · +254 758 434 076</p>
+                          <p style="color:#888; margin-top:40px; font-size:12px">MiMaji Water Delivery · support@mimaji.co.ke · +254 758 434 076</p>
                           </body></html>
                         `);
                         invoiceWindow.document.close();

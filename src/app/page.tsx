@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mpesa1 } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mpesa1, order1, dev1 } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
 
 import Link from "next/link";
@@ -19,7 +19,7 @@ export default function HomePage() {
         {/* Header */}
         <div className="flex items-center justify-between py-4 bg-white -mx-4 px-4 sticky top-0 z-10">
           <div className="flex items-center">
-            <img src={logo1.src} alt="MiMaji" className="h-7 w-auto" />
+            <img src={logo1.src} alt="MiMaji" className="h-[70px] w-auto" />
           </div>
           {user ? (
             <Link href="/dashboard" className="text-primary text-sm font-semibold">
@@ -93,7 +93,9 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-7 h-7 rounded-full bg-[#2ECC71] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</div>
+            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+              <img src={dev1.src} alt="Delivery" className="w-full h-full object-contain" />
+            </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Get It Delivered</p>
               <p className="text-text-secondary text-xs">Track your delivery in real-time. Average 35 min.</p>
@@ -255,9 +257,9 @@ function MobileFooter() {
           <Phone size={14} />
           +254 758 434 076
         </a>
-        <a href="mailto:hello@mimaji.co.ke" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+        <a href="mailto:support@mimaji.co.ke" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Mail size={14} />
-          hello@mimaji.co.ke
+          support@mimaji.co.ke
         </a>
       </div>
 
@@ -276,7 +278,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
       <header className="bg-surface border-b border-[#E0E0E0]">
         <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
           <div className="flex items-center">
-            <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
+            <img src={logo1.src} alt="MiMaji" className="h-[70px] w-auto" />
           </div>
           <nav className="flex items-center gap-8">
             <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
@@ -355,17 +357,23 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           <h2 className="text-2xl font-bold text-text-primary mb-8 text-center">How It Works</h2>
           <div className="grid grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-primary text-white text-2xl font-extrabold flex items-center justify-center mx-auto mb-4">1</div>
+              <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4">
+                <img src={order1.src} alt="Choose water" className="w-full h-full object-contain" />
+              </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Choose Your Water</h3>
               <p className="text-text-secondary text-sm">Browse hard jugs and soft bottles in 5L, 10L, and 20L sizes</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-primary text-white text-2xl font-extrabold flex items-center justify-center mx-auto mb-4">2</div>
+              <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4">
+                <img src={mpesa1.src} alt="M-Pesa payment" className="w-full h-full object-contain" />
+              </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Pay with M-Pesa</h3>
               <p className="text-text-secondary text-sm">Secure payment via STK push directly to your phone</p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-[#2ECC71] text-white text-2xl font-extrabold flex items-center justify-center mx-auto mb-4">3</div>
+              <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4">
+                <img src={dev1.src} alt="Delivery" className="w-full h-full object-contain" />
+              </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Get It Delivered</h3>
               <p className="text-text-secondary text-sm">Track your delivery in real-time. Average delivery in 35 minutes</p>
             </div>
@@ -450,7 +458,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
                 Order for Office
               </Link>
               <Link
-                href="/account-settings"
+                href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
                 className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
               >
                 <Building2 size={20} />
@@ -482,7 +490,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             </Link>
           </div>
           <div className="flex-1 flex justify-center">
-            <div className="w-64 h-48 rounded-2xl overflow-hidden">
+            <div className="w-[400px] h-[280px] rounded-2xl overflow-hidden">
               <img src={impactWaterIsLife.src} alt="Community water access" className="object-cover w-full h-full rounded-2xl" />
             </div>
           </div>
@@ -495,7 +503,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           <div className="grid grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center mb-4">
-                <img src={logo1.src} alt="MiMaji" className="h-7 w-auto brightness-0 invert" />
+                <img src={logo1.src} alt="MiMaji" className="h-[50px] w-auto brightness-0 invert" />
               </div>
               <p className="text-white/60 text-sm mb-4">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
               <p className="text-white/40 text-xs">For every 100L delivered, 10L goes to rural communities.</p>
@@ -532,9 +540,9 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
                   <Phone size={14} />
                   +254 758 434 076
                 </a>
-                <a href="mailto:hello@mimaji.co.ke" className="text-white/60 text-sm hover:text-white transition-colors flex items-center gap-2">
+                <a href="mailto:support@mimaji.co.ke" className="text-white/60 text-sm hover:text-white transition-colors flex items-center gap-2">
                   <Mail size={14} />
-                  hello@mimaji.co.ke
+                  support@mimaji.co.ke
                 </a>
               </div>
             </div>

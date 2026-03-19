@@ -78,7 +78,7 @@ function ContactContent() {
 
       {/* Email */}
       <a
-        href="mailto:hello@mimaji.co.ke"
+        href="mailto:support@mimaji.co.ke"
         className="bg-surface shadow-card rounded-xl p-5 flex items-center gap-4 hover:shadow-card-hover transition-shadow"
       >
         <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
@@ -86,7 +86,7 @@ function ContactContent() {
         </div>
         <div>
           <p className="font-bold text-sm text-text-primary">Email</p>
-          <p className="text-text-secondary text-sm">hello@mimaji.co.ke</p>
+          <p className="text-text-secondary text-sm">support@mimaji.co.ke</p>
         </div>
       </a>
 

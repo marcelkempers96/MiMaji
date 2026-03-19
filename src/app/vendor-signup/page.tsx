@@ -136,7 +136,7 @@ export default function VendorSignupPage() {
       <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
         <h2 className="font-bold text-base text-text-primary mb-4">What We Need From You</h2>
         <p className="text-text-secondary text-xs mb-4">
-          Fill in the info below. You can do it on your phone (WhatsApp the answers to <a href="https://wa.me/254758434076" className="text-primary font-semibold">+254 758 434 076</a>), or by email to <a href="mailto:vendor@mimaji.co.ke" className="text-primary font-semibold">vendor@mimaji.co.ke</a>.
+          Fill in the info below. You can do it on your phone (WhatsApp the answers to <a href="https://wa.me/254758434076" className="text-primary font-semibold">+254 758 434 076</a>), or by email to <a href="mailto:support@mimaji.co.ke" className="text-primary font-semibold">support@mimaji.co.ke</a>.
         </p>
         <div className="space-y-2">
           {formFields.map((f) => (
@@ -173,8 +173,8 @@ export default function VendorSignupPage() {
           <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white rounded-xl py-3 font-semibold text-sm hover:bg-[#1fb855] transition-colors">
             WhatsApp: +254 758 434 076
           </a>
-          <a href="mailto:vendor@mimaji.co.ke" className="bg-white/20 text-white rounded-xl py-3 font-semibold text-sm hover:bg-white/30 transition-colors">
-            Email: vendor@mimaji.co.ke
+          <a href="mailto:support@mimaji.co.ke" className="bg-white/20 text-white rounded-xl py-3 font-semibold text-sm hover:bg-white/30 transition-colors">
+            Email: support@mimaji.co.ke
           </a>
         </div>
       </div>
