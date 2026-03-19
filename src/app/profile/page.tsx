@@ -54,7 +54,7 @@ export default function ProfilePage() {
 
       {/* Desktop */}
       <div className="hidden md:block">
-        <DesktopNav />
+        <DesktopNav isLoggedIn={!!user} />
         <div className="max-w-5xl mx-auto px-8 py-12">
           <h1 className="text-3xl font-extrabold text-text-primary mb-8">My Account</h1>
           <div className="grid grid-cols-3 gap-8">
@@ -201,7 +201,7 @@ function ProfileContent({ user, editMode, setEditMode, editName, setEditName, on
   );
 }
 
-function DesktopNav() {
+function DesktopNav({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
@@ -213,7 +213,11 @@ function DesktopNav() {
           <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
           <Link href="/subscriptions" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Subscriptions</Link>
           <Link href="/profile" className="text-primary font-medium text-sm">Account</Link>
-          <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Dashboard</Link>
+          ) : (
+            <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
+          )}
         </nav>
       </div>
     </header>

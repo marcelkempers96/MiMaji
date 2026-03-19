@@ -16,6 +16,8 @@ import {
   Heart,
   Download,
   X,
+  User,
+  Receipt,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +27,9 @@ const shortcuts = [
   { label: "Schedule", icon: Calendar, href: "/schedule" },
   { label: "Subscriptions", icon: RefreshCw, href: "/subscriptions" },
   { label: "Order History", icon: FileText, href: "/orders" },
+  { label: "Invoices", icon: Receipt, href: "/invoices" },
+  { label: "Account & Profile", icon: User, href: "/account-settings" },
+  { label: "Saved Addresses", icon: MapPin, href: "/saved-addresses" },
   { label: "Support", icon: MessageCircle, href: "/support" },
 ];
 
@@ -236,7 +241,7 @@ function DashboardContent({ user, desktop }: { user: { phone: string; name: stri
 
       {/* Feature Shortcuts - mobile only */}
       {!desktop && (
-        <div className="grid grid-cols-4 gap-2 mt-6">
+        <div className="grid grid-cols-4 gap-3 mt-6">
           {shortcuts.map((item) => {
             const Icon = item.icon;
             return (
@@ -244,7 +249,7 @@ function DashboardContent({ user, desktop }: { user: { phone: string; name: stri
                 <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center">
                   <Icon size={20} className="text-primary" />
                 </div>
-                <span className="text-[11px] text-text-secondary">{item.label}</span>
+                <span className="text-[11px] text-text-secondary text-center leading-tight">{item.label}</span>
               </Link>
             );
           })}

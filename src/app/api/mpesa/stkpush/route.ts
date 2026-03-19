@@ -13,6 +13,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if M-PESA credentials are configured
+    if (!process.env.MPESA_CONSUMER_KEY || !process.env.MPESA_CONSUMER_SECRET || !process.env.MPESA_PASSKEY) {
+      // Return a mock success response for demo/development
+      return NextResponse.json({
+        mock: true,
+        MerchantRequestID: `MOCK-${Date.now()}`,
+        CheckoutRequestID: `MOCK-CHK-${Date.now()}`,
+        ResponseCode: "0",
+        ResponseDescription: "Success. Request accepted for processing (demo mode)",
+        CustomerMessage: "Success. Request accepted for processing",
+      });
+    }
+
     const formattedPhone = formatKenyanPhone(phone);
     const result = await initiateSTKPush({
       phone: formattedPhone,

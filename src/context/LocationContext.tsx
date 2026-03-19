@@ -52,16 +52,14 @@ interface LocationContextType {
   updateSavedLocation: (id: string, updates: Partial<SavedLocation>) => void;
 }
 
-const defaultSavedLocations: SavedLocation[] = [
-  { id: "loc1", label: "Home", address: "Kilimani, Nairobi", type: "home", neighbourhood: "Kilimani", streetName: "Argwings Kodhek Road", locationType: "apartment" },
-  { id: "loc2", label: "Office", address: "Westlands, Nairobi", type: "office", neighbourhood: "Westlands", streetName: "Waiyaki Way", locationType: "office" },
-];
+// New accounts start with no saved addresses — user needs to add their first address
+const defaultSavedLocations: SavedLocation[] = [];
 
 const LocationContext = createContext<LocationContextType>({
-  neighbourhood: "Kilimani, Nairobi",
+  neighbourhood: "Nairobi",
   setNeighbourhood: () => {},
   selectedLocation: null,
-  savedLocations: defaultSavedLocations,
+  savedLocations: [],
   selectLocation: () => {},
   setCustomAddress: () => {},
   addSavedLocation: () => {},
@@ -70,7 +68,7 @@ const LocationContext = createContext<LocationContextType>({
 });
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
-  const [neighbourhood, setNeighbourhood] = useState("Kilimani, Nairobi");
+  const [neighbourhood, setNeighbourhood] = useState("Nairobi");
   const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>(defaultSavedLocations);
 

@@ -25,7 +25,7 @@ export default function TopBar({ title, showBack = true }: TopBarProps) {
       )}
       <h1 className="text-lg font-bold text-text-primary flex-1">{title}</h1>
       <Link href="/">
-        <img src={logo1.src} alt="MiMaji" className="h-6 w-auto" />
+        <img src={logo1.src} alt="MiMaji" className="h-[60px] w-auto" />
       </Link>
     </div>
   );

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Smartphone, Copy, CheckCircle2, Banknote } from "lucide-react";
+import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck } from "lucide-react";
+import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
-import { createOrder, updateOrderStatus } from "@/lib/orders";
+import { createOrder, updateOrderStatus, formatOrderId } from "@/lib/orders";
+import { assignOrderToVendor } from "@/lib/vendor";
 
 type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 
@@ -18,9 +20,19 @@ export default function ConfirmOrderPage() {
   const { user } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
-  const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "confirmed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Store confirmed order details so they persist after cart is cleared
+  const confirmedOrderRef = useRef<{
+    orderId: string;
+    mpesaRef: string | null;
+    items: typeof items;
+    total: number;
+    address: string;
+    paymentMethod: PaymentMethod;
+  } | null>(null);
 
   const handleConfirm = async () => {
     if (!user?.phone || !user?.id) return;
@@ -29,7 +41,7 @@ export default function ConfirmOrderPage() {
     setErrorMsg("");
 
     try {
-      // Create order in Supabase
+      // Create order
       const productName = items.length === 1
         ? `${items[0].quantity}x ${items[0].name}`
         : `${totalItems} items`;
@@ -53,59 +65,71 @@ export default function ConfirmOrderPage() {
         throw new Error(orderError || "Failed to create order");
       }
 
+      let mpesaRef: string | null = null;
+
       if (paymentMethod === "mpesa-app") {
-        // For M-PESA app payment, mark as pending and show instructions
-        setPaymentStatus("sent");
-        clearCart();
-        setTimeout(() => router.push(`/track?orderId=${orderId}`), 3000);
-        return;
-      }
+        // For M-PESA app payment, mark as pending
+        mpesaRef = null;
+      } else if (paymentMethod === "cash") {
+        // Cash on delivery
+        mpesaRef = null;
+      } else {
+        // STK Push flow
+        try {
+          const res = await fetch("/api/mpesa/stkpush", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: user.phone,
+              amount: total,
+              orderId,
+            }),
+          });
 
-      if (paymentMethod === "cash") {
-        // Cash on delivery — order stays pending, driver collects payment
-        setPaymentStatus("sent");
-        clearCart();
-        setTimeout(() => router.push(`/track?orderId=${orderId}`), 2000);
-        return;
-      }
-
-      // STK Push flow
-      // Check if M-PESA is configured (server-side env vars)
-      // If not configured, simulate successful payment for demo
-      try {
-        const res = await fetch("/api/mpesa/stkpush", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: user.phone,
-            amount: total,
-            orderId,
-          }),
-        });
-
-        if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          // If it's a config/env error, fall through to mock payment
-          if (data.error?.includes("M-Pesa auth failed") || data.error?.includes("STK Push failed") || data.error?.includes("fetch")) {
-            // M-PESA not configured — simulate payment for demo
-            const mockRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-            await updateOrderStatus(orderId, "paid", mockRef);
+
+          if (data.mock) {
+            // Demo mode — simulate successful payment
+            mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
+            await updateOrderStatus(orderId, "paid", mpesaRef);
+          } else if (!res.ok) {
+            if (data.error?.includes("M-Pesa auth failed") || data.error?.includes("STK Push failed") || data.error?.includes("fetch")) {
+              mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
+              await updateOrderStatus(orderId, "paid", mpesaRef);
+            } else {
+              throw new Error(data.error || "Payment failed");
+            }
           } else {
-            throw new Error(data.error || "Payment failed");
+            // Real STK push sent
+            await updateOrderStatus(orderId, "paid");
+            mpesaRef = data.CheckoutRequestID || null;
           }
-        } else {
-          // Update order status to paid
-          await updateOrderStatus(orderId, "paid");
+        } catch (fetchErr) {
+          // Network error — simulate payment for demo
+          mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
+          await updateOrderStatus(orderId, "paid", mpesaRef);
         }
-      } catch (fetchErr) {
-        // Network error / M-PESA not configured — simulate payment for demo
-        const mockRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-        await updateOrderStatus(orderId, "paid", mockRef);
       }
 
-      setPaymentStatus("sent");
+      // Trigger vendor assignment — alert the nearest vendor
+      try {
+        await assignOrderToVendor(orderId);
+      } catch (e) {
+        console.error("Vendor assignment failed:", e);
+      }
+
+      // Save order details before clearing cart
+      confirmedOrderRef.current = {
+        orderId,
+        mpesaRef,
+        items: [...items],
+        total,
+        address: selectedLocation?.address || "Not set",
+        paymentMethod,
+      };
+
       clearCart();
-      setTimeout(() => router.push(`/track?orderId=${orderId}`), 2000);
+      setPaymentStatus("confirmed");
     } catch (err) {
       setPaymentStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Payment failed. Please try again.");
@@ -127,6 +151,114 @@ export default function ConfirmOrderPage() {
     return `${totalItems} items`;
   };
 
+  // ── Payment Confirmation Screen ──
+  if (paymentStatus === "confirmed" && confirmedOrderRef.current) {
+    const order = confirmedOrderRef.current;
+    return (
+      <div className="bg-background min-h-screen pb-28">
+        <TopBar title="Payment Confirmation" />
+        <div className="max-w-md mx-auto md:max-w-lg px-4 mt-6">
+          {/* Success Icon */}
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-[#E8F5E9] rounded-full flex items-center justify-center">
+              <CheckCircle2 size={44} className="text-[#2ECC71]" />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-text-primary text-center mb-1">
+            {order.paymentMethod === "cash" ? "Order Placed!" : "Payment Confirmed!"}
+          </h2>
+          <p className="text-text-secondary text-sm text-center mb-6">
+            {order.paymentMethod === "cash"
+              ? "Your order has been placed. Have cash ready for the driver."
+              : order.paymentMethod === "mpesa-app"
+              ? "Complete your M-PESA payment to confirm your order."
+              : "Your payment has been processed successfully."}
+          </p>
+
+          {/* Order Details Card */}
+          <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium text-primary bg-primary-light px-2 py-0.5 rounded-full">
+                {formatOrderId(order.orderId)}
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {order.items.map((item, i) => (
+                <div key={i} className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Droplets size={16} className="text-primary" />
+                    <span className="text-sm text-text-primary">{item.quantity}x {item.name}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-text-primary">KES {(item.price * item.quantity).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="h-px bg-gray-100 my-3" />
+
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-text-primary">Total</span>
+              <span className="font-bold text-text-primary text-lg">KES {order.total.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Delivery Address */}
+          <div className="bg-surface shadow-card rounded-xl p-4 mb-4 flex items-center gap-3">
+            <MapPin size={20} className="text-primary flex-shrink-0" />
+            <div>
+              <p className="text-xs text-text-secondary">Deliver To</p>
+              <p className="text-sm font-medium text-text-primary">{order.address}</p>
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div className="bg-surface shadow-card rounded-xl p-4 mb-4 flex items-center gap-3">
+            {order.paymentMethod === "cash" ? (
+              <Banknote size={20} className="text-[#2ECC71] flex-shrink-0" />
+            ) : (
+              <Smartphone size={20} className="text-[#2ECC71] flex-shrink-0" />
+            )}
+            <div>
+              <p className="text-xs text-text-secondary">Payment Method</p>
+              <p className="text-sm font-medium text-text-primary">
+                {order.paymentMethod === "stk-push" ? "M-PESA STK Push" :
+                 order.paymentMethod === "mpesa-app" ? "M-PESA App" :
+                 "Cash on Delivery"}
+              </p>
+            </div>
+          </div>
+
+          {/* M-PESA Reference */}
+          {order.mpesaRef && (
+            <div className="bg-surface shadow-card rounded-xl p-4 mb-4">
+              <p className="text-xs text-text-secondary">M-Pesa Reference</p>
+              <p className="font-bold text-sm text-text-primary">{order.mpesaRef}</p>
+            </div>
+          )}
+
+          {/* Track Order Button */}
+          <Link href={`/track?orderId=${order.orderId}`}>
+            <div className="w-full bg-primary text-white rounded-xl py-3.5 font-semibold text-sm text-center flex items-center justify-center gap-2 hover:bg-[#1a5a9a] transition-colors">
+              <Truck size={18} />
+              Track Your Order
+            </div>
+          </Link>
+
+          <Link href="/orders" className="block text-center mt-3 text-primary text-sm font-semibold">
+            View All Orders
+          </Link>
+
+          <Link href="/dashboard" className="block text-center mt-2 text-text-secondary text-sm">
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main Confirm Order Screen ──
   return (
     <div className="bg-background min-h-screen pb-28">
       <TopBar title="Confirm Order" />
@@ -275,25 +407,7 @@ export default function ConfirmOrderPage() {
             <span className="text-xl font-bold text-text-primary">KES {total.toLocaleString()}</span>
           </div>
 
-          {/* Status Messages */}
-          {paymentStatus === "sent" && paymentMethod === "stk-push" && (
-            <div className="mt-4 bg-[#E8F5E9] rounded-xl p-4 text-center">
-              <p className="text-[#2ECC71] font-bold text-sm">M-PESA STK push sent!</p>
-              <p className="text-text-secondary text-xs mt-1">Check your phone and enter your M-PESA PIN to complete payment.</p>
-            </div>
-          )}
-          {paymentStatus === "sent" && paymentMethod === "mpesa-app" && (
-            <div className="mt-4 bg-[#E8F5E9] rounded-xl p-4 text-center">
-              <p className="text-[#2ECC71] font-bold text-sm">Order placed!</p>
-              <p className="text-text-secondary text-xs mt-1">Complete your M-PESA payment using the instructions above. Redirecting...</p>
-            </div>
-          )}
-          {paymentStatus === "sent" && paymentMethod === "cash" && (
-            <div className="mt-4 bg-[#E8F5E9] rounded-xl p-4 text-center">
-              <p className="text-[#2ECC71] font-bold text-sm">Order placed!</p>
-              <p className="text-text-secondary text-xs mt-1">Have KES {total.toLocaleString()} in cash ready for the driver. Redirecting...</p>
-            </div>
-          )}
+          {/* Error Message */}
           {paymentStatus === "error" && (
             <div className="mt-4 bg-[#FFEBEE] rounded-xl p-4 text-center">
               <p className="text-cta-alt font-bold text-sm">Payment Error</p>
@@ -308,10 +422,9 @@ export default function ConfirmOrderPage() {
             variant="primary"
             fullWidth
             onClick={handleConfirm}
-            disabled={paymentStatus === "loading" || paymentStatus === "sent"}
+            disabled={paymentStatus === "loading"}
           >
             {paymentStatus === "loading" ? "Processing order..." :
-             paymentStatus === "sent" ? "Redirecting..." :
              paymentMethod === "stk-push" ? "Pay with M-PESA" :
              paymentMethod === "cash" ? "Place Order (Cash on Delivery)" :
              "Confirm Order"}

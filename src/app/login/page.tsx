@@ -3,7 +3,7 @@
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Building2 } from "lucide-react";
 
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -15,7 +15,10 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { login, signup, user } = useAuth();
 
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
+  const initialCorporate = searchParams.get("corporate") === "true";
+
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -23,6 +26,11 @@ function LoginContent() {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Corporate account fields
+  const [isCorporate, setIsCorporate] = useState(initialCorporate);
+  const [businessName, setBusinessName] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
 
   // Redirect authenticated users based on role
   useEffect(() => {
@@ -72,6 +80,10 @@ function LoginContent() {
     }
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
+      return;
+    }
+    if (isCorporate && businessName.trim().length < 2) {
+      setError("Please enter your business name");
       return;
     }
 
@@ -172,6 +184,65 @@ function LoginContent() {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+
+          {/* Corporate Account Checkbox (signup only) */}
+          {mode === "signup" && (
+            <div className="mt-5">
+              <label
+                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                  isCorporate
+                    ? "border-primary bg-primary-light"
+                    : "border-gray-200 bg-surface hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isCorporate}
+                  onChange={(e) => setIsCorporate(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary accent-[#2979C1]"
+                />
+                <Building2 size={20} className={isCorporate ? "text-primary" : "text-text-secondary"} />
+                <div>
+                  <p className={`text-sm font-bold ${isCorporate ? "text-primary" : "text-text-primary"}`}>
+                    Set Up Corporate Account
+                  </p>
+                  <p className="text-text-secondary text-xs">For business invoicing & bulk orders</p>
+                </div>
+              </label>
+
+              {isCorporate && (
+                <div className="mt-3 bg-surface border border-primary/20 rounded-xl p-4 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-1.5">
+                      Business Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={businessName}
+                      onChange={(e) => { setBusinessName(e.target.value); setError(""); }}
+                      placeholder="Enter your business name"
+                      className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-1.5">
+                      Registration Number <span className="text-text-secondary font-normal text-xs">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={registrationNumber}
+                      onChange={(e) => setRegistrationNumber(e.target.value)}
+                      placeholder="e.g. PVT-12345678"
+                      className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm"
+                    />
+                  </div>
+                  <p className="text-text-secondary text-xs">
+                    Corporate accounts receive business invoices with your company details.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Remember Me */}
           {mode === "login" && (

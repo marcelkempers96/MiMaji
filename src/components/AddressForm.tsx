@@ -71,12 +71,29 @@ export default function AddressForm({
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const mapDivRef = useRef<HTMLDivElement>(null);
 
-  // Check if Google Maps is available
+  // Check if Google Maps is available — poll until loaded (script uses lazyOnload)
   useEffect(() => {
-    if (typeof window !== "undefined" && window.google?.maps?.places) {
-      setMapsLoaded(true);
-      autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
-    }
+    if (typeof window === "undefined") return;
+
+    const init = () => {
+      if (window.google?.maps?.places) {
+        setMapsLoaded(true);
+        autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+        return true;
+      }
+      return false;
+    };
+
+    if (init()) return;
+
+    // Poll every 500ms for up to 15 seconds
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (init() || attempts >= 30) clearInterval(interval);
+    }, 500);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Initialize PlacesService (needs a map/div element)
@@ -133,7 +150,9 @@ export default function AddressForm({
               if (comp.types.includes("sublocality") || comp.types.includes("neighborhood")) setNeighbourhood(comp.long_name);
               if (comp.types.includes("postal_code")) setPostalCode(comp.long_name);
             }
-            if (!streetName && place.formatted_address) {
+            // If no route was found in address components, use formatted address
+            const hasRoute = components.some((c) => c.types.includes("route"));
+            if (!hasRoute && place.formatted_address) {
               setStreetName(place.formatted_address.split(",")[0] || "");
             }
           }
