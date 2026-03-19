@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -40,8 +40,9 @@ export default function OrdersPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
+  const loadOrders = useCallback(() => {
     if (user?.id) {
+      setLoadingOrders(true);
       fetchUserOrders(user.id).then((data) => {
         setOrders(data);
         setLoadingOrders(false);
@@ -50,6 +51,25 @@ export default function OrdersPage() {
       setFreeLitres(getRewardsSummary(user.id).freeLitres);
     }
   }, [user?.id]);
+
+  // Fetch orders on mount and when user changes
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  // Re-fetch when page becomes visible (e.g. navigating back from confirm page)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") loadOrders();
+    };
+    const handleFocus = () => loadOrders();
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [loadOrders]);
 
   if (!user) return null;
 

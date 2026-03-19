@@ -33,18 +33,52 @@ export default function VendorPortalPage() {
   const [settingsLocations, setSettingsLocations] = useState<Array<{ name: string; area: string }>>([{ name: "", area: "" }]);
   const [settingsHours, setSettingsHours] = useState("7:00 AM - 8:00 PM");
   const [settingsRadius, setSettingsRadius] = useState(10);
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
-  // Load vendor settings from mock data
+  const handleSaveSettings = () => {
+    try {
+      const vendorSettings = {
+        businessName: settingsBusinessName,
+        businessReg: settingsBusinessReg,
+        mpesaNumber: settingsMpesaNumber,
+        phoneNumbers: settingsPhoneNumbers.filter(Boolean),
+        locations: settingsLocations.filter((l) => l.name),
+        hours: settingsHours,
+        radius: settingsRadius,
+      };
+      localStorage.setItem(`mimaji_vendor_settings_${user?.id || "default"}`, JSON.stringify(vendorSettings));
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2500);
+    } catch (e) {
+      console.error("Failed to save settings:", e);
+    }
+  };
+
+  // Load vendor settings from localStorage (or fall back to mock data)
   useEffect(() => {
     if (user?.id) {
-      const vendor = MOCK_VENDORS.find((v) => v.id === user.id) || MOCK_VENDORS[0];
-      if (vendor) {
-        setSettingsBusinessName(vendor.name);
-        setSettingsBusinessReg(vendor.businessRegNo);
-        setSettingsMpesaNumber(vendor.mpesaNumber);
-        setSettingsPhoneNumbers(vendor.phoneNumbers.length > 0 ? [...vendor.phoneNumbers] : [""]);
-        setSettingsLocations(vendor.locations.map((l) => ({ name: l.name, area: l.area })));
-        setSelectedStoreId(vendor.locations[0]?.id || "");
+      const savedRaw = localStorage.getItem(`mimaji_vendor_settings_${user.id}`);
+      if (savedRaw) {
+        try {
+          const saved = JSON.parse(savedRaw);
+          setSettingsBusinessName(saved.businessName || "");
+          setSettingsBusinessReg(saved.businessReg || "");
+          setSettingsMpesaNumber(saved.mpesaNumber || "");
+          setSettingsPhoneNumbers(saved.phoneNumbers?.length > 0 ? saved.phoneNumbers : [""]);
+          setSettingsLocations(saved.locations?.length > 0 ? saved.locations : [{ name: "", area: "" }]);
+          if (saved.hours) setSettingsHours(saved.hours);
+          if (saved.radius) setSettingsRadius(saved.radius);
+        } catch { /* fall through to mock */ }
+      } else {
+        const vendor = MOCK_VENDORS.find((v) => v.id === user.id) || MOCK_VENDORS[0];
+        if (vendor) {
+          setSettingsBusinessName(vendor.name);
+          setSettingsBusinessReg(vendor.businessRegNo);
+          setSettingsMpesaNumber(vendor.mpesaNumber);
+          setSettingsPhoneNumbers(vendor.phoneNumbers.length > 0 ? [...vendor.phoneNumbers] : [""]);
+          setSettingsLocations(vendor.locations.map((l) => ({ name: l.name, area: l.area })));
+          setSelectedStoreId(vendor.locations[0]?.id || "");
+        }
       }
     }
   }, [user?.id]);
@@ -187,9 +221,12 @@ export default function VendorPortalPage() {
         <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Delivery Radius (km)</label>
         <input type="number" value={settingsRadius} onChange={(e) => setSettingsRadius(Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
       </div>
-      <button className="bg-primary text-white rounded-xl px-6 py-2.5 font-semibold text-sm hover:bg-[#1a5a9a] transition-colors">
-        Save Settings
+      <button onClick={handleSaveSettings} className="bg-primary text-white rounded-xl px-6 py-2.5 font-semibold text-sm hover:bg-[#1a5a9a] transition-colors">
+        {settingsSaved ? "Saved!" : "Save Settings"}
       </button>
+      {settingsSaved && (
+        <p className="text-[#2ECC71] text-xs font-semibold mt-2">Your settings have been saved.</p>
+      )}
     </div>
   );
 
@@ -212,11 +249,11 @@ export default function VendorPortalPage() {
             <p className="text-text-secondary text-xs">07:00 – 21:00 EAT, 7 days a week</p>
           </div>
         </a>
-        <a href="mailto:vendor@mimaji.co.ke" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+        <a href="mailto:support@mimaji.co.ke" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
           <Mail size={18} className="text-primary" />
           <div>
             <p className="font-semibold text-sm text-text-primary">Email Support</p>
-            <p className="text-text-secondary text-xs">vendor@mimaji.co.ke</p>
+            <p className="text-text-secondary text-xs">support@mimaji.co.ke</p>
           </div>
         </a>
       </div>
@@ -285,7 +322,7 @@ export default function VendorPortalPage() {
                       className={`w-full text-left p-3 rounded-lg border-2 transition-all ${selectedStoreId === loc.id ? "border-primary bg-primary-light" : "border-[#E0E0E0] bg-white"}`}
                     >
                       <p className="font-semibold text-sm text-text-primary">{loc.name}</p>
-                      <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={10} /> {loc.area}</p>
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.area)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-primary text-xs flex items-center gap-1 hover:underline"><MapPin size={10} /> {loc.area}</a>
                     </button>
                   ))}
                 </div>
@@ -361,7 +398,7 @@ export default function VendorPortalPage() {
                   </div>
                   <p className="text-sm text-text-primary font-medium">{order.product_name || "Water Order"}</p>
                   <p className="text-xs text-text-secondary">{order.order_items?.map((i) => `${i.quantity}x ${i.name}`).join(", ") || "\u2014"}</p>
-                  <p className="text-xs text-text-secondary flex items-center gap-1 mt-1"><MapPin size={12} /> {order.delivery_address}</p>
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 mt-1 hover:underline"><MapPin size={12} /> {order.delivery_address}</a>
                   <div className="flex items-center justify-between mt-3">
                     <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     <span className="text-text-secondary text-xs">{formatOrderDate(order.created_at)}</span>
@@ -496,7 +533,13 @@ export default function VendorPortalPage() {
                       {settingsLocations.filter((l) => l.name).map((loc, i) => (
                         <div key={i} className="bg-white rounded-lg p-3 border border-[#E0E0E0]">
                           <p className="font-semibold text-sm text-text-primary">{loc.name}</p>
-                          <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={10} /> {loc.area || "Area not set"}</p>
+                          {loc.area ? (
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.area)}`} target="_blank" rel="noopener noreferrer" className="text-primary text-xs flex items-center gap-1 hover:underline">
+                              <MapPin size={10} /> {loc.area}
+                            </a>
+                          ) : (
+                            <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={10} /> Area not set</p>
+                          )}
                         </div>
                       ))}
                       {settingsLocations.filter((l) => l.name).length === 0 && (
@@ -557,7 +600,7 @@ export default function VendorPortalPage() {
                         <tr key={order.id} className="border-b border-[#F0F0F0] last:border-0 hover:bg-background transition-colors">
                           <td className="px-6 py-4 text-sm font-bold text-text-primary">{formatOrderId(order.id)}</td>
                           <td className="px-6 py-4 text-sm text-text-secondary">{order.product_name || "Water Order"}</td>
-                          <td className="px-6 py-4 text-sm text-text-secondary">{order.delivery_address}</td>
+                          <td className="px-6 py-4 text-sm"><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{order.delivery_address}</a></td>
                           <td className="px-6 py-4 text-sm font-bold text-text-primary">KES {order.price_total.toLocaleString()}</td>
                           <td className="px-6 py-4"><OrderStatusBadge status={order.status} /></td>
                           <td className="px-6 py-4">

@@ -34,7 +34,7 @@ export default function ProductCard({
       }`}
     >
       {/* Product image */}
-      <div className="flex items-center justify-center w-16 h-20 rounded-lg bg-primary-light shrink-0 overflow-hidden p-1">
+      <div className="flex items-center justify-center w-24 h-28 rounded-lg bg-primary-light shrink-0 overflow-hidden p-2">
         <img src={product.image.src} alt={`${product.name} ${product.size}`} className="object-contain w-full h-full" />
       </div>
 

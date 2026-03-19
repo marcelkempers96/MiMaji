@@ -24,6 +24,7 @@ export default function ConfirmOrderPage() {
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "confirmed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
+  const [stkFailedPopup, setStkFailedPopup] = useState(false);
 
   // Store confirmed order details so they persist after cart is cleared
   const confirmedOrderRef = useRef<{
@@ -94,21 +95,20 @@ export default function ConfirmOrderPage() {
             mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
             await updateOrderStatus(orderId, "paid", mpesaRef);
           } else if (!res.ok) {
-            if (data.error?.includes("M-Pesa auth failed") || data.error?.includes("STK Push failed") || data.error?.includes("fetch")) {
-              mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-              await updateOrderStatus(orderId, "paid", mpesaRef);
-            } else {
-              throw new Error(data.error || "Payment failed");
-            }
+            // STK Push failed — show popup to choose different method
+            setStkFailedPopup(true);
+            setPaymentStatus("idle");
+            return;
           } else {
             // Real STK push sent
             await updateOrderStatus(orderId, "paid");
             mpesaRef = data.CheckoutRequestID || null;
           }
         } catch (fetchErr) {
-          // Network error — simulate payment for demo
-          mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-          await updateOrderStatus(orderId, "paid", mpesaRef);
+          // Network/STK error — show popup to choose different method
+          setStkFailedPopup(true);
+          setPaymentStatus("idle");
+          return;
         }
       }
 
@@ -270,6 +270,33 @@ export default function ConfirmOrderPage() {
   // ── Main Confirm Order Screen ──
   return (
     <div className="bg-background min-h-screen pb-28">
+      {/* STK Push Failed Popup */}
+      {stkFailedPopup && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl text-center">
+            <div className="w-14 h-14 bg-[#FFEBEE] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Smartphone size={28} className="text-cta-alt" />
+            </div>
+            <h3 className="font-bold text-lg text-text-primary mb-2">STK Push Failed</h3>
+            <p className="text-text-secondary text-sm mb-6">
+              The M-PESA payment prompt could not be sent to your phone. Please choose a different payment method below.
+            </p>
+            <button
+              onClick={() => { setStkFailedPopup(false); setPaymentMethod("mpesa-app"); }}
+              className="w-full bg-[#2ECC71] text-white py-3 rounded-xl font-semibold text-sm mb-2 hover:bg-[#27ae60] transition-colors"
+            >
+              Pay via M-PESA App
+            </button>
+            <button
+              onClick={() => { setStkFailedPopup(false); setPaymentMethod("cash"); }}
+              className="w-full bg-gray-100 text-text-primary py-3 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors"
+            >
+              Cash on Delivery
+            </button>
+          </div>
+        </div>
+      )}
+
       <TopBar title="Confirm Order" />
 
       <div className="max-w-md mx-auto md:max-w-lg">
@@ -385,6 +412,12 @@ export default function ConfirmOrderPage() {
                 Have <span className="font-bold text-text-primary">KES {total.toLocaleString()}</span> ready in cash.
                 The delivery driver will collect payment when your water arrives. Please have the exact amount if possible.
               </p>
+              <div className="mt-2 bg-[#FFF5EC] rounded-lg p-3">
+                <p className="text-[#F5A623] text-xs font-bold">Reminder:</p>
+                <p className="text-text-primary text-xs mt-1">
+                  Please have your cash ready upon arrival of the delivery driver to avoid delays.
+                </p>
+              </div>
             </div>
           )}
 
@@ -407,6 +440,12 @@ export default function ConfirmOrderPage() {
                 <li>Enter Amount: <span className="font-bold text-text-primary">KES {total.toLocaleString()}</span></li>
                 <li>Enter your M-PESA PIN and confirm</li>
               </ol>
+              <div className="mt-3 bg-primary-light rounded-lg p-3">
+                <p className="text-primary text-xs font-bold">Important:</p>
+                <p className="text-text-primary text-xs mt-1">
+                  After completing payment, you will need to enter the M-PESA payment code on the next page to confirm your payment.
+                </p>
+              </div>
             </div>
           )}
 
