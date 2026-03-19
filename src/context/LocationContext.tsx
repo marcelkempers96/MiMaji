@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 export type LocationType = "house" | "apartment" | "office" | "other";
 
@@ -53,7 +53,21 @@ interface LocationContextType {
 }
 
 // New accounts start with no saved addresses — user needs to add their first address
-const defaultSavedLocations: SavedLocation[] = [];
+const STORAGE_KEY = "mimaji_saved_locations";
+
+function loadSavedLocations(): SavedLocation[] {
+  try {
+    if (typeof window === "undefined") return [];
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function persistLocations(locations: SavedLocation[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+  } catch {}
+}
 
 const LocationContext = createContext<LocationContextType>({
   neighbourhood: "Nairobi",
@@ -70,7 +84,21 @@ const LocationContext = createContext<LocationContextType>({
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [neighbourhood, setNeighbourhood] = useState("Nairobi");
   const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null);
-  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>(defaultSavedLocations);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load saved locations from localStorage on mount
+  useEffect(() => {
+    setSavedLocations(loadSavedLocations());
+    setLoaded(true);
+  }, []);
+
+  // Persist to localStorage whenever savedLocations changes (only after initial load)
+  useEffect(() => {
+    if (loaded) {
+      persistLocations(savedLocations);
+    }
+  }, [savedLocations, loaded]);
 
   const selectLocation = useCallback((location: SavedLocation) => {
     setSelectedLocation(location);
