@@ -6,7 +6,8 @@ export interface ProductCardProduct {
   id: string;
   name: string;
   size: string;
-  price: number;
+  priceNew: number;
+  priceRefill: number;
   image: StaticImageData;
   category: "hard" | "soft";
 }
@@ -15,13 +16,17 @@ interface ProductCardProps {
   product: ProductCardProduct;
   selected?: boolean;
   onSelect?: () => void;
+  bottleType?: "new" | "refill";
 }
 
 export default function ProductCard({
   product,
   selected = false,
   onSelect,
+  bottleType = "refill",
 }: ProductCardProps) {
+  const price = bottleType === "new" ? product.priceNew : product.priceRefill;
+
   return (
     <div
       className={`flex items-center gap-4 bg-white rounded-[12px] p-4 shadow-card transition-all ${
@@ -39,10 +44,10 @@ export default function ProductCard({
           {product.name}
         </p>
         <p className="text-[13px] text-text-secondary">
-          {product.size} — {product.category === "hard" ? "Hard Jug" : "Soft Bottle"}
+          {product.size} — {product.category === "hard" ? "Hard Jug" : "Soft Bottle"} — {bottleType === "new" ? "New" : "Refill"}
         </p>
         <p className="text-[16px] font-bold text-text-primary mt-1">
-          KES {product.price.toLocaleString()}
+          KES {price.toLocaleString()}
         </p>
       </div>
 

@@ -5,15 +5,20 @@ export interface Product {
   id: string;
   name: string;
   size: string;
-  price: number;
+  priceNew: number;
+  priceRefill: number;
   image: StaticImageData;
-  category: 'hard' | 'soft';
+  category: "hard" | "soft";
 }
 
 export const products: Product[] = [
-  { id: 'h1', name: 'Purified Water', size: '20L', price: 500, image: hard20L, category: 'hard' },
-  { id: 'h2', name: 'Purified Water', size: '10L', price: 350, image: hard10L, category: 'hard' },
-  { id: 's1', name: 'Purified Water', size: '20L', price: 450, image: soft20L, category: 'soft' },
-  { id: 's2', name: 'Purified Water', size: '10L', price: 280, image: soft10L, category: 'soft' },
-  { id: 's3', name: 'Purified Water', size: '5L', price: 150, image: soft5L, category: 'soft' },
+  // 20L
+  { id: "h20", name: "Hard Jug",  size: "20L", priceNew: 1500, priceRefill: 300, image: hard20L, category: "hard" },
+  { id: "s20", name: "Soft Jug",  size: "20L", priceNew: 500,  priceRefill: 280, image: soft20L, category: "soft" },
+  // 10L
+  { id: "h10", name: "Hard Jug",  size: "10L", priceNew: 300,  priceRefill: 150, image: hard10L, category: "hard" },
+  { id: "s10", name: "Soft Jug",  size: "10L", priceNew: 200,  priceRefill: 140, image: soft10L, category: "soft" },
+  // 5L
+  { id: "h5",  name: "Hard Bottle", size: "5L", priceNew: 150,  priceRefill: 100, image: soft5L,  category: "hard" },
+  { id: "s5",  name: "Soft Bottle", size: "5L", priceNew: 120,  priceRefill: 80,  image: soft5L,  category: "soft" },
 ];

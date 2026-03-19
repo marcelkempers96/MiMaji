@@ -274,8 +274,8 @@ export default function AddressForm({
       </div>
 
       {!mapsLoaded && (
-        <p className="text-xs text-text-secondary mb-3 bg-[#FFF5EC] rounded-lg px-3 py-2">
-          Google Maps not configured. You can still enter your address manually below.
+        <p className="text-xs text-text-secondary mb-3 bg-primary-light rounded-lg px-3 py-2">
+          Enter your delivery address manually below or search for your location.
         </p>
       )}
 

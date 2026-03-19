@@ -15,7 +15,33 @@ export interface OrderRecord {
   updated_at: string;
 }
 
+// Check if real Supabase credentials are configured
+const hasSupabaseConfig =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
+
+// ── Local storage mock for orders when Supabase is not configured ──
+const MOCK_ORDERS_KEY = "mimaji_mock_orders";
+
+function getMockOrders(): OrderRecord[] {
+  try {
+    const raw = localStorage.getItem(MOCK_ORDERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveMockOrders(orders: OrderRecord[]) {
+  try { localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(orders)); } catch {}
+}
+
 export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
+  if (!hasSupabaseConfig) {
+    return getMockOrders().filter((o) => o.customer_id === userId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
   const { data, error } = await supabase
     .from("orders")
     .select("*")
@@ -30,6 +56,10 @@ export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
 }
 
 export async function fetchOrderById(orderId: string): Promise<OrderRecord | null> {
+  if (!hasSupabaseConfig) {
+    return getMockOrders().find((o) => o.id === orderId) || null;
+  }
+
   const { data, error } = await supabase
     .from("orders")
     .select("*")
@@ -51,6 +81,29 @@ export async function createOrder(params: {
   productName: string;
   orderItems: Array<{ name: string; quantity: number; price: number }>;
 }): Promise<{ orderId: string | null; error: string | null }> {
+  if (!hasSupabaseConfig) {
+    const orderId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const order: OrderRecord = {
+      id: orderId,
+      customer_id: params.customerId,
+      delivery_address: params.deliveryAddress,
+      quantity: Math.min(params.quantity, 10),
+      price_total: params.priceTotal,
+      product_name: params.productName,
+      order_items: params.orderItems,
+      status: "pending_payment",
+      mpesa_ref: null,
+      estimated_delivery_minutes: 35,
+      created_at: now,
+      updated_at: now,
+    };
+    const orders = getMockOrders();
+    orders.push(order);
+    saveMockOrders(orders);
+    return { orderId, error: null };
+  }
+
   const { data, error } = await supabase
     .from("orders")
     .insert({
@@ -73,6 +126,18 @@ export async function createOrder(params: {
 }
 
 export async function updateOrderStatus(orderId: string, status: string, mpesaRef?: string) {
+  if (!hasSupabaseConfig) {
+    const orders = getMockOrders();
+    const idx = orders.findIndex((o) => o.id === orderId);
+    if (idx !== -1) {
+      orders[idx].status = status;
+      if (mpesaRef) orders[idx].mpesa_ref = mpesaRef;
+      orders[idx].updated_at = new Date().toISOString();
+      saveMockOrders(orders);
+    }
+    return;
+  }
+
   const updates: Record<string, unknown> = { status };
   if (mpesaRef) updates.mpesa_ref = mpesaRef;
 
