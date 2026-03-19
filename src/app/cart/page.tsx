@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Droplets, Minus, Plus, Trash2, Tag } from "lucide-react";
+import { Minus, Plus, Trash2, Tag, Droplets } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -72,8 +73,8 @@ export default function CartPage() {
         return (
           <div key={item.id} className="bg-white shadow-card rounded-xl p-4 mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center shrink-0">
-                <Droplets size={24} className="text-primary" />
+              <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                {(() => { const product = products.find(p => p.id === item.id); return product ? <Image src={product.image} alt={item.name} width={48} height={48} className="object-contain" /> : <Droplets size={24} className="text-primary" />; })()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-bold text-text-primary truncate">{item.name}</p>
@@ -195,9 +196,8 @@ function DesktopNav() {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center gap-2">
-          <Droplets size={28} className="text-primary" />
-          <span className="text-2xl font-bold text-primary">MiMaji</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>

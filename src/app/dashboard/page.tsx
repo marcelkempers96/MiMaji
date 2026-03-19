@@ -14,6 +14,7 @@ import {
   Star,
   Heart,
 } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
 
@@ -52,9 +53,8 @@ export default function DashboardPage() {
       <div className="hidden md:block">
         <header className="bg-surface border-b border-[#E0E0E0]">
           <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <Droplets size={28} className="text-primary" />
-              <span className="text-2xl font-bold text-primary">MiMaji</span>
+            <Link href="/" className="flex items-center">
+              <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
             </Link>
             <nav className="flex items-center gap-8">
               <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>

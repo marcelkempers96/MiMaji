@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Minus, Plus, Tag } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -30,7 +31,7 @@ function getDiscountedPrice(basePrice: number, qty: number) {
 export default function BuyWaterPage() {
   const router = useRouter();
   const { addItem, removeItem, items, updateQuantity } = useCart();
-  const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("hard");
+  const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("soft");
   const [quantities, setQuantities] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     items.forEach((item) => { initial[item.id] = item.quantity; });
@@ -145,37 +146,8 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
 }) {
   return (
     <>
-      {/* Discount Banner */}
-      <div className="mx-4 mt-2 mb-4 bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-3 flex items-center gap-3">
-        <Tag size={20} className="text-[#2ECC71] flex-shrink-0" />
-        <div>
-          <p className="font-bold text-sm text-text-primary">Bulk Discount</p>
-          <p className="text-text-secondary text-xs">Order more, pay less! Up to 15% off on 10+ bottles</p>
-        </div>
-      </div>
-
-      {/* Discount Tiers */}
-      <div className="mx-4 mb-4 flex gap-2 overflow-x-auto">
-        {DISCOUNT_TIERS.map((tier, i) => (
-          <div key={i} className="bg-surface shadow-card rounded-lg px-3 py-2 flex-shrink-0 text-center min-w-[80px]">
-            <p className="text-xs font-bold text-primary">{tier.discount === 0 ? "—" : `${tier.discount}% off`}</p>
-            <p className="text-[10px] text-text-secondary mt-0.5">
-              {tier.maxQty === Infinity ? `${tier.minQty}+` : `${tier.minQty}-${tier.maxQty}`} bottles
-            </p>
-          </div>
-        ))}
-      </div>
-
       {/* Filter Tabs */}
       <div className="flex gap-2 px-4 mt-2 mb-5">
-        <button
-          onClick={() => setActiveCategory("hard")}
-          className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
-            activeCategory === "hard" ? "bg-primary text-white" : "bg-white text-text-secondary"
-          }`}
-        >
-          Hard Bottle
-        </button>
         <button
           onClick={() => setActiveCategory("soft")}
           className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
@@ -183,6 +155,14 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
           }`}
         >
           Soft Bottle
+        </button>
+        <button
+          onClick={() => setActiveCategory("hard")}
+          className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
+            activeCategory === "hard" ? "bg-primary text-white" : "bg-white text-text-secondary"
+          }`}
+        >
+          Hard Bottle
         </button>
       </div>
 
@@ -202,8 +182,8 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-primary-light rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Droplets size={28} className="text-primary" />
+                <div className="w-14 h-14 bg-primary-light rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <Image src={product.image} alt={`${product.name} ${product.size}`} width={56} height={56} className="object-contain" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-text-primary">{product.name}</p>
@@ -266,9 +246,8 @@ function DesktopNav() {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center gap-2">
-          <Droplets size={28} className="text-primary" />
-          <span className="text-2xl font-bold text-primary">MiMaji</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-primary font-medium text-sm">Order Water</Link>
