@@ -2,11 +2,42 @@
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 
+export type LocationType = "house" | "apartment" | "office" | "other";
+
 export interface SavedLocation {
   id: string;
   label: string;
   address: string;
   type: "home" | "office";
+  // Detailed fields
+  streetName?: string;
+  buildingName?: string;
+  unitNumber?: string;
+  floor?: string;
+  locationType?: LocationType;
+  postalCode?: string;
+  additionalDirections?: string;
+  neighbourhood?: string;
+  // Google Maps coords
+  lat?: number;
+  lng?: number;
+}
+
+// Build a display-friendly address string from detailed fields
+export function buildDisplayAddress(loc: Partial<SavedLocation>): string {
+  const parts: string[] = [];
+  if (loc.buildingName) parts.push(loc.buildingName);
+  if (loc.unitNumber) {
+    const unit = loc.floor ? `Floor ${loc.floor}, Unit ${loc.unitNumber}` : `Unit ${loc.unitNumber}`;
+    parts.push(unit);
+  } else if (loc.floor) {
+    parts.push(`Floor ${loc.floor}`);
+  }
+  if (loc.streetName) parts.push(loc.streetName);
+  if (loc.neighbourhood) parts.push(loc.neighbourhood);
+  if (loc.postalCode) parts.push(loc.postalCode);
+  if (parts.length > 0) return parts.join(", ");
+  return loc.address || "";
 }
 
 interface LocationContextType {
@@ -18,11 +49,12 @@ interface LocationContextType {
   setCustomAddress: (address: string) => void;
   addSavedLocation: (location: SavedLocation) => void;
   removeSavedLocation: (id: string) => void;
+  updateSavedLocation: (id: string, updates: Partial<SavedLocation>) => void;
 }
 
 const defaultSavedLocations: SavedLocation[] = [
-  { id: "loc1", label: "Home", address: "Kilimani, Nairobi", type: "home" },
-  { id: "loc2", label: "Office", address: "Westlands, Nairobi", type: "office" },
+  { id: "loc1", label: "Home", address: "Kilimani, Nairobi", type: "home", neighbourhood: "Kilimani", streetName: "Argwings Kodhek Road", locationType: "apartment" },
+  { id: "loc2", label: "Office", address: "Westlands, Nairobi", type: "office", neighbourhood: "Westlands", streetName: "Waiyaki Way", locationType: "office" },
 ];
 
 const LocationContext = createContext<LocationContextType>({
@@ -34,6 +66,7 @@ const LocationContext = createContext<LocationContextType>({
   setCustomAddress: () => {},
   addSavedLocation: () => {},
   removeSavedLocation: () => {},
+  updateSavedLocation: () => {},
 });
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
@@ -43,7 +76,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
   const selectLocation = useCallback((location: SavedLocation) => {
     setSelectedLocation(location);
-    setNeighbourhood(location.address);
+    setNeighbourhood(location.neighbourhood || location.address);
   }, []);
 
   const setCustomAddress = useCallback((address: string) => {
@@ -59,6 +92,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     setSavedLocations((prev) => prev.filter((loc) => loc.id !== id));
   }, []);
 
+  const updateSavedLocation = useCallback((id: string, updates: Partial<SavedLocation>) => {
+    setSavedLocations((prev) =>
+      prev.map((loc) => (loc.id === id ? { ...loc, ...updates } : loc))
+    );
+  }, []);
+
   return (
     <LocationContext.Provider
       value={{
@@ -70,6 +109,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         setCustomAddress,
         addSavedLocation,
         removeSavedLocation,
+        updateSavedLocation,
       }}
     >
       {children}

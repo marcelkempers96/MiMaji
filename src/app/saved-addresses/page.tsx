@@ -2,43 +2,29 @@
 
 import { logo1 } from "@/assets/images";
 import { useState } from "react";
-import { MapPin, Plus, X, Home as HomeIcon, Building2, Trash2, Edit2, Search, Crosshair } from "lucide-react";
+import { MapPin, Plus, Home as HomeIcon, Building2, Trash2, Edit2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
-import Button from "@/components/ui/Button";
-import { useLocation } from "@/context/LocationContext";
-
-interface AddressForm {
-  label: string;
-  address: string;
-  type: "home" | "office";
-}
+import { useLocation, SavedLocation } from "@/context/LocationContext";
+import AddressForm, { AddressDisplay } from "@/components/AddressForm";
 
 export default function SavedAddressesPage() {
-  const { savedLocations, addSavedLocation, removeSavedLocation } = useLocation();
+  const { savedLocations, addSavedLocation, removeSavedLocation, updateSavedLocation } = useLocation();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [form, setForm] = useState<AddressForm>({ label: "", address: "", type: "home" });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const handleSaveAddress = () => {
-    if (form.label.trim() && form.address.trim()) {
-      addSavedLocation({
-        id: `loc-${Date.now()}`,
-        label: form.label.trim(),
-        address: form.address.trim(),
-        type: form.type,
-      });
-      setForm({ label: "", address: "", type: "home" });
-      setShowAddForm(false);
-    }
+  const handleSaveAddress = (loc: SavedLocation) => {
+    addSavedLocation(loc);
+    setShowAddForm(false);
   };
 
-  const handleSearchAddress = () => {
-    if (searchQuery.trim()) {
-      setForm((prev) => ({ ...prev, address: searchQuery.trim() }));
-    }
+  const handleUpdateAddress = (loc: SavedLocation) => {
+    updateSavedLocation(loc.id, loc);
+    setEditingId(null);
   };
+
+  const editingLocation = editingId ? savedLocations.find((l) => l.id === editingId) : null;
 
   const content = (
     <>
@@ -50,26 +36,44 @@ export default function SavedAddressesPage() {
       {savedLocations.length > 0 && (
         <div className="flex flex-col gap-3 mb-5">
           {savedLocations.map((location) => (
-            <div key={location.id} className="bg-surface shadow-card rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {location.type === "home" ? (
-                    <HomeIcon size={20} className="text-primary" />
-                  ) : (
-                    <Building2 size={20} className="text-primary" />
-                  )}
+            <div key={location.id}>
+              {editingId === location.id ? (
+                <AddressForm
+                  initial={location}
+                  onSubmit={handleUpdateAddress}
+                  onCancel={() => setEditingId(null)}
+                  submitLabel="Update Address"
+                />
+              ) : (
+                <div className="bg-surface shadow-card rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {location.type === "home" ? (
+                        <HomeIcon size={20} className="text-primary" />
+                      ) : (
+                        <Building2 size={20} className="text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <AddressDisplay location={location} />
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => setEditingId(location.id)}
+                        className="p-2 text-text-secondary hover:text-primary transition-colors"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => removeSavedLocation(location.id)}
+                        className="p-2 text-text-secondary hover:text-cta-alt transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-text-primary">{location.label}</p>
-                  <p className="text-text-secondary text-sm">{location.address}</p>
-                </div>
-                <button
-                  onClick={() => removeSavedLocation(location.id)}
-                  className="p-2 text-text-secondary hover:text-cta-alt transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+              )}
             </div>
           ))}
         </div>
@@ -95,93 +99,12 @@ export default function SavedAddressesPage() {
           <p className="font-semibold text-sm text-primary">Add New Address</p>
         </button>
       ) : (
-        <div className="bg-surface shadow-card rounded-xl p-5 border-2 border-primary">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-sm text-text-primary">New Address</h3>
-            <button onClick={() => setShowAddForm(false)}>
-              <X size={18} className="text-text-secondary" />
-            </button>
-          </div>
-
-          {/* Map / Search Area */}
-          <div className="h-40 bg-primary-light rounded-xl flex flex-col items-center justify-center mb-4 relative overflow-hidden">
-            <div className="w-16 h-16 rounded-full border-2 border-dashed border-primary opacity-50 flex items-center justify-center mx-auto">
-              <MapPin size={32} className="text-primary opacity-100" />
-            </div>
-            <p className="text-primary/60 text-xs mt-2 font-medium">Google Maps integration</p>
-            <p className="text-primary/40 text-[10px] mt-0.5">Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env</p>
-          </div>
-
-          {/* Search Bar */}
-          <div className="flex items-center bg-background rounded-xl h-11 px-3 gap-2 border border-[#E0E0E0] mb-4">
-            <Search size={18} className="text-text-secondary flex-shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for address or area"
-              className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-secondary"
-              onKeyDown={(e) => e.key === "Enter" && handleSearchAddress()}
-            />
-            <button onClick={handleSearchAddress}>
-              <Crosshair size={18} className="text-primary" />
-            </button>
-          </div>
-
-          {/* Label */}
-          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">Label</label>
-          <input
-            type="text"
-            value={form.label}
-            onChange={(e) => setForm({ ...form, label: e.target.value })}
-            placeholder={'e.g. "Home", "Office", "Mom\'s house"'}
-            className="w-full h-11 px-4 rounded-xl bg-background border border-[#E0E0E0] text-text-primary text-sm focus:outline-none focus:border-primary mb-3"
-          />
-
-          {/* Address */}
-          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">Address</label>
-          <input
-            type="text"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            placeholder="e.g. Kilimani, Argwings Kodhek Rd"
-            className="w-full h-11 px-4 rounded-xl bg-background border border-[#E0E0E0] text-text-primary text-sm focus:outline-none focus:border-primary mb-3"
-          />
-
-          {/* Type */}
-          <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">Type</label>
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setForm({ ...form, type: "home" })}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                form.type === "home" ? "bg-primary text-white" : "bg-background text-text-secondary border border-[#E0E0E0]"
-              }`}
-            >
-              <HomeIcon size={16} /> Home
-            </button>
-            <button
-              onClick={() => setForm({ ...form, type: "office" })}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                form.type === "office" ? "bg-primary text-white" : "bg-background text-text-secondary border border-[#E0E0E0]"
-              }`}
-            >
-              <Building2 size={16} /> Office
-            </button>
-          </div>
-
-          <Button variant="primary" fullWidth onClick={handleSaveAddress} disabled={!form.label.trim() || !form.address.trim()}>
-            Save Address
-          </Button>
-        </div>
+        <AddressForm
+          onSubmit={handleSaveAddress}
+          onCancel={() => setShowAddForm(false)}
+          submitLabel="Save Address"
+        />
       )}
-
-      {/* Google Maps Info */}
-      <div className="mt-5 bg-[#FFF5EC] rounded-xl p-4">
-        <p className="text-text-primary text-sm font-semibold mb-1">Google Maps Integration</p>
-        <p className="text-text-secondary text-xs leading-relaxed">
-          For autocomplete address search and map pin dropping, set the <code className="bg-white px-1 rounded text-xs">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> environment variable with a valid Google Maps JavaScript API key that has Places and Geocoding APIs enabled.
-        </p>
-      </div>
     </>
   );
 
