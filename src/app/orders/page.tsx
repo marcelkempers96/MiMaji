@@ -2,13 +2,13 @@
 
 import { logo1 } from "@/assets/images";
 import { Droplets, ChevronRight, Star, Trophy, Package, Truck, CheckCircle2, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
-import { mockOrders } from "@/data/orders";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId } from "@/lib/orders";
 
 const REWARDS_CURRENT = 150;
 const REWARDS_MILESTONES = [
@@ -34,166 +34,207 @@ function getStepIndex(status: string) {
 }
 
 export default function OrdersPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const nextMilestone = REWARDS_MILESTONES.find((m) => !m.reached) || REWARDS_MILESTONES[REWARDS_MILESTONES.length - 1];
   const maxPoints = REWARDS_MILESTONES[REWARDS_MILESTONES.length - 1].points;
   const progressPercent = Math.min((REWARDS_CURRENT / maxPoints) * 100, 100);
 
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       router.push("/login?redirect=/orders");
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserOrders(user.id).then((data) => {
+        setOrders(data);
+        setLoadingOrders(false);
+      });
+    }
+  }, [user?.id]);
 
   if (!user) return null;
 
-  const liveOrders = mockOrders.filter((o) => o.status !== "Delivered");
-  const pastOrders = mockOrders.filter((o) => o.status === "Delivered");
+  const liveOrders = orders.filter((o) => {
+    const status = mapOrderStatus(o.status);
+    return status !== "Delivered";
+  });
+  const pastOrders = orders.filter((o) => {
+    const status = mapOrderStatus(o.status);
+    return status === "Delivered";
+  });
 
   const ordersContent = (
     <>
-      {/* Live Orders Section */}
-      {liveOrders.length > 0 && (
-        <div className="mb-5">
-          <h2 className="font-bold text-sm text-text-primary mb-3">Active Orders</h2>
-          {liveOrders.map((order) => {
-            const currentStep = getStepIndex(order.status);
-            return (
-              <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-bold text-sm text-text-primary">{order.date}</span>
-                  <span className="text-xs font-medium text-primary bg-primary-light px-2 py-0.5 rounded-full">
-                    {order.id}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Droplets size={20} className="text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm text-text-primary">{order.productName}</p>
-                    <p className="text-text-secondary text-sm">KES {order.amountPaid.toLocaleString()}</p>
-                  </div>
-                </div>
-
-                {/* Mini Progress Steps */}
-                <div className="flex items-center gap-1 mb-4">
-                  {statusSteps.slice(0, 3).map((step, i) => {
-                    const active = i <= currentStep;
-                    const StepIcon = step.icon;
-                    return (
-                      <div key={step.key} className="flex items-center flex-1">
-                        <div className="flex flex-col items-center flex-1">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${active ? "bg-primary" : "bg-gray-100"}`}>
-                            <StepIcon size={14} className={active ? "text-white" : "text-text-secondary"} />
-                          </div>
-                          <span className={`text-[9px] mt-1 text-center leading-tight ${active ? "text-primary font-semibold" : "text-text-secondary"}`}>
-                            {step.label}
-                          </span>
-                        </div>
-                        {i < 2 && (
-                          <div className={`h-0.5 w-full mt-[-12px] ${i < currentStep ? "bg-primary" : "bg-gray-200"}`} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <Link
-                  href={`/track?orderId=${order.id}`}
-                  className="flex items-center justify-center gap-2 w-full bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors"
-                >
-                  <Truck size={16} />
-                  Track Order
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Rewards Milestones */}
-      <Link href="/rewards">
-        <div className="bg-surface shadow-card rounded-xl p-4 mb-5 hover:shadow-card-hover transition-shadow">
-          <div className="flex items-center gap-2 mb-3">
-            <Star size={18} className="text-rating" />
-            <span className="font-bold text-sm text-text-primary">Water Warriors Rewards</span>
-            <span className="ml-auto text-xs font-bold text-primary">{REWARDS_CURRENT} pts</span>
-          </div>
-
-          <div className="relative mb-2">
-            <div className="h-3 bg-[#E0E0E0] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-rating to-[#F5C623] rounded-full transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="absolute inset-0 flex items-center">
-              {REWARDS_MILESTONES.map((m) => (
-                <div key={m.points} className="absolute" style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)" }}>
-                  <div className={`w-4 h-4 rounded-full border-2 ${m.reached || REWARDS_CURRENT >= m.points ? "bg-rating border-rating" : "bg-white border-[#E0E0E0]"}`} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative h-10 mt-1">
-            {REWARDS_MILESTONES.map((m) => (
-              <div key={m.points} className="absolute text-center" style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)", width: "60px" }}>
-                <p className={`text-[10px] font-semibold ${m.reached || REWARDS_CURRENT >= m.points ? "text-rating" : "text-text-secondary"}`}>{m.points}</p>
-                <p className="text-[9px] text-text-secondary leading-tight">{m.label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 mt-1">
-            <Trophy size={14} className="text-rating" />
-            <p className="text-xs text-text-secondary">
-              Next: <span className="font-semibold text-text-primary">{nextMilestone.label}</span> at {nextMilestone.points} pts
-            </p>
-            <span className="ml-auto text-primary text-xs font-semibold">View All →</span>
-          </div>
-        </div>
-      </Link>
-
-      {/* Order History */}
-      <h2 className="font-bold text-sm text-text-primary mb-3">Order History</h2>
-
-      {pastOrders.length === 0 ? (
-        <div className="bg-surface shadow-card rounded-xl p-6 text-center">
-          <p className="text-text-secondary text-sm">No past orders yet.</p>
+      {loadingOrders ? (
+        <div className="flex items-center justify-center py-12">
+          <Droplets size={32} className="text-primary animate-pulse" />
         </div>
       ) : (
-        pastOrders.map((order) => (
-          <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-sm text-text-primary">{order.date}</span>
-              <div className="flex items-center gap-1">
-                <CheckCircle2 size={14} className="text-success" />
-                <span className="text-sm font-medium text-success">Delivered</span>
-              </div>
+        <>
+          {/* Live Orders Section */}
+          {liveOrders.length > 0 && (
+            <div className="mb-5">
+              <h2 className="font-bold text-sm text-text-primary mb-3">Active Orders</h2>
+              {liveOrders.map((order) => {
+                const displayStatus = mapOrderStatus(order.status);
+                const currentStep = getStepIndex(displayStatus);
+                const displayId = formatOrderId(order.id);
+                const displayDate = formatOrderDate(order.created_at);
+                const displayName = order.product_name || (order.order_items?.[0]?.name) || "Water Order";
+
+                return (
+                  <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-sm text-text-primary">{displayDate}</span>
+                      <span className="text-xs font-medium text-primary bg-primary-light px-2 py-0.5 rounded-full">
+                        {displayId}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Droplets size={20} className="text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-text-primary">{displayName}</p>
+                        <p className="text-text-secondary text-sm">KES {order.price_total.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    {/* Mini Progress Steps */}
+                    <div className="flex items-center gap-1 mb-4">
+                      {statusSteps.slice(0, 3).map((step, i) => {
+                        const active = i <= currentStep;
+                        const StepIcon = step.icon;
+                        return (
+                          <div key={step.key} className="flex items-center flex-1">
+                            <div className="flex flex-col items-center flex-1">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center ${active ? "bg-primary" : "bg-gray-100"}`}>
+                                <StepIcon size={14} className={active ? "text-white" : "text-text-secondary"} />
+                              </div>
+                              <span className={`text-[9px] mt-1 text-center leading-tight ${active ? "text-primary font-semibold" : "text-text-secondary"}`}>
+                                {step.label}
+                              </span>
+                            </div>
+                            {i < 2 && (
+                              <div className={`h-0.5 w-full mt-[-12px] ${i < currentStep ? "bg-primary" : "bg-gray-200"}`} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <Link
+                      href={`/track?orderId=${order.id}`}
+                      className="flex items-center justify-center gap-2 w-full bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors"
+                    >
+                      <Truck size={16} />
+                      Track Order
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
-                <Droplets size={20} className="text-primary" />
+          )}
+
+          {/* No orders at all */}
+          {orders.length === 0 && (
+            <div className="bg-surface shadow-card rounded-xl p-8 text-center mb-5">
+              <Droplets size={40} className="text-text-secondary mx-auto mb-3" />
+              <p className="text-text-primary font-bold mb-1">No orders yet</p>
+              <p className="text-text-secondary text-sm mb-4">Your order history will appear here</p>
+              <Link href="/buy" className="text-primary font-semibold text-sm">
+                Order Water →
+              </Link>
+            </div>
+          )}
+
+          {/* Rewards Milestones */}
+          <Link href="/rewards">
+            <div className="bg-surface shadow-card rounded-xl p-4 mb-5 hover:shadow-card-hover transition-shadow">
+              <div className="flex items-center gap-2 mb-3">
+                <Star size={18} className="text-rating" />
+                <span className="font-bold text-sm text-text-primary">Water Warriors Rewards</span>
+                <span className="ml-auto text-xs font-bold text-primary">{REWARDS_CURRENT} pts</span>
               </div>
-              <div className="flex-1">
-                <p className="font-bold text-sm text-text-primary">{order.productName}</p>
-                <p className="text-text-secondary text-xs">Paid KES {order.amountPaid.toLocaleString()}</p>
-              </div>
-              {order.originalPrice !== order.amountPaid && (
-                <div className="text-right">
-                  <span className="text-text-secondary text-xs line-through">KES {order.originalPrice.toLocaleString()}</span>
-                  <p className="font-bold text-sm text-text-primary">KES {order.amountPaid.toLocaleString()}</p>
+
+              <div className="relative mb-2">
+                <div className="h-3 bg-[#E0E0E0] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-rating to-[#F5C623] rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
                 </div>
-              )}
-              {order.originalPrice === order.amountPaid && (
-                <span className="font-bold text-text-primary">KES {order.amountPaid.toLocaleString()}</span>
-              )}
+                <div className="absolute inset-0 flex items-center">
+                  {REWARDS_MILESTONES.map((m) => (
+                    <div key={m.points} className="absolute" style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)" }}>
+                      <div className={`w-4 h-4 rounded-full border-2 ${m.reached || REWARDS_CURRENT >= m.points ? "bg-rating border-rating" : "bg-white border-[#E0E0E0]"}`} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative h-10 mt-1">
+                {REWARDS_MILESTONES.map((m) => (
+                  <div key={m.points} className="absolute text-center" style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)", width: "60px" }}>
+                    <p className={`text-[10px] font-semibold ${m.reached || REWARDS_CURRENT >= m.points ? "text-rating" : "text-text-secondary"}`}>{m.points}</p>
+                    <p className="text-[9px] text-text-secondary leading-tight">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 mt-1">
+                <Trophy size={14} className="text-rating" />
+                <p className="text-xs text-text-secondary">
+                  Next: <span className="font-semibold text-text-primary">{nextMilestone.label}</span> at {nextMilestone.points} pts
+                </p>
+                <span className="ml-auto text-primary text-xs font-semibold">View All →</span>
+              </div>
             </div>
-          </div>
-        ))
+          </Link>
+
+          {/* Order History */}
+          {pastOrders.length > 0 && (
+            <>
+              <h2 className="font-bold text-sm text-text-primary mb-3">Order History</h2>
+              {pastOrders.map((order) => {
+                const displayId = formatOrderId(order.id);
+                const displayDate = formatOrderDate(order.created_at);
+                const displayName = order.product_name || (order.order_items?.[0]?.name) || "Water Order";
+
+                return (
+                  <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-sm text-text-primary">{displayDate}</span>
+                      <div className="flex items-center gap-1">
+                        <CheckCircle2 size={14} className="text-success" />
+                        <span className="text-sm font-medium text-success">Delivered</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Droplets size={20} className="text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-text-primary">{displayName}</p>
+                        <p className="text-text-secondary text-xs">
+                          {order.mpesa_ref ? `M-Pesa: ${order.mpesa_ref} · ` : ""}
+                          Paid KES {order.price_total.toLocaleString()}
+                        </p>
+                      </div>
+                      <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </>
       )}
     </>
   );

@@ -17,7 +17,7 @@ export default function HomePage() {
         {/* === MOBILE LAYOUT === */}
 
         {/* Header */}
-        <div className="flex items-center justify-between py-4">
+        <div className="flex items-center justify-between py-4 bg-white -mx-4 px-4 sticky top-0 z-10">
           <div className="flex items-center">
             <img src={logo1.src} alt="MiMaji" className="h-7 w-auto" />
           </div>
@@ -26,7 +26,7 @@ export default function HomePage() {
               Hi, {user.name}
             </Link>
           ) : (
-            <Link href="/login" className="text-primary text-sm font-semibold">
+            <Link href="/login" className="bg-primary text-white text-sm font-semibold rounded-full px-5 py-2 hover:bg-[#1a5a9a] transition-colors">
               Log In
             </Link>
           )}
@@ -301,8 +301,8 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           </div>
           <div className="flex-1 flex justify-center">
             <div className="relative">
-              <div className="w-72 h-72 rounded-3xl flex items-center justify-center overflow-hidden">
-                <img src={waterDeliveryMiMaji.src} alt="MiMaji water delivery" className="object-cover w-full h-full rounded-3xl" />
+              <div className="w-[400px] h-[260px] rounded-3xl flex items-center justify-center overflow-hidden">
+                <img src={waterDelivery.src} alt="MiMaji water delivery" className="object-cover w-full h-full rounded-3xl" />
               </div>
               <div className="absolute -bottom-4 -right-4 bg-surface rounded-xl shadow-lg p-4 w-48">
                 <div className="flex items-center gap-2 mb-2">
