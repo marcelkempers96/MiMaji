@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
 import { createOrder, updateOrderStatus, formatOrderId } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
+import { processOrderRewards, initRewards } from "@/lib/rewards";
 
 type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 
@@ -111,11 +112,19 @@ export default function ConfirmOrderPage() {
         }
       }
 
-      // Trigger vendor assignment — alert the nearest vendor
+      // Trigger vendor assignment
       try {
         await assignOrderToVendor(orderId);
       } catch (e) {
         console.error("Vendor assignment failed:", e);
+      }
+
+      // Process referral rewards (checks if this order qualifies for referral bonuses)
+      try {
+        initRewards(user.id); // Ensure rewards record exists (no-op if already initialised)
+        processOrderRewards(user.id, orderItems);
+      } catch (e) {
+        console.error("Rewards processing failed:", e);
       }
 
       // Save order details before clearing cart

@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingCart, ClipboardList, User, FileText } from "lucide-react";
+import { Home, ShoppingCart, ClipboardList, User } from "lucide-react";
 
 const tabs = [
   { key: "home", label: "Home", icon: Home, href: "/" },
   { key: "buy", label: "Order", icon: ShoppingCart, href: "/buy" },
   { key: "orders", label: "Orders", icon: ClipboardList, href: "/orders" },
-  { key: "invoices", label: "Invoices", icon: FileText, href: "/invoices" },
   { key: "profile", label: "Account", icon: User, href: "/profile" },
 ];
 

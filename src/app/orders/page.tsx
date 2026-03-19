@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { Droplets, ChevronRight, Star, Trophy, Package, Truck, CheckCircle2, Clock, FileText } from "lucide-react";
+import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import Link from "next/link";
@@ -9,14 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId } from "@/lib/orders";
-
-const REWARDS_CURRENT = 150;
-const REWARDS_MILESTONES = [
-  { points: 100, label: "Free Delivery", reached: true },
-  { points: 250, label: "10% Off", reached: false },
-  { points: 500, label: "Free 5L Jug", reached: false },
-  { points: 1000, label: "VIP Status", reached: false },
-];
+import { getRewardsSummary, initRewards } from "@/lib/rewards";
 
 const statusSteps = [
   { key: "Processing", label: "Processing", icon: Clock },
@@ -36,12 +29,10 @@ function getStepIndex(status: string) {
 export default function OrdersPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const nextMilestone = REWARDS_MILESTONES.find((m) => !m.reached) || REWARDS_MILESTONES[REWARDS_MILESTONES.length - 1];
-  const maxPoints = REWARDS_MILESTONES[REWARDS_MILESTONES.length - 1].points;
-  const progressPercent = Math.min((REWARDS_CURRENT / maxPoints) * 100, 100);
 
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [freeLitres, setFreeLitres] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -55,6 +46,8 @@ export default function OrdersPage() {
         setOrders(data);
         setLoadingOrders(false);
       });
+      initRewards(user.id);
+      setFreeLitres(getRewardsSummary(user.id).freeLitres);
     }
   }, [user?.id]);
 
@@ -86,7 +79,11 @@ export default function OrdersPage() {
                 const currentStep = getStepIndex(displayStatus);
                 const displayId = formatOrderId(order.id);
                 const displayDate = formatOrderDate(order.created_at);
-                const displayName = order.product_name || (order.order_items?.[0]?.name) || "Water Order";
+                const itemsList = order.order_items && order.order_items.length > 0
+                  ? order.order_items
+                  : order.product_name
+                    ? [{ name: order.product_name, quantity: order.quantity || 1, price: order.price_total }]
+                    : [{ name: "Water Order", quantity: 1, price: order.price_total }];
 
                 return (
                   <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
@@ -96,13 +93,17 @@ export default function OrdersPage() {
                         {displayId}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Droplets size={20} className="text-primary" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-text-primary">{displayName}</p>
-                        <p className="text-text-secondary text-sm">KES {order.price_total.toLocaleString()}</p>
+                        {itemsList.map((item, idx) => (
+                          <p key={idx} className="text-sm text-text-primary">
+                            <span className="font-bold">{item.quantity}x</span> {item.name}
+                          </p>
+                        ))}
+                        <p className="text-text-secondary text-sm mt-1">KES {order.price_total.toLocaleString()}</p>
                       </div>
                     </div>
 
@@ -154,47 +155,18 @@ export default function OrdersPage() {
             </div>
           )}
 
-          {/* Rewards Milestones */}
+          {/* Free Water Balance */}
           <Link href="/rewards">
             <div className="bg-surface shadow-card rounded-xl p-4 mb-5 hover:shadow-card-hover transition-shadow">
-              <div className="flex items-center gap-2 mb-3">
-                <Star size={18} className="text-rating" />
-                <span className="font-bold text-sm text-text-primary">Water Warriors Rewards</span>
-                <span className="ml-auto text-xs font-bold text-primary">{REWARDS_CURRENT} pts</span>
+              <div className="flex items-center gap-2 mb-2">
+                <Gift size={18} className="text-[#2ECC71]" />
+                <span className="font-bold text-sm text-text-primary">Rewards & Referrals</span>
+                <span className="ml-auto text-xs font-bold text-[#2ECC71]">{freeLitres}L free</span>
               </div>
-
-              <div className="relative mb-2">
-                <div className="h-3 bg-[#E0E0E0] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-rating to-[#F5C623] rounded-full transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <div className="absolute inset-0 flex items-center">
-                  {REWARDS_MILESTONES.map((m) => (
-                    <div key={m.points} className="absolute" style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)" }}>
-                      <div className={`w-4 h-4 rounded-full border-2 ${m.reached || REWARDS_CURRENT >= m.points ? "bg-rating border-rating" : "bg-white border-[#E0E0E0]"}`} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="relative h-10 mt-1">
-                {REWARDS_MILESTONES.map((m) => (
-                  <div key={m.points} className="absolute text-center" style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)", width: "60px" }}>
-                    <p className={`text-[10px] font-semibold ${m.reached || REWARDS_CURRENT >= m.points ? "text-rating" : "text-text-secondary"}`}>{m.points}</p>
-                    <p className="text-[9px] text-text-secondary leading-tight">{m.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 mt-1">
-                <Trophy size={14} className="text-rating" />
-                <p className="text-xs text-text-secondary">
-                  Next: <span className="font-semibold text-text-primary">{nextMilestone.label}</span> at {nextMilestone.points} pts
-                </p>
-                <span className="ml-auto text-primary text-xs font-semibold">View All →</span>
-              </div>
+              <p className="text-text-secondary text-xs mb-2">
+                Refer friends and both earn 5L free water. Share your code on the rewards page!
+              </p>
+              <span className="text-primary text-xs font-semibold">View Rewards →</span>
             </div>
           </Link>
 
@@ -219,7 +191,11 @@ export default function OrdersPage() {
               {pastOrders.map((order) => {
                 const displayId = formatOrderId(order.id);
                 const displayDate = formatOrderDate(order.created_at);
-                const displayName = order.product_name || (order.order_items?.[0]?.name) || "Water Order";
+                const itemsList = order.order_items && order.order_items.length > 0
+                  ? order.order_items
+                  : order.product_name
+                    ? [{ name: order.product_name, quantity: order.quantity || 1, price: order.price_total }]
+                    : [{ name: "Water Order", quantity: 1, price: order.price_total }];
 
                 return (
                   <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
@@ -230,13 +206,17 @@ export default function OrdersPage() {
                         <span className="text-sm font-medium text-success">Delivered</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Droplets size={20} className="text-primary" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-text-primary">{displayName}</p>
-                        <p className="text-text-secondary text-xs">
+                        {itemsList.map((item, idx) => (
+                          <p key={idx} className="text-sm text-text-primary">
+                            <span className="font-bold">{item.quantity}x</span> {item.name}
+                          </p>
+                        ))}
+                        <p className="text-text-secondary text-xs mt-1">
                           {order.mpesa_ref ? `M-Pesa: ${order.mpesa_ref} · ` : ""}
                           Paid KES {order.price_total.toLocaleString()}
                         </p>
@@ -244,7 +224,7 @@ export default function OrdersPage() {
                       <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     </div>
                     <Link
-                      href="/invoices"
+                      href={`/invoices?orderId=${order.id}`}
                       className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 hover:underline"
                     >
                       <FileText size={12} />

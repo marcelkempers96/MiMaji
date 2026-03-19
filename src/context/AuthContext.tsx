@@ -17,7 +17,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   login: (phone: string, password: string) => Promise<{ error?: string }>;
-  signup: (phone: string, password: string, name: string) => Promise<{ error?: string }>;
+  signup: (phone: string, password: string, name: string, referralCode?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -26,7 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   login: async () => ({}),
-  signup: async () => ({}),
+  signup: async (_p, _pw, _n, _r) => ({}),
   logout: async () => {},
 });
 
@@ -136,7 +136,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     return { error: "Invalid phone number or password" };
   }, [getSignedUpUsers]);
 
-  const signup = useCallback(async (phone: string, password: string, name: string): Promise<{ error?: string }> => {
+  const signup = useCallback(async (phone: string, password: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
     let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
     if (cleaned.startsWith("0")) {
       cleaned = "254" + cleaned.slice(1);
@@ -157,6 +157,14 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     saveSignedUpUser(cleaned, password, newUser);
     setUser(newUser);
     saveMockSession(newUser);
+
+    // Initialize rewards with referral code (mock mode)
+    try {
+      const { initRewards, updateReferralFriendName } = await import("@/lib/rewards");
+      initRewards(newUser.id, referralCode);
+      updateReferralFriendName(newUser.id, name);
+    } catch {}
+
     return {};
   }, [getSignedUpUsers, saveSignedUpUser]);
 
@@ -233,7 +241,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     return {};
   }, [getSupabase]);
 
-  const signup = useCallback(async (phone: string, password: string, name: string): Promise<{ error?: string }> => {
+  const signup = useCallback(async (phone: string, password: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
     const sb = await getSupabase();
     const email = formatPhoneEmail(phone);
     let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
@@ -241,7 +249,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       cleaned = "254" + cleaned.slice(1);
     }
 
-    const { error } = await sb.auth.signUp({
+    const { data: signUpData, error } = await sb.auth.signUp({
       email,
       password,
       options: { data: { full_name: name, phone: cleaned } },
@@ -253,6 +261,15 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { error: error.message };
     }
+
+    // Initialize rewards and referral relationship in Supabase
+    if (signUpData?.user?.id) {
+      try {
+        const { initRewardsAsync } = await import("@/lib/rewards");
+        await initRewardsAsync(signUpData.user.id, name, referralCode);
+      } catch {}
+    }
+
     return {};
   }, [getSupabase]);
 

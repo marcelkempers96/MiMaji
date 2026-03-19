@@ -9,6 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import type { UserRole } from "@/context/AuthContext";
+import { initRewards, updateReferralFriendName } from "@/lib/rewards";
 
 function LoginContent() {
   const router = useRouter();
@@ -27,14 +28,28 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Referral code
+  const [referralCode, setReferralCode] = useState("");
+
   // Corporate account fields
   const [isCorporate, setIsCorporate] = useState(initialCorporate);
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
 
+  // Track if we just signed up (to init rewards)
+  const [justSignedUp, setJustSignedUp] = useState(false);
+
   // Redirect authenticated users based on role
   useEffect(() => {
     if (!user) return;
+
+    // If user just signed up, init their rewards
+    if (justSignedUp) {
+      const rewards = initRewards(user.id, referralCode.trim() || undefined);
+      updateReferralFriendName(user.id, user.name);
+      setJustSignedUp(false);
+    }
+
     const redirect = searchParams.get("redirect");
     if (redirect) {
       router.push(redirect);
@@ -43,7 +58,7 @@ function LoginContent() {
     } else {
       router.push("/dashboard");
     }
-  }, [user, router, searchParams]);
+  }, [user, router, searchParams, justSignedUp, referralCode]);
 
   const handleLogin = async () => {
     const cleaned = phone.replace(/\s/g, "");
@@ -90,13 +105,15 @@ function LoginContent() {
     setError("");
     setLoading(true);
 
-    const result = await signup(cleaned, password, name.trim());
+    const result = await signup(cleaned, password, name.trim(), referralCode.trim() || undefined);
     if (result.error) {
       setError(result.error);
       setLoading(false);
       return;
     }
-    // Redirect is handled by the useEffect below once user state updates
+
+    // Flag that we just signed up so the useEffect will init rewards (for mock mode)
+    setJustSignedUp(true);
   };
 
   const handleSubmit = () => {
@@ -184,6 +201,23 @@ function LoginContent() {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+
+          {/* Referral Code (signup only) */}
+          {mode === "signup" && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-text-primary mb-2">
+                Referral Code <span className="text-text-secondary font-normal text-xs">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="e.g. MAJI123ABC"
+                className="rounded-xl border border-gray-200 h-12 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary font-mono"
+              />
+              <p className="text-text-secondary text-xs mt-1">Got a code from a friend? Enter it to both get 5L free!</p>
+            </div>
+          )}
 
           {/* Corporate Account Checkbox (signup only) */}
           {mode === "signup" && (

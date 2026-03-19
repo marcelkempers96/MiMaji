@@ -205,7 +205,7 @@ function TrackPage() {
             </div>
           )}
 
-          {/* Vendor / Store Info — show when order is accepted by a vendor */}
+          {/* Vendor / Store Info */}
           {order.vendor_name && (
             <div className="bg-surface shadow-card rounded-xl p-4 mb-4">
               <p className="text-xs text-text-secondary mb-2">Your water is coming from</p>
