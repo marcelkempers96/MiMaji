@@ -21,7 +21,16 @@ function saveMockOrders(orders: OrderRecord[]) {
   try { localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(orders)); } catch {}
 }
 
-// ── Mock vendor list (matches vendors page) ──
+// ── Vendor store location ──
+export interface StoreLocation {
+  id: string;
+  name: string;
+  area: string;
+  lat: number;
+  lng: number;
+}
+
+// ── Mock vendor list with multi-location support ──
 export interface VendorInfo {
   id: string;
   name: string;
@@ -31,23 +40,62 @@ export interface VendorInfo {
   reviews: number;
   hours: string;
   products: string[];
+  businessRegNo: string;
+  mpesaNumber: string;
+  phoneNumbers: string[];
+  locations: StoreLocation[];
 }
 
 export const MOCK_VENDORS: VendorInfo[] = [
-  { id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, hours: "6AM - 9PM", products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"] },
-  { id: "v2", name: "WaterPoint Westlands", area: "Westlands, Nairobi", distance: "1.2 km", rating: 4.6, reviews: 89, hours: "7AM - 8PM", products: ["20L Hard", "20L Soft", "10L Soft"] },
-  { id: "v3", name: "CleanWater Hub", area: "Lavington, Nairobi", distance: "2.1 km", rating: 4.9, reviews: 234, hours: "6AM - 10PM", products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"] },
-  { id: "v4", name: "Maji Fresh Karen", area: "Karen, Nairobi", distance: "5.3 km", rating: 4.7, reviews: 67, hours: "7AM - 9PM", products: ["20L Hard", "20L Soft"] },
-  { id: "v5", name: "PureDrops CBD", area: "CBD, Nairobi", distance: "3.8 km", rating: 4.5, reviews: 112, hours: "6AM - 8PM", products: ["20L Soft", "10L Soft", "5L Soft"] },
+  {
+    id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, hours: "6AM - 9PM",
+    products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"],
+    businessRegNo: "BN-2024-001234", mpesaNumber: "254700111222", phoneNumbers: ["+254700111222", "+254700111223"],
+    locations: [
+      { id: "v1-loc1", name: "AquaPure Kilimani Main", area: "Kilimani, Nairobi", lat: -1.2921, lng: 36.7877 },
+      { id: "v1-loc2", name: "AquaPure Hurlingham", area: "Hurlingham, Nairobi", lat: -1.2975, lng: 36.7950 },
+    ],
+  },
+  {
+    id: "v2", name: "WaterPoint Westlands", area: "Westlands, Nairobi", distance: "1.2 km", rating: 4.6, reviews: 89, hours: "7AM - 8PM",
+    products: ["20L Hard", "20L Soft", "10L Soft"],
+    businessRegNo: "BN-2024-002345", mpesaNumber: "254700222333", phoneNumbers: ["+254700222333"],
+    locations: [
+      { id: "v2-loc1", name: "WaterPoint Westlands", area: "Westlands, Nairobi", lat: -1.2673, lng: 36.8110 },
+    ],
+  },
+  {
+    id: "v3", name: "CleanWater Hub", area: "Lavington, Nairobi", distance: "2.1 km", rating: 4.9, reviews: 234, hours: "6AM - 10PM",
+    products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"],
+    businessRegNo: "BN-2024-003456", mpesaNumber: "254700333444", phoneNumbers: ["+254700333444", "+254700333445"],
+    locations: [
+      { id: "v3-loc1", name: "CleanWater Hub Lavington", area: "Lavington, Nairobi", lat: -1.2786, lng: 36.7718 },
+      { id: "v3-loc2", name: "CleanWater Hub Kileleshwa", area: "Kileleshwa, Nairobi", lat: -1.2750, lng: 36.7810 },
+      { id: "v3-loc3", name: "CleanWater Hub South C", area: "South C, Nairobi", lat: -1.3100, lng: 36.8250 },
+    ],
+  },
+  {
+    id: "v4", name: "Maji Fresh Karen", area: "Karen, Nairobi", distance: "5.3 km", rating: 4.7, reviews: 67, hours: "7AM - 9PM",
+    products: ["20L Hard", "20L Soft"],
+    businessRegNo: "BN-2024-004567", mpesaNumber: "254700444555", phoneNumbers: ["+254700444555"],
+    locations: [
+      { id: "v4-loc1", name: "Maji Fresh Karen", area: "Karen, Nairobi", lat: -1.3226, lng: 36.7126 },
+    ],
+  },
+  {
+    id: "v5", name: "PureDrops CBD", area: "CBD, Nairobi", distance: "3.8 km", rating: 4.5, reviews: 112, hours: "6AM - 8PM",
+    products: ["20L Soft", "10L Soft", "5L Soft"],
+    businessRegNo: "BN-2024-005678", mpesaNumber: "254700555666", phoneNumbers: ["+254700555666", "+254700555667"],
+    locations: [
+      { id: "v5-loc1", name: "PureDrops CBD", area: "CBD, Nairobi", lat: -1.2864, lng: 36.8172 },
+      { id: "v5-loc2", name: "PureDrops Upperhill", area: "Upperhill, Nairobi", lat: -1.2950, lng: 36.8180 },
+    ],
+  },
 ];
 
 // ── Fetch orders for vendor portal ──
 export async function fetchVendorOrders(vendorId: string): Promise<OrderRecord[]> {
   if (!hasSupabaseConfig) {
-    // In mock mode, show orders that are either:
-    // - Being offered to this vendor (current_vendor_offer matches)
-    // - Already accepted by this vendor (vendor_id matches)
-    // - Still unassigned with status "paid" (for demo purposes, show all paid orders)
     return getMockOrders()
       .filter((o) =>
         o.current_vendor_offer === vendorId ||
@@ -112,12 +160,40 @@ export async function fetchVendorStats(vendorId: string, orders: OrderRecord[]):
   };
 }
 
+// ── Haversine distance (km) between two lat/lng points ──
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Find the closest store location for a vendor, given a delivery lat/lng.
+ * Falls back to the first location if no coordinates provided.
+ */
+export function getClosestLocation(vendor: VendorInfo, deliveryLat?: number, deliveryLng?: number): StoreLocation {
+  if (!deliveryLat || !deliveryLng || vendor.locations.length <= 1) {
+    return vendor.locations[0];
+  }
+  let closest = vendor.locations[0];
+  let minDist = Infinity;
+  for (const loc of vendor.locations) {
+    const d = haversineKm(deliveryLat, deliveryLng, loc.lat, loc.lng);
+    if (d < minDist) {
+      minDist = d;
+      closest = loc;
+    }
+  }
+  return closest;
+}
+
 // ── Vendor Routing Logic ──
 
 /**
  * Assign an order to the next available vendor.
- * Goes through MOCK_VENDORS in order, skipping any in vendors_tried.
- * Sets current_vendor_offer to the chosen vendor's ID.
+ * Goes through MOCK_VENDORS sorted by distance, skipping any in vendors_tried.
  */
 export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: string; vendorName: string } | null> {
   if (!hasSupabaseConfig) {
@@ -128,12 +204,8 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     const order = orders[idx];
     const triedIds = order.vendors_tried || [];
 
-    // Find the next vendor that hasn't been tried
     const nextVendor = MOCK_VENDORS.find((v) => !triedIds.includes(v.id));
-    if (!nextVendor) {
-      // All vendors have been tried — no one available
-      return null;
-    }
+    if (!nextVendor) return null;
 
     orders[idx].current_vendor_offer = nextVendor.id;
     orders[idx].updated_at = new Date().toISOString();
@@ -142,26 +214,34 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
   }
 
-  // Supabase version would query available vendors — for now just update the order
   return null;
 }
 
 /**
- * Vendor accepts an order: sets vendor info, ETA, and status to "confirmed".
+ * Vendor accepts an order: finds the closest store location,
+ * sets vendor info, ETA, and status to "confirmed".
  */
 export async function acceptOrder(
   orderId: string,
   vendorId: string,
-  estimatedMinutes: number
+  estimatedMinutes: number,
+  storeLocationId?: string
 ): Promise<void> {
   const vendor = MOCK_VENDORS.find((v) => v.id === vendorId);
-  const vendorName = vendor?.name || "Unknown Vendor";
-  const vendorLocation = vendor?.area || "Nairobi";
+  if (!vendor) return;
+
+  // Use specified store location, or find closest
+  let store: StoreLocation;
+  if (storeLocationId) {
+    store = vendor.locations.find((l) => l.id === storeLocationId) || vendor.locations[0];
+  } else {
+    store = vendor.locations[0];
+  }
 
   await updateOrder(orderId, {
     vendor_id: vendorId,
-    vendor_name: vendorName,
-    vendor_location: vendorLocation,
+    vendor_name: vendor.name,
+    vendor_location: `${store.name}, ${store.area}`,
     estimated_delivery_minutes: estimatedMinutes,
     current_vendor_offer: null,
     status: "confirmed",
@@ -188,11 +268,9 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
     orders[idx].updated_at = new Date().toISOString();
     saveMockOrders(orders);
 
-    // Try to assign to next vendor
     const result = await assignOrderToVendor(orderId);
     return { nextVendor: result?.vendorName || null };
   }
 
-  // Supabase version
   return { nextVendor: null };
 }

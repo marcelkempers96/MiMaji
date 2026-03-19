@@ -111,7 +111,7 @@ export default function ConfirmOrderPage() {
         }
       }
 
-      // Trigger vendor assignment — alert the nearest vendor
+      // Trigger vendor assignment
       try {
         await assignOrderToVendor(orderId);
       } catch (e) {

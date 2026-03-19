@@ -3,7 +3,6 @@
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useRef } from "react";
 import { MapPin, Star, Clock, Droplets, Search } from "lucide-react";
-
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 
@@ -30,9 +29,7 @@ function VendorMap({ mapHeight }: { mapHeight: string }) {
           zoom: 12,
           disableDefaultUI: true,
           zoomControl: true,
-          styles: [
-            { featureType: "poi", stylers: [{ visibility: "off" }] },
-          ],
+          styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }],
         });
 
         vendors.forEach((v) => {
@@ -46,9 +43,7 @@ function VendorMap({ mapHeight }: { mapHeight: string }) {
             content: `<div style="padding:4px"><strong>${v.name}</strong><br/><span style="font-size:12px;color:#666">${v.area}</span></div>`,
           });
 
-          marker.addListener("click", () => {
-            infoWindow.open(map, marker);
-          });
+          marker.addListener("click", () => { infoWindow.open(map, marker); });
         });
 
         setMapLoaded(true);
@@ -56,9 +51,7 @@ function VendorMap({ mapHeight }: { mapHeight: string }) {
       }
 
       attempts++;
-      if (attempts < maxAttempts) {
-        setTimeout(tryInitMap, 500);
-      }
+      if (attempts < maxAttempts) { setTimeout(tryInitMap, 500); }
     };
 
     tryInitMap();
@@ -89,12 +82,10 @@ export default function VendorsPage() {
     <div className="min-h-screen bg-background pb-20">
       <TopBar title="Water Vendors" showBack={true} />
 
-      {/* Mobile */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
         <VendorContent vendors={filteredVendors} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       </div>
 
-      {/* Desktop */}
       <div className="hidden md:block">
         <DesktopNav />
         <div className="max-w-6xl mx-auto px-8 py-12">
@@ -118,28 +109,15 @@ export default function VendorsPage() {
 function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, desktop }: { vendors: typeof vendors; searchQuery: string; setSearchQuery: (q: string) => void; desktop?: boolean }) {
   return (
     <>
-      {/* Map - Mobile */}
-      {!desktop && (
-        <div className="mb-4">
-          <VendorMap mapHeight="h-40" />
-        </div>
-      )}
+      {!desktop && <div className="mb-4"><VendorMap mapHeight="h-40" /></div>}
 
-      {/* Search */}
       <div className="flex items-center bg-white rounded-full shadow-card h-11 px-4 gap-3 mb-4">
         <Search size={18} className="text-text-secondary shrink-0" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search vendors or areas..."
-          className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-secondary"
-        />
+        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search vendors or areas..." className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-secondary" />
       </div>
 
       <p className="text-text-secondary text-xs mb-3">{filteredVendors.length} vendors found</p>
 
-      {/* Vendor List */}
       <div className="flex flex-col gap-3">
         {filteredVendors.map((vendor) => (
           <div key={vendor.id} className="bg-surface shadow-card rounded-xl p-4 hover:shadow-card-hover transition-shadow">
@@ -149,14 +127,9 @@ function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, 
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm text-text-primary">{vendor.name}</p>
-                <p className="text-text-secondary text-xs flex items-center gap-1">
-                  <MapPin size={12} /> {vendor.area} — {vendor.distance}
-                </p>
+                <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={12} /> {vendor.area} \u2014 {vendor.distance}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="flex items-center gap-0.5">
-                    <Star size={12} className="text-rating fill-rating" />
-                    <span className="text-xs font-semibold text-text-primary">{vendor.rating}</span>
-                  </div>
+                  <div className="flex items-center gap-0.5"><Star size={12} className="text-rating fill-rating" /><span className="text-xs font-semibold text-text-primary">{vendor.rating}</span></div>
                   <span className="text-text-secondary text-xs">({vendor.reviews} reviews)</span>
                 </div>
               </div>
@@ -164,9 +137,7 @@ function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, 
 
             <div className="flex flex-wrap gap-1.5 mt-3 mb-3">
               {vendor.products.map((p) => (
-                <span key={p} className="bg-primary-light text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">
-                  {p}
-                </span>
+                <span key={p} className="bg-primary-light text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">{p}</span>
               ))}
             </div>
 
@@ -184,14 +155,11 @@ function DesktopNav() {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center">
-          <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
-        </Link>
+        <Link href="/" className="flex items-center"><img src={logo1.src} alt="MiMaji" className="h-8 w-auto" /></Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
           <Link href="/vendors" className="text-primary font-medium text-sm">Vendors</Link>
           <Link href="/impact" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Impact</Link>
-          <Link href="/contact" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Contact</Link>
           <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
         </nav>
       </div>
