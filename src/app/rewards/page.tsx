@@ -46,9 +46,9 @@ const tiers = [
 const redeemOptions: { points: number; reward: string; description: string; icon?: typeof Truck; image?: string }[] = [
   { points: 100, reward: "Free Delivery", icon: Truck, description: "No delivery fee on your next order" },
   { points: 250, reward: "10% Discount", icon: Gift, description: "10% off your next order" },
-  { points: 500, reward: "Free 5L Jug", description: "One free 5L purified water", image: "/5L Soft.png" },
-  { points: 750, reward: "Free 10L Jug", description: "One free 10L purified water", image: "/10L Soft.png" },
-  { points: 1000, reward: "Free 20L Jug", description: "One free 20L purified water", image: "/20L Soft.png" },
+  { points: 500, reward: "Free 5L Jug", description: "One free 5L purified water", image: "/5L-Soft.png" },
+  { points: 750, reward: "Free 10L Jug", description: "One free 10L purified water", image: "/10L-Soft.png" },
+  { points: 1000, reward: "Free 20L Jug", description: "One free 20L purified water", image: "/20L-Soft.png" },
 ];
 
 export default function RewardsPage() {
@@ -233,7 +233,7 @@ function DesktopNav() {
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center">
-          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+          <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
