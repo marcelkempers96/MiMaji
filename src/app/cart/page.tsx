@@ -23,9 +23,23 @@ function getDiscount(qty: number) {
   return tier || DISCOUNT_TIERS[0];
 }
 
+function parseCartItemId(cartItemId: string): { productId: string; bottleType: "new" | "refill" } {
+  const match = cartItemId.match(/^(.+)-(new|refill)$/);
+  if (match) return { productId: match[1], bottleType: match[2] as "new" | "refill" };
+  // Fallback for legacy IDs without suffix
+  return { productId: cartItemId, bottleType: "refill" };
+}
+
 function getBasePrice(itemId: string): number {
-  const product = products.find((p) => p.id === itemId);
-  return product?.price || 0;
+  const { productId, bottleType } = parseCartItemId(itemId);
+  const product = products.find((p) => p.id === productId);
+  if (!product) return 0;
+  return bottleType === "new" ? product.priceNew : product.priceRefill;
+}
+
+function findProduct(itemId: string) {
+  const { productId } = parseCartItemId(itemId);
+  return products.find((p) => p.id === productId);
 }
 
 function getDiscountedPrice(basePrice: number, qty: number) {
@@ -75,7 +89,7 @@ export default function CartPage() {
           <div key={item.id} className="bg-white shadow-card rounded-xl p-4 mb-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-16 bg-primary-light rounded-lg flex items-center justify-center shrink-0 overflow-hidden p-1">
-                {(() => { const product = products.find(p => p.id === item.id); return product ? <img src={product.image.src} alt={item.name} className="object-contain w-full h-full" /> : <Droplets size={24} className="text-primary" />; })()}
+                {(() => { const product = findProduct(item.id); return product ? <img src={product.image.src} alt={item.name} className="object-contain w-full h-full" /> : <Droplets size={24} className="text-primary" />; })()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-bold text-text-primary truncate">{item.name}</p>

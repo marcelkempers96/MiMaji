@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, RefreshCw, PackagePlus } from "lucide-react";
 
 import Link from "next/link";
 import { logo1 } from "@/assets/images";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
-import { products } from "@/data/products";
+import { products, Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 
 // Discount tiers: the more bottles, the cheaper per unit
@@ -29,53 +29,104 @@ function getDiscountedPrice(basePrice: number, qty: number) {
   return Math.round(basePrice * (1 - tier.discount / 100));
 }
 
+type BottleType = "new" | "refill";
+
+// Per-product selection state
+interface ProductSelection {
+  quantity: number;
+  bottleType: BottleType;
+}
+
+function getPrice(product: Product, bottleType: BottleType): number {
+  return bottleType === "new" ? product.priceNew : product.priceRefill;
+}
+
+function getCartItemId(productId: string, bottleType: BottleType): string {
+  return `${productId}-${bottleType}`;
+}
+
 export default function BuyWaterPage() {
   const router = useRouter();
   const { addItem, removeItem, items, updateQuantity } = useCart();
   const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("soft");
-  const [quantities, setQuantities] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
-    items.forEach((item) => { initial[item.id] = item.quantity; });
+  const [activeSize, setActiveSize] = useState<"20L" | "10L" | "5L">("20L");
+
+  // Initialize selections from existing cart items
+  const [selections, setSelections] = useState<Record<string, ProductSelection>>(() => {
+    const initial: Record<string, ProductSelection> = {};
+    items.forEach((item) => {
+      // Parse cart item IDs like "h20-new" or "s10-refill"
+      const match = item.id.match(/^(.+)-(new|refill)$/);
+      if (match) {
+        initial[match[1]] = { quantity: item.quantity, bottleType: match[2] as BottleType };
+      }
+    });
     return initial;
   });
 
-  const filteredProducts = products.filter((p) => p.category === activeCategory);
+  const filteredProducts = products.filter(
+    (p) => p.category === activeCategory && p.size === activeSize
+  );
 
-  const setProductQuantity = (productId: string, qty: number) => {
+  const setProductSelection = (productId: string, qty: number, bottleType: BottleType) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
 
+    const oldSelection = selections[productId];
+    const oldCartId = oldSelection ? getCartItemId(productId, oldSelection.bottleType) : null;
+    const newCartId = getCartItemId(productId, bottleType);
+
     if (qty <= 0) {
-      setQuantities((prev) => { const next = { ...prev }; delete next[productId]; return next; });
-      removeItem(productId);
+      // Remove
+      setSelections((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+      if (oldCartId) removeItem(oldCartId);
+      return;
+    }
+
+    // If bottle type changed, remove the old cart item
+    if (oldCartId && oldCartId !== newCartId) {
+      removeItem(oldCartId);
+    }
+
+    setSelections((prev) => ({ ...prev, [productId]: { quantity: qty, bottleType } }));
+
+    const basePrice = getPrice(product, bottleType);
+    const discountedPrice = getDiscountedPrice(basePrice, qty);
+    const itemName = `${product.name} ${product.size} — ${bottleType === "new" ? "New" : "Refill"}`;
+
+    const existingItem = items.find((i) => i.id === newCartId);
+    if (existingItem) {
+      updateQuantity(newCartId, qty);
     } else {
-      setQuantities((prev) => ({ ...prev, [productId]: qty }));
-      const existingItem = items.find((i) => i.id === productId);
-      const discountedPrice = getDiscountedPrice(product.price, qty);
-      if (existingItem) {
-        updateQuantity(productId, qty);
-      } else {
-        addItem({ id: product.id, name: `${product.name} ${product.size}`, price: discountedPrice, quantity: qty });
-      }
+      addItem({ id: newCartId, name: itemName, price: discountedPrice, quantity: qty });
     }
   };
 
-  const selectedCount = Object.values(quantities).reduce((sum, q) => sum + q, 0);
+  const selectedCount = Object.values(selections).reduce((sum, s) => sum + s.quantity, 0);
 
   const handleContinue = () => {
     // Sync discounted prices before going to cart
-    Object.entries(quantities).forEach(([productId, qty]) => {
+    Object.entries(selections).forEach(([productId, sel]) => {
       const product = products.find((p) => p.id === productId);
       if (product) {
-        const discountedPrice = getDiscountedPrice(product.price, qty);
-        const existingItem = items.find((i) => i.id === productId);
+        const basePrice = getPrice(product, sel.bottleType);
+        const discountedPrice = getDiscountedPrice(basePrice, sel.quantity);
+        const cartId = getCartItemId(productId, sel.bottleType);
+        const existingItem = items.find((i) => i.id === cartId);
         if (!existingItem) {
-          addItem({ id: product.id, name: `${product.name} ${product.size}`, price: discountedPrice, quantity: qty });
+          const itemName = `${product.name} ${product.size} — ${sel.bottleType === "new" ? "New" : "Refill"}`;
+          addItem({ id: cartId, name: itemName, price: discountedPrice, quantity: sel.quantity });
         }
       }
     });
     router.push("/cart");
   };
+
+  const sizes = ["20L", "10L", "5L"] as const;
 
   return (
     <div className="bg-background min-h-screen pb-36">
@@ -86,9 +137,12 @@ export default function BuyWaterPage() {
           <BuyContent
             activeCategory={activeCategory}
             setActiveCategory={setActiveCategory}
+            activeSize={activeSize}
+            setActiveSize={setActiveSize}
+            sizes={sizes}
             filteredProducts={filteredProducts}
-            quantities={quantities}
-            setProductQuantity={setProductQuantity}
+            selections={selections}
+            setProductSelection={setProductSelection}
           />
           {/* Sticky Bottom */}
           <div className="fixed bottom-16 left-0 right-0 bg-background px-4 py-3 max-w-md mx-auto">
@@ -109,14 +163,17 @@ export default function BuyWaterPage() {
         <DesktopNav />
         <div className="max-w-5xl mx-auto px-8 py-10">
           <h1 className="text-3xl font-extrabold text-text-primary mb-2">Order Water</h1>
-          <p className="text-text-secondary mb-6">Select your preferred water type, size, and quantity</p>
+          <p className="text-text-secondary mb-6">Select your preferred water type, size, and quantity. Choose new bottle or refill.</p>
 
           <BuyContent
             activeCategory={activeCategory}
             setActiveCategory={setActiveCategory}
+            activeSize={activeSize}
+            setActiveSize={setActiveSize}
+            sizes={sizes}
             filteredProducts={filteredProducts}
-            quantities={quantities}
-            setProductQuantity={setProductQuantity}
+            selections={selections}
+            setProductSelection={setProductSelection}
             desktop
           />
 
@@ -137,18 +194,31 @@ export default function BuyWaterPage() {
   );
 }
 
-function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quantities, setProductQuantity, desktop }: {
+function BuyContent({
+  activeCategory,
+  setActiveCategory,
+  activeSize,
+  setActiveSize,
+  sizes,
+  filteredProducts,
+  selections,
+  setProductSelection,
+  desktop,
+}: {
   activeCategory: "hard" | "soft";
   setActiveCategory: (c: "hard" | "soft") => void;
-  filteredProducts: typeof products;
-  quantities: Record<string, number>;
-  setProductQuantity: (id: string, qty: number) => void;
+  activeSize: "20L" | "10L" | "5L";
+  setActiveSize: (s: "20L" | "10L" | "5L") => void;
+  sizes: readonly ("20L" | "10L" | "5L")[];
+  filteredProducts: Product[];
+  selections: Record<string, ProductSelection>;
+  setProductSelection: (id: string, qty: number, bottleType: BottleType) => void;
   desktop?: boolean;
 }) {
   return (
     <>
-      {/* Filter Tabs */}
-      <div className="flex gap-2 px-4 mt-2 mb-5">
+      {/* Category Tabs */}
+      <div className="flex gap-2 px-4 mt-2 mb-3">
         <button
           onClick={() => setActiveCategory("soft")}
           className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
@@ -163,16 +233,34 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
             activeCategory === "hard" ? "bg-primary text-white" : "bg-white text-text-secondary"
           }`}
         >
-          Hard Bottle
+          Hard Jug
         </button>
+      </div>
+
+      {/* Size Tabs */}
+      <div className="flex gap-2 px-4 mb-5">
+        {sizes.map((size) => (
+          <button
+            key={size}
+            onClick={() => setActiveSize(size)}
+            className={`rounded-full px-5 py-1.5 text-xs font-semibold transition-colors ${
+              activeSize === size ? "bg-[#1a5a9a] text-white" : "bg-gray-100 text-text-secondary"
+            }`}
+          >
+            {size}
+          </button>
+        ))}
       </div>
 
       {/* Product List */}
       <div className={desktop ? "grid grid-cols-2 gap-4 px-4" : "flex flex-col gap-3 px-4"}>
         {filteredProducts.map((product) => {
-          const qty = quantities[product.id] || 0;
+          const sel = selections[product.id];
+          const qty = sel?.quantity || 0;
+          const bottleType: BottleType = sel?.bottleType || "refill";
+          const basePrice = getPrice(product, bottleType);
           const discount = getDiscount(qty);
-          const discountedPrice = getDiscountedPrice(product.price, qty || 1);
+          const discountedPrice = getDiscountedPrice(basePrice, qty || 1);
           const hasDiscount = qty >= 3;
 
           return (
@@ -188,21 +276,47 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-text-primary">{product.name}</p>
-                  <p className="text-text-secondary text-xs">{product.size} — {product.category === "hard" ? "Hard Bottle" : "Soft Bottle"}</p>
+                  <p className="text-text-secondary text-xs">{product.size} — {product.category === "hard" ? "Hard" : "Soft"}</p>
                   <div className="flex items-center gap-2 mt-1">
                     {hasDiscount ? (
                       <>
-                        <span className="text-text-secondary text-xs line-through">KES {product.price}</span>
+                        <span className="text-text-secondary text-xs line-through">KES {basePrice}</span>
                         <span className="font-bold text-sm text-[#2ECC71]">KES {discountedPrice}</span>
                         <span className="bg-[#E8F5E9] text-[#2ECC71] text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
                           {discount.label}
                         </span>
                       </>
                     ) : (
-                      <span className="font-bold text-sm text-text-primary">KES {product.price}</span>
+                      <span className="font-bold text-sm text-text-primary">KES {basePrice}</span>
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* New / Refill Toggle */}
+              <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                <button
+                  onClick={() => setProductSelection(product.id, qty || 1, "refill")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
+                    bottleType === "refill"
+                      ? "bg-[#E8F5E9] text-[#2ECC71] border-2 border-[#2ECC71]"
+                      : "bg-gray-50 text-text-secondary border-2 border-transparent"
+                  }`}
+                >
+                  <RefreshCw size={14} />
+                  Refill — KES {product.priceRefill}
+                </button>
+                <button
+                  onClick={() => setProductSelection(product.id, qty || 1, "new")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
+                    bottleType === "new"
+                      ? "bg-primary-light text-primary border-2 border-primary"
+                      : "bg-gray-50 text-text-secondary border-2 border-transparent"
+                  }`}
+                >
+                  <PackagePlus size={14} />
+                  New — KES {product.priceNew}
+                </button>
               </div>
 
               {/* Quantity Controls */}
@@ -210,7 +324,7 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
                 <span className="text-xs text-text-secondary">Quantity</span>
                 <div className="flex items-center gap-0">
                   <button
-                    onClick={() => setProductQuantity(product.id, qty - 1)}
+                    onClick={() => setProductSelection(product.id, qty - 1, bottleType)}
                     disabled={qty === 0}
                     className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
                       qty === 0 ? "bg-gray-50 text-gray-300" : "bg-primary-light text-primary"
@@ -220,7 +334,7 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
                   </button>
                   <span className="w-10 text-center font-bold text-sm text-text-primary">{qty}</span>
                   <button
-                    onClick={() => setProductQuantity(product.id, qty + 1)}
+                    onClick={() => setProductSelection(product.id, qty + 1, bottleType)}
                     className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center"
                   >
                     <Plus size={16} />
@@ -231,13 +345,30 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
               {/* Total for this product */}
               {qty > 0 && (
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                  <span className="text-xs text-text-secondary">Subtotal ({qty} x KES {discountedPrice})</span>
-                  <span className="font-bold text-sm text-text-primary">KES {(discountedPrice * qty).toLocaleString()}</span>
+                  <span className="text-xs text-text-secondary">
+                    Subtotal ({qty} x KES {discountedPrice})
+                  </span>
+                  <span className="font-bold text-sm text-text-primary">
+                    KES {(discountedPrice * qty).toLocaleString()}
+                  </span>
                 </div>
               )}
             </div>
           );
         })}
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-8 text-text-secondary text-sm">
+            No products available for this combination. Try a different size or type.
+          </div>
+        )}
+      </div>
+
+      {/* Pricing info */}
+      <div className="px-4 mt-4">
+        <p className="text-text-secondary text-xs">
+          All prices include delivery. <span className="font-semibold">New</span> = brand new bottle/jug. <span className="font-semibold">Refill</span> = bring your existing bottle for refilling at a lower price.
+        </p>
       </div>
     </>
   );
