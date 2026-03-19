@@ -19,7 +19,7 @@ export function WhatsAppMobileBanner() {
       <div className="flex items-center gap-3">
         <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center flex-shrink-0">
           <img
-            src="/WhatsApp.svg.webp"
+            src="/whatsapp-logo.webp"
             alt="WhatsApp"
             width={30}
             height={30}
@@ -46,7 +46,7 @@ export default function WhatsAppFloatingButton() {
       title="Chat on WhatsApp"
     >
       <img
-        src="/WhatsApp.svg.webp"
+        src="/whatsapp-logo.webp"
         alt="WhatsApp"
         width={32}
         height={32}
