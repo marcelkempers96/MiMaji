@@ -1,228 +1,136 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Badge from "@/components/shared/Badge";
-import OTPLogin from "@/components/shared/OTPLogin";
-import Button from "@/components/shared/Button";
-import { supabase } from "@/lib/supabase";
-import { Order, OrderStatus } from "@/types";
-import { useRouter } from "next/navigation";
+import { Droplets, ChevronRight, Star, Trophy } from "lucide-react";
+import Link from "next/link";
+import TopBar from "@/components/layout/TopBar";
+import { mockOrders } from "@/data/orders";
 
-type TabFilter = "all" | "active" | "delivered";
+const REWARDS_CURRENT = 150;
+const REWARDS_MILESTONES = [
+  { points: 100, label: "Free Delivery", reached: true },
+  { points: 250, label: "10% Off", reached: false },
+  { points: 500, label: "Free 5L Jug", reached: false },
+  { points: 1000, label: "VIP Status", reached: false },
+];
 
 export default function OrdersPage() {
-  const router = useRouter();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [tab, setTab] = useState<TabFilter>("all");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (data && data.length > 0) {
-      setOrders(data);
-    } else {
-      setOrders([
-        {
-          id: "a1b2c3d4",
-          customer_id: "",
-          distributor_id: null,
-          zone_id: "",
-          delivery_address: "Kilimani, Nairobi",
-          lat: -1.29,
-          lng: 36.78,
-          quantity: 2,
-          price_total: 500,
-          status: "out_for_delivery" as OrderStatus,
-          mpesa_ref: "QK8N3F2G",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: "e5f6g7h8",
-          customer_id: "",
-          distributor_id: null,
-          zone_id: "",
-          delivery_address: "Westlands, Nairobi",
-          lat: -1.26,
-          lng: 36.81,
-          quantity: 4,
-          price_total: 900,
-          status: "delivered" as OrderStatus,
-          mpesa_ref: "RT5M2K9L",
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          updated_at: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: "i9j0k1l2",
-          customer_id: "",
-          distributor_id: null,
-          zone_id: "",
-          delivery_address: "Karen, Nairobi",
-          lat: -1.32,
-          lng: 36.71,
-          quantity: 1,
-          price_total: 300,
-          status: "delivered" as OrderStatus,
-          mpesa_ref: "LP3Q7W8X",
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-          updated_at: new Date(Date.now() - 172800000).toISOString(),
-        },
-      ]);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (authenticated) fetchOrders();
-  }, [authenticated, fetchOrders]);
-
-  const filteredOrders =
-    tab === "active"
-      ? orders.filter(
-          (o) => o.status !== "delivered" && o.status !== "cancelled"
-        )
-      : tab === "delivered"
-        ? orders.filter((o) => o.status === "delivered")
-        : orders;
-
-  const activeCount = orders.filter(
-    (o) => o.status !== "delivered" && o.status !== "cancelled"
-  ).length;
-  const deliveredCount = orders.filter(
-    (o) => o.status === "delivered"
-  ).length;
-
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / 86400000);
-    if (diffDays === 0) return `Today ${date.toLocaleTimeString("en-KE", { hour: "numeric", minute: "2-digit" })}`;
-    if (diffDays === 1) return "Yesterday";
-    return date.toLocaleDateString("en-KE", { weekday: "short", hour: "numeric", minute: "2-digit" });
-  };
-
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-bg">
-        <Navbar />
-        <div className="px-4 py-12">
-          <OTPLogin
-            title="View your orders"
-            onVerified={(p) => {
-              setPhone(p);
-              setAuthenticated(true);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
+  const nextMilestone = REWARDS_MILESTONES.find((m) => !m.reached) || REWARDS_MILESTONES[REWARDS_MILESTONES.length - 1];
+  const maxPoints = REWARDS_MILESTONES[REWARDS_MILESTONES.length - 1].points;
+  const progressPercent = Math.min((REWARDS_CURRENT / maxPoints) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-bg">
-      <Navbar />
-      <div className="px-4 py-5">
-        <h1 className="text-[22px] text-blue-900 font-bold mb-1">
-          Your Orders
-        </h1>
-        <p className="text-text-mid text-xs mb-5">
-          +{phone.slice(0, 6)} *** ***
-        </p>
+    <div className="min-h-screen bg-background pb-20">
+      <TopBar title="My Orders" />
 
-        {/* Filter tabs */}
-        <div className="flex gap-2 mb-4">
-          {(
-            [
-              ["all", `All (${orders.length})`],
-              ["active", `Active (${activeCount})`],
-              ["delivered", `Delivered (${deliveredCount})`],
-            ] as [TabFilter, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all capitalize ${
-                tab === key
-                  ? "bg-blue-700 text-white shadow-sm"
-                  : "bg-white text-text-mid hover:bg-blue-50"
-              }`}
-              style={tab !== key ? { boxShadow: "var(--shadow-soft)" } : undefined}
-            >
-              {label}
-            </button>
-          ))}
+      <div className="max-w-md mx-auto px-4 pt-4">
+        {/* Rewards Milestones */}
+        <div className="bg-surface shadow-card rounded-xl p-4 mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Star size={18} className="text-rating" />
+            <span className="font-bold text-sm text-text-primary">Rewards Milestones</span>
+            <span className="ml-auto text-xs font-bold text-primary">{REWARDS_CURRENT} pts</span>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="relative mb-2">
+            <div className="h-3 bg-[#E0E0E0] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-rating to-[#F5C623] rounded-full transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            {/* Milestone markers */}
+            <div className="absolute inset-0 flex items-center">
+              {REWARDS_MILESTONES.map((m) => (
+                <div
+                  key={m.points}
+                  className="absolute"
+                  style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)" }}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full border-2 ${
+                      m.reached
+                        ? "bg-rating border-rating"
+                        : REWARDS_CURRENT >= m.points
+                        ? "bg-rating border-rating"
+                        : "bg-white border-[#E0E0E0]"
+                    }`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Milestone labels */}
+          <div className="relative h-10 mt-1">
+            {REWARDS_MILESTONES.map((m) => (
+              <div
+                key={m.points}
+                className="absolute text-center"
+                style={{ left: `${(m.points / maxPoints) * 100}%`, transform: "translateX(-50%)", width: "60px" }}
+              >
+                <p className={`text-[10px] font-semibold ${m.reached || REWARDS_CURRENT >= m.points ? "text-rating" : "text-text-secondary"}`}>
+                  {m.points}
+                </p>
+                <p className="text-[9px] text-text-secondary leading-tight">{m.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 mt-1">
+            <Trophy size={14} className="text-rating" />
+            <p className="text-xs text-text-secondary">
+              Next: <span className="font-semibold text-text-primary">{nextMilestone.label}</span> at {nextMilestone.points} pts
+            </p>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
-          </div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7BD6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-              </svg>
+        {/* Order History Header */}
+        <h2 className="font-bold text-sm text-text-primary mb-3">Order History</h2>
+
+        {/* Orders List */}
+        {mockOrders.map((order) => (
+          <div
+            key={order.id}
+            className="bg-surface shadow-card rounded-xl p-4 mb-3"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-bold text-sm text-text-primary">{order.date}</span>
+              <div className="flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-full inline-block ${
+                  order.status === "Delivered" ? "bg-success" :
+                  order.status === "In Transit" ? "bg-primary" : "bg-rating"
+                }`} />
+                <span className={`text-sm font-medium ${
+                  order.status === "Delivered" ? "text-success" :
+                  order.status === "In Transit" ? "text-primary" : "text-rating"
+                }`}>{order.status}</span>
+              </div>
             </div>
-            <div className="font-bold text-blue-900 mb-1">No orders yet</div>
-            <div className="text-text-mid text-sm mb-4">
-              Place your first order!
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                <Droplets size={20} className="text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm text-text-primary">{order.productName}</p>
+                <p className="text-text-secondary text-sm">
+                  KES {order.originalPrice.toLocaleString()}
+                </p>
+              </div>
+              <span className="font-bold text-text-primary">
+                KES {order.amountPaid.toLocaleString()}
+              </span>
             </div>
-            <Button onClick={() => router.push("/")}>Order Water</Button>
+
+            <div className="flex justify-end mt-3">
+              <Link href="/track" className="flex items-center gap-1 text-primary text-sm font-medium">
+                View Details
+                <ChevronRight size={16} />
+              </Link>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredOrders.map((order) => {
-              const shortId = `MJ-${order.id.slice(0, 4).toUpperCase()}`;
-              return (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-2xl p-4 animate-fade-in"
-                  style={{ boxShadow: "var(--shadow-card)" }}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="font-bold text-blue-700 text-sm">
-                      #{shortId}
-                    </span>
-                    <Badge status={order.status} />
-                  </div>
-                  <div className="text-sm text-text-mid mb-1">
-                    {order.delivery_address}
-                  </div>
-                  <div className="text-sm text-text-mid mb-3">
-                    {order.quantity} jug{order.quantity > 1 ? "s" : ""} &middot; KES{" "}
-                    {order.price_total} &middot; {formatTime(order.created_at)}
-                  </div>
-                  <Button
-                    variant={
-                      order.status !== "delivered" ? "primary" : "outline"
-                    }
-                    size="md"
-                    className="w-full"
-                    onClick={() =>
-                      order.status !== "delivered"
-                        ? router.push(`/order/${order.id}`)
-                        : router.push("/")
-                    }
-                  >
-                    {order.status !== "delivered"
-                      ? "Track Order"
-                      : "Order Again"}
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );
