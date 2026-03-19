@@ -19,7 +19,7 @@ export default function HomePage() {
         {/* Header */}
         <div className="flex items-center justify-between py-4 bg-white -mx-4 px-4 sticky top-0 z-10">
           <div className="flex items-center">
-            <img src={logo1.src} alt="MiMaji" className="h-7 w-auto" />
+            <img src={logo1.src} alt="MiMaji" className="h-[70px] w-auto" />
           </div>
           {user ? (
             <Link href="/dashboard" className="text-primary text-sm font-semibold">
@@ -305,7 +305,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
       <header className="bg-surface border-b border-[#E0E0E0]">
         <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
           <div className="flex items-center">
-            <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
+            <img src={logo1.src} alt="MiMaji" className="h-20 w-auto" />
           </div>
           <nav className="flex items-center gap-8">
             <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
@@ -497,16 +497,16 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <div className="flex gap-4 mt-6">
               <Link
                 href="/buy"
-                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-6 py-3 text-sm transition-colors"
               >
-                <ShoppingCart size={20} />
+                <ShoppingCart size={18} />
                 Order for Office
               </Link>
               <Link
-                href="/account-settings"
-                className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+                href="/login?mode=signup&corporate=true"
+                className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full px-6 py-3 text-sm transition-colors"
               >
-                <Building2 size={20} />
+                <Building2 size={18} />
                 Set Up Corporate Account
               </Link>
             </div>
@@ -535,7 +535,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             </Link>
           </div>
           <div className="flex-1 flex justify-center">
-            <div className="w-64 h-48 rounded-2xl overflow-hidden">
+            <div className="w-[512px] h-96 rounded-2xl overflow-hidden">
               <img src={impactWaterIsLife.src} alt="Community water access" className="object-cover w-full h-full rounded-2xl" />
             </div>
           </div>
@@ -548,7 +548,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           <div className="grid grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center mb-4">
-                <img src={logo1.src} alt="MiMaji" className="h-7 w-auto brightness-0 invert" />
+                <img src={logo1.src} alt="MiMaji" className="h-[70px] w-auto brightness-0 invert" />
               </div>
               <p className="text-white/60 text-sm mb-4">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
               <p className="text-white/40 text-xs">For every 100L delivered, 10L goes to rural communities.</p>
