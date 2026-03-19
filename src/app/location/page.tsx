@@ -44,10 +44,10 @@ export default function LocationPage() {
               <MapPin size={48} className="text-primary opacity-100" />
             </div>
             <p className="text-primary/60 text-xs mt-3 font-medium">
-              Google Maps integration available
+              Select your delivery location
             </p>
             <p className="text-primary/40 text-[10px] mt-1">
-              Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env
+              Search or choose from saved addresses below
             </p>
           </div>
         </div>
