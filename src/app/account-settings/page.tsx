@@ -16,9 +16,6 @@ export default function AccountSettingsPage() {
   const [phone] = useState(user?.phone || "");
   const [mpesaNumber, setMpesaNumber] = useState(user?.phone || "");
   const [mpesaDifferent, setMpesaDifferent] = useState(false);
-  const [isCorporate, setIsCorporate] = useState(false);
-  const [businessName, setBusinessName] = useState("");
-  const [registrationNumber, setRegistrationNumber] = useState("");
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -118,56 +115,22 @@ export default function AccountSettingsPage() {
         </p>
       </div>
 
-      {/* Corporate Account */}
+      {/* Set Up Corporate Account */}
       <div className="bg-surface shadow-card rounded-xl p-5 mb-3">
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Account Type</label>
-
-        <div className="flex items-center gap-3 mb-3">
-          <input
-            type="checkbox"
-            id="corporate-account"
-            checked={isCorporate}
-            onChange={(e) => setIsCorporate(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary accent-[#2979C1]"
-          />
-          <label htmlFor="corporate-account" className="text-sm text-text-primary cursor-pointer flex items-center gap-2">
-            <Building2 size={16} className="text-primary" />
-            This is a corporate / business account
-          </label>
-        </div>
-
-        {isCorporate && (
-          <div className="space-y-3 mt-3 pt-3 border-t border-[#F0F0F0]">
-            <div>
-              <label className="text-xs font-semibold text-text-secondary mb-1 block">Business Name</label>
-              <div className="flex items-center gap-3">
-                <Building2 size={18} className="text-text-secondary flex-shrink-0" />
-                <input
-                  type="text"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  className="flex-1 h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background"
-                  placeholder="Enter your business name"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-text-secondary mb-1 block">
-                Registration Number <span className="text-text-secondary font-normal">(optional)</span>
-              </label>
-              <input
-                type="text"
-                value={registrationNumber}
-                onChange={(e) => setRegistrationNumber(e.target.value)}
-                className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background"
-                placeholder="e.g. PVT-12345678"
-              />
-            </div>
-            <p className="text-text-secondary text-xs">
-              Corporate accounts receive proper business invoices with your company details included.
-            </p>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Corporate Account</label>
+        <div className="flex items-center gap-3">
+          <Building2 size={20} className="text-primary flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-text-primary font-medium">Set Up Corporate Account</p>
+            <p className="text-text-secondary text-xs">Register a new business account for corporate invoicing and bulk orders.</p>
           </div>
-        )}
+        </div>
+        <Link
+          href="/login?mode=signup&corporate=true"
+          className="mt-3 block w-full text-center bg-primary-light text-primary rounded-xl py-2.5 font-semibold text-sm hover:bg-primary hover:text-white transition-colors"
+        >
+          Sign Up Corporate Account
+        </Link>
       </div>
 
       {/* Save Button */}

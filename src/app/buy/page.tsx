@@ -48,6 +48,7 @@ function getCartItemId(productId: string, bottleType: BottleType): string {
 export default function BuyWaterPage() {
   const router = useRouter();
   const { addItem, removeItem, items, updateQuantity } = useCart();
+  const [activeBottleType, setActiveBottleType] = useState<BottleType>("refill");
   const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("soft");
   const [activeSize, setActiveSize] = useState<"20L" | "10L" | "5L">("20L");
 
@@ -135,6 +136,8 @@ export default function BuyWaterPage() {
         <TopBar title="Buy Water" />
         <div className="max-w-md mx-auto">
           <BuyContent
+            activeBottleType={activeBottleType}
+            setActiveBottleType={setActiveBottleType}
             activeCategory={activeCategory}
             setActiveCategory={setActiveCategory}
             activeSize={activeSize}
@@ -166,6 +169,8 @@ export default function BuyWaterPage() {
           <p className="text-text-secondary mb-6">Select your preferred water type, size, and quantity. Choose new bottle or refill.</p>
 
           <BuyContent
+            activeBottleType={activeBottleType}
+            setActiveBottleType={setActiveBottleType}
             activeCategory={activeCategory}
             setActiveCategory={setActiveCategory}
             activeSize={activeSize}
@@ -195,6 +200,8 @@ export default function BuyWaterPage() {
 }
 
 function BuyContent({
+  activeBottleType,
+  setActiveBottleType,
   activeCategory,
   setActiveCategory,
   activeSize,
@@ -205,6 +212,8 @@ function BuyContent({
   setProductSelection,
   desktop,
 }: {
+  activeBottleType: BottleType;
+  setActiveBottleType: (bt: BottleType) => void;
   activeCategory: "hard" | "soft";
   setActiveCategory: (c: "hard" | "soft") => void;
   activeSize: "20L" | "10L" | "5L";
@@ -217,8 +226,34 @@ function BuyContent({
 }) {
   return (
     <>
-      {/* Category Tabs */}
+      {/* Refill / New Bottle Tab */}
       <div className="flex gap-2 px-4 mt-2 mb-3">
+        <button
+          onClick={() => setActiveBottleType("refill")}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-colors ${
+            activeBottleType === "refill"
+              ? "bg-[#E8F5E9] text-[#2ECC71] border-2 border-[#2ECC71]"
+              : "bg-white text-text-secondary border-2 border-transparent shadow-card"
+          }`}
+        >
+          <RefreshCw size={16} />
+          Refill
+        </button>
+        <button
+          onClick={() => setActiveBottleType("new")}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-colors ${
+            activeBottleType === "new"
+              ? "bg-primary-light text-primary border-2 border-primary"
+              : "bg-white text-text-secondary border-2 border-transparent shadow-card"
+          }`}
+        >
+          <PackagePlus size={16} />
+          New Bottle / Jug
+        </button>
+      </div>
+
+      {/* Hard / Soft Tabs */}
+      <div className="flex gap-2 px-4 mb-3">
         <button
           onClick={() => setActiveCategory("soft")}
           className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
@@ -257,8 +292,8 @@ function BuyContent({
         {filteredProducts.map((product) => {
           const sel = selections[product.id];
           const qty = sel?.quantity || 0;
-          const bottleType: BottleType = sel?.bottleType || "refill";
-          const basePrice = getPrice(product, bottleType);
+          const bottleType: BottleType = sel?.bottleType || activeBottleType;
+          const basePrice = getPrice(product, activeBottleType);
           const discount = getDiscount(qty);
           const discountedPrice = getDiscountedPrice(basePrice, qty || 1);
           const hasDiscount = qty >= 3;
@@ -276,7 +311,9 @@ function BuyContent({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-text-primary">{product.name}</p>
-                  <p className="text-text-secondary text-xs">{product.size} — {product.category === "hard" ? "Hard" : "Soft"}</p>
+                  <p className="text-text-secondary text-xs">
+                    {product.size} — {product.category === "hard" ? "Hard" : "Soft"} — {activeBottleType === "new" ? "New" : "Refill"}
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     {hasDiscount ? (
                       <>
@@ -293,38 +330,12 @@ function BuyContent({
                 </div>
               </div>
 
-              {/* New / Refill Toggle */}
-              <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                <button
-                  onClick={() => setProductSelection(product.id, qty || 1, "refill")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
-                    bottleType === "refill"
-                      ? "bg-[#E8F5E9] text-[#2ECC71] border-2 border-[#2ECC71]"
-                      : "bg-gray-50 text-text-secondary border-2 border-transparent"
-                  }`}
-                >
-                  <RefreshCw size={14} />
-                  Refill — KES {product.priceRefill}
-                </button>
-                <button
-                  onClick={() => setProductSelection(product.id, qty || 1, "new")}
-                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
-                    bottleType === "new"
-                      ? "bg-primary-light text-primary border-2 border-primary"
-                      : "bg-gray-50 text-text-secondary border-2 border-transparent"
-                  }`}
-                >
-                  <PackagePlus size={14} />
-                  New — KES {product.priceNew}
-                </button>
-              </div>
-
               {/* Quantity Controls */}
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                 <span className="text-xs text-text-secondary">Quantity</span>
                 <div className="flex items-center gap-0">
                   <button
-                    onClick={() => setProductSelection(product.id, qty - 1, bottleType)}
+                    onClick={() => setProductSelection(product.id, qty - 1, activeBottleType)}
                     disabled={qty === 0}
                     className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
                       qty === 0 ? "bg-gray-50 text-gray-300" : "bg-primary-light text-primary"
@@ -334,7 +345,7 @@ function BuyContent({
                   </button>
                   <span className="w-10 text-center font-bold text-sm text-text-primary">{qty}</span>
                   <button
-                    onClick={() => setProductSelection(product.id, qty + 1, bottleType)}
+                    onClick={() => setProductSelection(product.id, qty + 1, activeBottleType)}
                     className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center"
                   >
                     <Plus size={16} />
