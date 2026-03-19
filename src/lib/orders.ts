@@ -13,6 +13,12 @@ export interface OrderRecord {
   estimated_delivery_minutes: number | null;
   created_at: string;
   updated_at: string;
+  // Vendor assignment fields
+  vendor_id: string | null;
+  vendor_name: string | null;
+  vendor_location: string | null;
+  vendors_tried: string[]; // vendor IDs that were offered this order
+  current_vendor_offer: string | null; // vendor ID currently being offered the order
 }
 
 // Check if real Supabase credentials are configured
@@ -94,9 +100,14 @@ export async function createOrder(params: {
       order_items: params.orderItems,
       status: "pending_payment",
       mpesa_ref: null,
-      estimated_delivery_minutes: 35,
+      estimated_delivery_minutes: null,
       created_at: now,
       updated_at: now,
+      vendor_id: null,
+      vendor_name: null,
+      vendor_location: null,
+      vendors_tried: [],
+      current_vendor_offer: null,
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -144,6 +155,28 @@ export async function updateOrderStatus(orderId: string, status: string, mpesaRe
   const { error } = await supabase
     .from("orders")
     .update(updates)
+    .eq("id", orderId);
+
+  if (error) {
+    console.error("Error updating order:", error);
+  }
+}
+
+/** Update order with arbitrary fields (for vendor assignment, ETA, etc.) */
+export async function updateOrder(orderId: string, updates: Partial<OrderRecord>) {
+  if (!hasSupabaseConfig) {
+    const orders = getMockOrders();
+    const idx = orders.findIndex((o) => o.id === orderId);
+    if (idx !== -1) {
+      Object.assign(orders[idx], updates, { updated_at: new Date().toISOString() });
+      saveMockOrders(orders);
+    }
+    return;
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", orderId);
 
   if (error) {

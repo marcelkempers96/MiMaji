@@ -2,14 +2,14 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useCallback } from "react";
-import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, ChevronRight, CheckCircle, Truck, X } from "lucide-react";
+import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, ChevronRight, CheckCircle, Truck, X, Timer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId } from "@/lib/orders";
-import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats } from "@/lib/vendor";
+import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, assignOrderToVendor } from "@/lib/vendor";
 
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -19,7 +19,10 @@ export default function VendorPortalPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [stats, setStats] = useState<VendorStats | null>(null);
-  const [showNotifications, setShowNotifications] = useState(false);
+
+  // ETA Modal state
+  const [etaModalOrderId, setEtaModalOrderId] = useState<string | null>(null);
+  const [etaMinutes, setEtaMinutes] = useState(30);
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "vendor")) {
@@ -44,18 +47,40 @@ export default function VendorPortalPage() {
   useEffect(() => { loadOrders(); }, [loadOrders]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  const handleAcceptOrder = async (orderId: string) => {
-    await updateVendorOrderStatus(orderId, "confirmed");
+  // Poll for new orders every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => { loadOrders(); }, 10000);
+    return () => clearInterval(interval);
+  }, [loadOrders]);
+
+  const handleAcceptOrder = (orderId: string) => {
+    setEtaModalOrderId(orderId);
+    setEtaMinutes(30);
+  };
+
+  const handleConfirmAccept = async () => {
+    if (!etaModalOrderId || !user?.id) return;
+    await acceptOrder(etaModalOrderId, user.id, etaMinutes);
+    setEtaModalOrderId(null);
     loadOrders();
   };
 
-  const handleCompleteOrder = async (orderId: string) => {
-    await updateVendorOrderStatus(orderId, "delivered");
+  const handleRejectOrder = async (orderId: string) => {
+    if (!user?.id) return;
+    const result = await rejectOrder(orderId, user.id);
+    if (result.nextVendor) {
+      // Order was sent to next vendor
+    }
     loadOrders();
   };
 
   const handleDispatchOrder = async (orderId: string) => {
     await updateVendorOrderStatus(orderId, "out_for_delivery");
+    loadOrders();
+  };
+
+  const handleCompleteOrder = async (orderId: string) => {
+    await updateVendorOrderStatus(orderId, "delivered");
     loadOrders();
   };
 
@@ -66,7 +91,7 @@ export default function VendorPortalPage() {
 
   if (!user || user.role !== "vendor") return null;
 
-  const pendingOrders = orders.filter((o) => o.status === "pending_payment" || o.status === "paid");
+  const pendingOrders = orders.filter((o) => o.status === "paid" && (!o.vendor_id));
   const activeOrders = orders.filter((o) => o.status === "confirmed" || o.status === "out_for_delivery");
   const completedOrders = orders.filter((o) => o.status === "delivered");
 
@@ -85,6 +110,61 @@ export default function VendorPortalPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <TopBar title="Vendor Portal" showBack={true} />
+
+      {/* ETA Modal */}
+      {etaModalOrderId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg text-text-primary">Set Delivery Time</h3>
+              <button onClick={() => setEtaModalOrderId(null)} className="text-text-secondary hover:text-text-primary">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-text-secondary text-sm mb-4">
+              How long will it take to deliver this order?
+            </p>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button
+                onClick={() => setEtaMinutes(Math.max(10, etaMinutes - 10))}
+                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg font-bold text-text-primary hover:bg-gray-200"
+              >
+                −
+              </button>
+              <div className="text-center">
+                <p className="text-4xl font-extrabold text-primary">{etaMinutes}</p>
+                <p className="text-text-secondary text-xs">minutes</p>
+              </div>
+              <button
+                onClick={() => setEtaMinutes(Math.min(120, etaMinutes + 10))}
+                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg font-bold text-text-primary hover:bg-gray-200"
+              >
+                +
+              </button>
+            </div>
+            <div className="flex gap-2 mb-2">
+              {[15, 30, 45, 60].map((min) => (
+                <button
+                  key={min}
+                  onClick={() => setEtaMinutes(min)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    etaMinutes === min ? "bg-primary text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"
+                  }`}
+                >
+                  {min}m
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleConfirmAccept}
+              className="w-full mt-4 bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#1a5a9a] transition-colors flex items-center justify-center gap-2"
+            >
+              <CheckCircle size={18} />
+              Accept Order ({etaMinutes} min)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
@@ -158,17 +238,36 @@ export default function VendorPortalPage() {
                     <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     <span className="text-text-secondary text-xs">{formatOrderDate(order.created_at)}</span>
                   </div>
-                  {(order.status === "pending_payment" || order.status === "paid") && (
-                    <button onClick={() => handleAcceptOrder(order.id)} className="w-full mt-3 bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">
-                      Accept Order
-                    </button>
+                  {/* ETA display for confirmed orders */}
+                  {order.estimated_delivery_minutes && (order.status === "confirmed" || order.status === "out_for_delivery") && (
+                    <div className="flex items-center gap-1 mt-2 text-xs text-primary">
+                      <Timer size={12} />
+                      <span className="font-semibold">ETA: {order.estimated_delivery_minutes} min</span>
+                    </div>
                   )}
-                  {order.status === "confirmed" && (
+                  {/* Accept / Reject for paid unassigned orders */}
+                  {order.status === "paid" && !order.vendor_id && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleAcceptOrder(order.id)}
+                        className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#1a5a9a] transition-colors"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleRejectOrder(order.id)}
+                        className="flex-1 bg-gray-100 text-cta-alt py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                  {order.status === "confirmed" && order.vendor_id === user.id && (
                     <button onClick={() => handleDispatchOrder(order.id)} className="w-full mt-3 bg-[#F5A623] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#d4901e] transition-colors">
                       Dispatch Order
                     </button>
                   )}
-                  {order.status === "out_for_delivery" && (
+                  {order.status === "out_for_delivery" && order.vendor_id === user.id && (
                     <button onClick={() => handleCompleteOrder(order.id)} className="w-full mt-3 bg-[#2ECC71] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#27ae60] transition-colors">
                       Mark Delivered
                     </button>
@@ -265,9 +364,14 @@ export default function VendorPortalPage() {
                         <p className="font-bold text-sm text-text-primary">New Order: {formatOrderId(order.id)}</p>
                         <p className="text-text-secondary text-xs">{order.product_name} — KES {order.price_total.toLocaleString()}</p>
                       </div>
-                      <button onClick={() => handleAcceptOrder(order.id)} className="bg-primary text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#1a5a9a] transition-colors">
-                        Accept
-                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleAcceptOrder(order.id)} className="bg-primary text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#1a5a9a] transition-colors">
+                          Accept
+                        </button>
+                        <button onClick={() => handleRejectOrder(order.id)} className="bg-gray-100 text-cta-alt text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-red-50 transition-colors">
+                          Reject
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -384,17 +488,22 @@ export default function VendorPortalPage() {
                             <OrderStatusBadge status={order.status} />
                           </td>
                           <td className="px-6 py-4">
-                            {(order.status === "pending_payment" || order.status === "paid") && (
-                              <button onClick={() => handleAcceptOrder(order.id)} className="bg-primary text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#1a5a9a] transition-colors">
-                                Accept
-                              </button>
+                            {order.status === "paid" && !order.vendor_id && (
+                              <div className="flex gap-2">
+                                <button onClick={() => handleAcceptOrder(order.id)} className="bg-primary text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#1a5a9a] transition-colors">
+                                  Accept
+                                </button>
+                                <button onClick={() => handleRejectOrder(order.id)} className="bg-gray-100 text-cta-alt text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-red-50 transition-colors">
+                                  Reject
+                                </button>
+                              </div>
                             )}
-                            {order.status === "confirmed" && (
+                            {order.status === "confirmed" && order.vendor_id === user.id && (
                               <button onClick={() => handleDispatchOrder(order.id)} className="bg-[#F5A623] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#d4901e] transition-colors">
                                 Dispatch
                               </button>
                             )}
-                            {order.status === "out_for_delivery" && (
+                            {order.status === "out_for_delivery" && order.vendor_id === user.id && (
                               <button onClick={() => handleCompleteOrder(order.id)} className="bg-[#2ECC71] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#27ae60] transition-colors">
                                 Complete
                               </button>

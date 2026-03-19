@@ -205,6 +205,26 @@ function TrackPage() {
             </div>
           )}
 
+          {/* Vendor / Store Info — show when order is accepted by a vendor */}
+          {order.vendor_name && (
+            <div className="bg-surface shadow-card rounded-xl p-4 mb-4">
+              <p className="text-xs text-text-secondary mb-2">Your water is coming from</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                  <Droplets size={18} className="text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-text-primary">{order.vendor_name}</p>
+                  {order.vendor_location && (
+                    <p className="text-text-secondary text-xs flex items-center gap-1">
+                      <MapPin size={12} /> {order.vendor_location}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* M-Pesa reference if available */}
           {order.mpesa_ref && (
             <div className="bg-surface shadow-card rounded-xl p-4 mb-4">

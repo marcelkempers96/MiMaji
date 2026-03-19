@@ -1,19 +1,82 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState } from "react";
-import { MapPin, Star, Phone, Clock, Droplets, Search, Filter } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MapPin, Star, Clock, Droplets, Search } from "lucide-react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 
 const vendors = [
-  { id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, phone: "+254700111222", hours: "6AM - 9PM", products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"], priceRange: "KES 150 - 500" },
-  { id: "v2", name: "WaterPoint Westlands", area: "Westlands, Nairobi", distance: "1.2 km", rating: 4.6, reviews: 89, phone: "+254700222333", hours: "7AM - 8PM", products: ["20L Hard", "20L Soft", "10L Soft"], priceRange: "KES 280 - 500" },
-  { id: "v3", name: "CleanWater Hub", area: "Lavington, Nairobi", distance: "2.1 km", rating: 4.9, reviews: 234, phone: "+254700333444", hours: "6AM - 10PM", products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"], priceRange: "KES 150 - 450" },
-  { id: "v4", name: "Maji Fresh Karen", area: "Karen, Nairobi", distance: "5.3 km", rating: 4.7, reviews: 67, phone: "+254700444555", hours: "7AM - 9PM", products: ["20L Hard", "20L Soft"], priceRange: "KES 400 - 500" },
-  { id: "v5", name: "PureDrops CBD", area: "CBD, Nairobi", distance: "3.8 km", rating: 4.5, reviews: 112, phone: "+254700555666", hours: "6AM - 8PM", products: ["20L Soft", "10L Soft", "5L Soft"], priceRange: "KES 150 - 450" },
+  { id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, hours: "6AM - 9PM", products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"], lat: -1.2921, lng: 36.7877 },
+  { id: "v2", name: "WaterPoint Westlands", area: "Westlands, Nairobi", distance: "1.2 km", rating: 4.6, reviews: 89, hours: "7AM - 8PM", products: ["20L Hard", "20L Soft", "10L Soft"], lat: -1.2673, lng: 36.8110 },
+  { id: "v3", name: "CleanWater Hub", area: "Lavington, Nairobi", distance: "2.1 km", rating: 4.9, reviews: 234, hours: "6AM - 10PM", products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"], lat: -1.2786, lng: 36.7718 },
+  { id: "v4", name: "Maji Fresh Karen", area: "Karen, Nairobi", distance: "5.3 km", rating: 4.7, reviews: 67, hours: "7AM - 9PM", products: ["20L Hard", "20L Soft"], lat: -1.3226, lng: 36.7126 },
+  { id: "v5", name: "PureDrops CBD", area: "CBD, Nairobi", distance: "3.8 km", rating: 4.5, reviews: 112, hours: "6AM - 8PM", products: ["20L Soft", "10L Soft", "5L Soft"], lat: -1.2864, lng: 36.8172 },
 ];
+
+function VendorMap({ mapHeight }: { mapHeight: string }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const tryInitMap = () => {
+      if (window.google?.maps && mapRef.current) {
+        const map = new window.google.maps.Map(mapRef.current, {
+          center: { lat: -1.2864, lng: 36.8000 },
+          zoom: 12,
+          disableDefaultUI: true,
+          zoomControl: true,
+          styles: [
+            { featureType: "poi", stylers: [{ visibility: "off" }] },
+          ],
+        });
+
+        vendors.forEach((v) => {
+          const marker = new window.google.maps.Marker({
+            position: { lat: v.lat, lng: v.lng },
+            map,
+            title: v.name,
+          });
+
+          const infoWindow = new window.google.maps.InfoWindow({
+            content: `<div style="padding:4px"><strong>${v.name}</strong><br/><span style="font-size:12px;color:#666">${v.area}</span></div>`,
+          });
+
+          marker.addListener("click", () => {
+            infoWindow.open(map, marker);
+          });
+        });
+
+        setMapLoaded(true);
+        return;
+      }
+
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(tryInitMap, 500);
+      }
+    };
+
+    tryInitMap();
+  }, []);
+
+  return (
+    <div className={`rounded-2xl overflow-hidden ${mapHeight}`} ref={mapRef}>
+      {!mapLoaded && (
+        <div className={`bg-primary-light ${mapHeight} flex items-center justify-center`}>
+          <div className="text-center">
+            <MapPin size={36} className="text-primary/40 mx-auto mb-1" />
+            <p className="text-primary/60 text-xs font-medium">Loading Map...</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function VendorsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,15 +104,8 @@ export default function VendorsPage() {
             <div className="col-span-2">
               <VendorContent vendors={filteredVendors} searchQuery={searchQuery} setSearchQuery={setSearchQuery} desktop />
             </div>
-            <div>
-              {/* Map Placeholder */}
-              <div className="bg-primary-light rounded-2xl h-80 flex items-center justify-center sticky top-8">
-                <div className="text-center">
-                  <MapPin size={48} className="text-primary/40 mx-auto mb-2" />
-                  <p className="text-primary/60 text-sm font-medium">Vendor Map</p>
-                  <p className="text-primary/40 text-xs">Google Maps integration</p>
-                </div>
-              </div>
+            <div className="sticky top-8">
+              <VendorMap mapHeight="h-80" />
             </div>
           </div>
         </div>
@@ -62,13 +118,10 @@ export default function VendorsPage() {
 function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, desktop }: { vendors: typeof vendors; searchQuery: string; setSearchQuery: (q: string) => void; desktop?: boolean }) {
   return (
     <>
-      {/* Map Placeholder - Mobile */}
+      {/* Map - Mobile */}
       {!desktop && (
-        <div className="h-40 bg-primary-light rounded-2xl flex items-center justify-center mb-4">
-          <div className="text-center">
-            <MapPin size={36} className="text-primary/40 mx-auto mb-1" />
-            <p className="text-primary/60 text-xs font-medium">Vendor Map</p>
-          </div>
+        <div className="mb-4">
+          <VendorMap mapHeight="h-40" />
         </div>
       )}
 
@@ -90,7 +143,7 @@ function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, 
       <div className="flex flex-col gap-3">
         {filteredVendors.map((vendor) => (
           <div key={vendor.id} className="bg-surface shadow-card rounded-xl p-4 hover:shadow-card-hover transition-shadow">
-            <div className="flex items-start gap-3 mb-3">
+            <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
                 <Droplets size={20} className="text-primary" />
               </div>
@@ -109,7 +162,7 @@ function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, 
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mb-3">
+            <div className="flex flex-wrap gap-1.5 mt-3 mb-3">
               {vendor.products.map((p) => (
                 <span key={p} className="bg-primary-light text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">
                   {p}
@@ -117,24 +170,8 @@ function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, 
               ))}
             </div>
 
-            <div className="flex items-center justify-between text-xs text-text-secondary">
+            <div className="flex items-center text-xs text-text-secondary">
               <span className="flex items-center gap-1"><Clock size={12} /> {vendor.hours}</span>
-              <span className="font-semibold text-text-primary">{vendor.priceRange}</span>
-            </div>
-
-            <div className="flex gap-2 mt-3">
-              <a
-                href={`tel:${vendor.phone}`}
-                className="flex-1 bg-primary-light text-primary text-center py-2 rounded-lg text-xs font-semibold hover:bg-primary hover:text-white transition-colors"
-              >
-                Call
-              </a>
-              <Link
-                href="/buy"
-                className="flex-1 bg-primary text-white text-center py-2 rounded-lg text-xs font-semibold hover:bg-[#1a5a9a] transition-colors"
-              >
-                Order
-              </Link>
             </div>
           </div>
         ))}

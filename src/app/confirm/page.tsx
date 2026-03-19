@@ -10,6 +10,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
 import { createOrder, updateOrderStatus, formatOrderId } from "@/lib/orders";
+import { assignOrderToVendor } from "@/lib/vendor";
 
 type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 
@@ -108,6 +109,13 @@ export default function ConfirmOrderPage() {
           mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
           await updateOrderStatus(orderId, "paid", mpesaRef);
         }
+      }
+
+      // Trigger vendor assignment — alert the nearest vendor
+      try {
+        await assignOrderToVendor(orderId);
+      } catch (e) {
+        console.error("Vendor assignment failed:", e);
       }
 
       // Save order details before clearing cart
