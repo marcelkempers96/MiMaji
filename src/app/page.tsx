@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mpesa1 } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
 
 import Link from "next/link";
@@ -75,14 +75,18 @@ export default function HomePage() {
         <h2 className="text-base font-bold text-text-primary mb-3">How It Works</h2>
         <div className="bg-surface shadow-card rounded-xl p-4 mb-5">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</div>
+            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+              <img src={threeBottles.src} alt="Choose water" className="w-full h-full object-contain" />
+            </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Choose Your Water</p>
               <p className="text-text-secondary text-xs">Hard jug 20L or soft bottle 5L/10L/20L</p>
             </div>
           </div>
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</div>
+            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+              <img src={mpesa1.src} alt="M-Pesa" className="w-full h-full object-contain" />
+            </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Pay with M-Pesa</p>
               <p className="text-text-secondary text-xs">Secure STK push payment to your phone</p>

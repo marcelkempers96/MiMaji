@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useCallback } from "react";
-import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2 } from "lucide-react";
+import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -14,7 +14,7 @@ import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorSta
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"orders" | "stats">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "stats" | "profile">("orders");
   const [activeDesktopTab, setActiveDesktopTab] = useState<"dashboard" | "orders" | "analytics" | "notifications" | "settings">("dashboard");
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -193,6 +193,73 @@ export default function VendorPortalPage() {
     </div>
   );
 
+  // ── Support Panel ──
+  const supportPanel = (
+    <div className="bg-surface shadow-card rounded-xl p-5">
+      <h3 className="font-bold text-sm text-text-primary mb-4 flex items-center gap-2"><Headphones size={16} className="text-primary" /> Vendor Support</h3>
+      <div className="space-y-3">
+        <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-[#E8F5E9] rounded-lg hover:bg-[#C8E6C9] transition-colors">
+          <MessageCircle size={18} className="text-[#25D366]" />
+          <div>
+            <p className="font-semibold text-sm text-text-primary">WhatsApp Support</p>
+            <p className="text-text-secondary text-xs">+254 758 434 076</p>
+          </div>
+        </a>
+        <a href="tel:+254758434076" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+          <Phone size={18} className="text-primary" />
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Call Support</p>
+            <p className="text-text-secondary text-xs">07:00 – 21:00 EAT, 7 days a week</p>
+          </div>
+        </a>
+        <a href="mailto:vendor@mimaji.co.ke" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+          <Mail size={18} className="text-primary" />
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Email Support</p>
+            <p className="text-text-secondary text-xs">vendor@mimaji.co.ke</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  );
+
+  // ── Documents Panel ──
+  const documentsPanel = (
+    <div className="bg-surface shadow-card rounded-xl p-5">
+      <h3 className="font-bold text-sm text-text-primary mb-4 flex items-center gap-2"><FileText size={16} className="text-primary" /> Vendor Documents</h3>
+      <div className="space-y-2">
+        <Link href="/terms" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+          <FileText size={16} className="text-primary" />
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Vendor Agreement</p>
+            <p className="text-text-secondary text-xs">Terms & conditions for MiMaji vendors</p>
+          </div>
+        </Link>
+        <Link href="/privacy" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+          <FileText size={16} className="text-primary" />
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Privacy Policy</p>
+            <p className="text-text-secondary text-xs">How we handle vendor & customer data</p>
+          </div>
+        </Link>
+        <Link href="/cancellation" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+          <FileText size={16} className="text-primary" />
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Cancellation & Refund Policy</p>
+            <p className="text-text-secondary text-xs">Refund processes & vendor accountability</p>
+          </div>
+        </Link>
+        <Link href="/vendor-signup" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+          <FileText size={16} className="text-primary" />
+          <div>
+            <p className="font-semibold text-sm text-text-primary">Commission & Fee Schedule</p>
+            <p className="text-text-secondary text-xs">Current commission rates & payouts</p>
+          </div>
+        </Link>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <TopBar title="Vendor Portal" showBack={true} />
@@ -272,6 +339,7 @@ export default function VendorPortalPage() {
         <div className="flex gap-2 mb-4">
           <button onClick={() => setActiveTab("orders")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "orders" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Orders</button>
           <button onClick={() => setActiveTab("stats")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "stats" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Analytics</button>
+          <button onClick={() => setActiveTab("profile")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "profile" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Profile</button>
         </div>
 
         {activeTab === "orders" && (
@@ -334,11 +402,16 @@ export default function VendorPortalPage() {
           </div>
         )}
 
-        {/* Mobile Settings */}
-        <div className="bg-surface shadow-card rounded-xl p-5 mt-4">
-          <h3 className="font-bold text-sm text-text-primary mb-4">Vendor Settings</h3>
-          {settingsPanel}
-        </div>
+        {activeTab === "profile" && (
+          <div className="flex flex-col gap-4">
+            <div className="bg-surface shadow-card rounded-xl p-5">
+              <h3 className="font-bold text-sm text-text-primary mb-4 flex items-center gap-2"><Settings size={16} className="text-primary" /> Vendor Settings</h3>
+              {settingsPanel}
+            </div>
+            {supportPanel}
+            {documentsPanel}
+          </div>
+        )}
 
         <button onClick={handleLogout} className="w-full mt-6 bg-surface shadow-card rounded-xl flex items-center justify-center gap-2 px-5 py-4 text-cta-alt font-medium text-sm hover:bg-red-50 transition-colors">
           <LogOut size={20} /> Log Out
@@ -409,29 +482,35 @@ export default function VendorPortalPage() {
 
           {/* Settings */}
           {activeDesktopTab === "settings" && (
-            <div className="bg-surface shadow-card rounded-xl p-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-lg text-text-primary">Vendor Settings</h2>
-                <button onClick={() => setActiveDesktopTab("dashboard")} className="text-text-secondary hover:text-text-primary"><X size={20} /></button>
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div>{settingsPanel}</div>
-                <div className="bg-background rounded-xl p-5">
-                  <h3 className="font-bold text-sm text-text-primary mb-3">Store Locations Preview</h3>
-                  <div className="space-y-2">
-                    {settingsLocations.filter((l) => l.name).map((loc, i) => (
-                      <div key={i} className="bg-white rounded-lg p-3 border border-[#E0E0E0]">
-                        <p className="font-semibold text-sm text-text-primary">{loc.name}</p>
-                        <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={10} /> {loc.area || "Area not set"}</p>
-                      </div>
-                    ))}
-                    {settingsLocations.filter((l) => l.name).length === 0 && (
-                      <p className="text-text-secondary text-sm">Add at least one store location.</p>
-                    )}
+            <>
+              <div className="bg-surface shadow-card rounded-xl p-6 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-lg text-text-primary">Vendor Settings</h2>
+                  <button onClick={() => setActiveDesktopTab("dashboard")} className="text-text-secondary hover:text-text-primary"><X size={20} /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>{settingsPanel}</div>
+                  <div className="bg-background rounded-xl p-5">
+                    <h3 className="font-bold text-sm text-text-primary mb-3">Store Locations Preview</h3>
+                    <div className="space-y-2">
+                      {settingsLocations.filter((l) => l.name).map((loc, i) => (
+                        <div key={i} className="bg-white rounded-lg p-3 border border-[#E0E0E0]">
+                          <p className="font-semibold text-sm text-text-primary">{loc.name}</p>
+                          <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={10} /> {loc.area || "Area not set"}</p>
+                        </div>
+                      ))}
+                      {settingsLocations.filter((l) => l.name).length === 0 && (
+                        <p className="text-text-secondary text-sm">Add at least one store location.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                {supportPanel}
+                {documentsPanel}
+              </div>
+            </>
           )}
 
           {/* Stats + Orders */}

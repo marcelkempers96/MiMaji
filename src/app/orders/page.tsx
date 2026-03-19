@@ -86,7 +86,11 @@ export default function OrdersPage() {
                 const currentStep = getStepIndex(displayStatus);
                 const displayId = formatOrderId(order.id);
                 const displayDate = formatOrderDate(order.created_at);
-                const displayName = order.product_name || (order.order_items?.[0]?.name) || "Water Order";
+                const itemsList = order.order_items && order.order_items.length > 0
+                  ? order.order_items
+                  : order.product_name
+                    ? [{ name: order.product_name, quantity: order.quantity || 1, price: order.price_total }]
+                    : [{ name: "Water Order", quantity: 1, price: order.price_total }];
 
                 return (
                   <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
@@ -96,13 +100,17 @@ export default function OrdersPage() {
                         {displayId}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Droplets size={20} className="text-primary" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-text-primary">{displayName}</p>
-                        <p className="text-text-secondary text-sm">KES {order.price_total.toLocaleString()}</p>
+                        {itemsList.map((item, idx) => (
+                          <p key={idx} className="text-sm text-text-primary">
+                            <span className="font-bold">{item.quantity}x</span> {item.name}
+                          </p>
+                        ))}
+                        <p className="text-text-secondary text-sm mt-1">KES {order.price_total.toLocaleString()}</p>
                       </div>
                     </div>
 
@@ -219,7 +227,11 @@ export default function OrdersPage() {
               {pastOrders.map((order) => {
                 const displayId = formatOrderId(order.id);
                 const displayDate = formatOrderDate(order.created_at);
-                const displayName = order.product_name || (order.order_items?.[0]?.name) || "Water Order";
+                const itemsList = order.order_items && order.order_items.length > 0
+                  ? order.order_items
+                  : order.product_name
+                    ? [{ name: order.product_name, quantity: order.quantity || 1, price: order.price_total }]
+                    : [{ name: "Water Order", quantity: 1, price: order.price_total }];
 
                 return (
                   <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
@@ -230,13 +242,17 @@ export default function OrdersPage() {
                         <span className="text-sm font-medium text-success">Delivered</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Droplets size={20} className="text-primary" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-text-primary">{displayName}</p>
-                        <p className="text-text-secondary text-xs">
+                        {itemsList.map((item, idx) => (
+                          <p key={idx} className="text-sm text-text-primary">
+                            <span className="font-bold">{item.quantity}x</span> {item.name}
+                          </p>
+                        ))}
+                        <p className="text-text-secondary text-xs mt-1">
                           {order.mpesa_ref ? `M-Pesa: ${order.mpesa_ref} · ` : ""}
                           Paid KES {order.price_total.toLocaleString()}
                         </p>
@@ -244,7 +260,7 @@ export default function OrdersPage() {
                       <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     </div>
                     <Link
-                      href="/invoices"
+                      href={`/invoices?orderId=${order.id}`}
                       className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 hover:underline"
                     >
                       <FileText size={12} />
