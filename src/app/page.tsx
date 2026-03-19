@@ -1,7 +1,8 @@
 "use client";
 
+import { logo1, waterDelivery, waterDeliveryMiMaji } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users } from "lucide-react";
-import Image from "next/image";
+
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
@@ -18,7 +19,7 @@ export default function HomePage() {
         {/* Header */}
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center">
-            <Image src="/logo1.png" alt="MiMaji" width={100} height={36} className="h-7 w-auto" />
+            <img src={logo1.src} alt="MiMaji" className="h-7 w-auto" />
           </div>
           {user ? (
             <Link href="/dashboard" className="text-primary text-sm font-semibold">
@@ -45,7 +46,7 @@ export default function HomePage() {
             <ShoppingCart size={18} />
             Order Now
           </Link>
-          <Image src="/Water-Delivery-Nairobi.png" alt="Water delivery in Nairobi" width={400} height={267} className="mt-4 rounded-xl w-full h-auto" priority />
+          <img src={waterDelivery.src} alt="Water delivery in Nairobi" className="mt-4 rounded-xl w-full h-auto" />
         </div>
 
         {/* Action Tabs */}
@@ -252,7 +253,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
       <header className="bg-surface border-b border-[#E0E0E0]">
         <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+            <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
           </div>
           <nav className="flex items-center gap-8">
             <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
@@ -301,7 +302,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           <div className="flex-1 flex justify-center">
             <div className="relative">
               <div className="w-72 h-72 rounded-3xl flex items-center justify-center overflow-hidden">
-                <Image src="/Water-Delivery-Nairobi-MiMaji.png" alt="MiMaji water delivery" width={400} height={267} className="object-cover w-full h-full rounded-3xl" />
+                <img src={waterDeliveryMiMaji.src} alt="MiMaji water delivery" className="object-cover w-full h-full rounded-3xl" />
               </div>
               <div className="absolute -bottom-4 -right-4 bg-surface rounded-xl shadow-lg p-4 w-48">
                 <div className="flex items-center gap-2 mb-2">
@@ -423,7 +424,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           </div>
           <div className="flex-1 flex justify-center">
             <div className="w-64 h-48 rounded-2xl overflow-hidden">
-              <Image src="/Water-Delivery-Nairobi-MiMaji.png" alt="Community water access" width={400} height={267} className="object-cover w-full h-full rounded-2xl" />
+              <img src={waterDeliveryMiMaji.src} alt="Community water access" className="object-cover w-full h-full rounded-2xl" />
             </div>
           </div>
         </div>
@@ -435,7 +436,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           <div className="grid grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center mb-4">
-                <Image src="/logo1.png" alt="MiMaji" width={100} height={36} className="h-7 w-auto brightness-0 invert" />
+                <img src={logo1.src} alt="MiMaji" className="h-7 w-auto brightness-0 invert" />
               </div>
               <p className="text-white/60 text-sm mb-4">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
               <p className="text-white/40 text-xs">For every 100L delivered, 10L goes to rural communities.</p>

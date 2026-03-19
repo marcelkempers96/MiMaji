@@ -1,8 +1,9 @@
 "use client";
 
+import { logo1 } from "@/assets/images";
 import { useState } from "react";
 import { Check, Star, Truck, Clock, Shield, Gift } from "lucide-react";
-import Image from "next/image";
+
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -211,7 +212,7 @@ function DesktopNav() {
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center">
-          <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+          <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>

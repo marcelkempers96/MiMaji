@@ -1,7 +1,8 @@
 "use client";
 
+import { logo1, waterDeliveryMiMaji } from "@/assets/images";
 import { Droplets, Heart, MapPin, Users, Globe, TrendingUp } from "lucide-react";
-import Image from "next/image";
+
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 
@@ -125,7 +126,7 @@ function ImpactContent() {
           </ul>
         </div>
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl overflow-hidden min-h-[160px]">
-          <Image src="/Water-Delivery-Nairobi-MiMaji.png" alt="MiMaji water access in Kenya" width={400} height={267} className="object-cover w-full h-full" />
+          <img src={waterDeliveryMiMaji.src} alt="MiMaji water access in Kenya" className="object-cover w-full h-full" />
         </div>
       </div>
 
@@ -173,7 +174,7 @@ function DesktopNav() {
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center">
-          <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+          <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
