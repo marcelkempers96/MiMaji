@@ -1,26 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Droplets, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 export default function VendorLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const { login, user } = useAuth();
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect once logged in
+  useEffect(() => {
+    if (user) {
+      router.push("/vendor-portal");
+    }
+  }, [user, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!phone || !password) {
       setError("Please fill in all fields");
       return;
     }
-    // For now, allow any login to go to vendor portal
-    router.push("/vendor-portal");
+    setError("");
+    setLoading(true);
+    const result = await login(phone, password);
+    if (result.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
   };
 
   return (
@@ -40,12 +56,12 @@ export default function VendorLoginPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="text-sm font-medium text-text-primary mb-1 block">Email</label>
+            <label className="text-sm font-medium text-text-primary mb-1 block">Phone Number</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setError(""); }}
-              placeholder="vendor@example.com"
+              type="tel"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); setError(""); }}
+              placeholder="0711 000 000"
               className="w-full h-12 px-4 rounded-xl bg-surface border border-[#E0E0E0] text-text-primary text-sm focus:outline-none focus:border-primary transition-colors"
             />
           </div>
@@ -62,11 +78,17 @@ export default function VendorLoginPage() {
 
           {error && <p className="text-cta-alt text-xs">{error}</p>}
 
-          <Button variant="primary" fullWidth type="submit">
+          <Button variant="primary" fullWidth type="submit" disabled={loading}>
             <LogIn size={18} className="mr-2" />
-            Log In
+            {loading ? "Logging in..." : "Log In"}
           </Button>
         </form>
+
+        <div className="mt-6 bg-primary-light rounded-xl p-4">
+          <p className="text-primary text-xs font-semibold mb-1">Demo Vendor Account</p>
+          <p className="text-text-secondary text-xs">Phone: <span className="font-mono font-medium text-text-primary">0711000000</span></p>
+          <p className="text-text-secondary text-xs">Password: <span className="font-mono font-medium text-text-primary">vendor123</span></p>
+        </div>
 
         <p className="text-center text-text-secondary text-xs mt-6">
           Want to become a vendor?{" "}
