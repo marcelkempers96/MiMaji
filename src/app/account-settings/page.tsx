@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState } from "react";
-import { User, Mail, Phone, Smartphone, Save } from "lucide-react";
+import { User, Mail, Phone, Smartphone, Save, Building2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -16,6 +16,9 @@ export default function AccountSettingsPage() {
   const [phone] = useState(user?.phone || "");
   const [mpesaNumber, setMpesaNumber] = useState(user?.phone || "");
   const [mpesaDifferent, setMpesaDifferent] = useState(false);
+  const [isCorporate, setIsCorporate] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -113,6 +116,58 @@ export default function AccountSettingsPage() {
         <p className="text-text-secondary text-xs mt-2">
           This number will receive STK push prompts for payments.
         </p>
+      </div>
+
+      {/* Corporate Account */}
+      <div className="bg-surface shadow-card rounded-xl p-5 mb-3">
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Account Type</label>
+
+        <div className="flex items-center gap-3 mb-3">
+          <input
+            type="checkbox"
+            id="corporate-account"
+            checked={isCorporate}
+            onChange={(e) => setIsCorporate(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary accent-[#2979C1]"
+          />
+          <label htmlFor="corporate-account" className="text-sm text-text-primary cursor-pointer flex items-center gap-2">
+            <Building2 size={16} className="text-primary" />
+            This is a corporate / business account
+          </label>
+        </div>
+
+        {isCorporate && (
+          <div className="space-y-3 mt-3 pt-3 border-t border-[#F0F0F0]">
+            <div>
+              <label className="text-xs font-semibold text-text-secondary mb-1 block">Business Name</label>
+              <div className="flex items-center gap-3">
+                <Building2 size={18} className="text-text-secondary flex-shrink-0" />
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  className="flex-1 h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background"
+                  placeholder="Enter your business name"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-text-secondary mb-1 block">
+                Registration Number <span className="text-text-secondary font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={registrationNumber}
+                onChange={(e) => setRegistrationNumber(e.target.value)}
+                className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background"
+                placeholder="e.g. PVT-12345678"
+              />
+            </div>
+            <p className="text-text-secondary text-xs">
+              Corporate accounts receive proper business invoices with your company details included.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Save Button */}

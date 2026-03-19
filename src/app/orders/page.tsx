@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { Droplets, ChevronRight, Star, Trophy, Package, Truck, CheckCircle2, Clock } from "lucide-react";
+import { Droplets, ChevronRight, Star, Trophy, Package, Truck, CheckCircle2, Clock, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import Link from "next/link";
@@ -198,6 +198,20 @@ export default function OrdersPage() {
             </div>
           </Link>
 
+          {/* Invoices Link */}
+          <Link href="/invoices">
+            <div className="bg-surface shadow-card rounded-xl p-4 mb-5 flex items-center gap-3 hover:shadow-card-hover transition-shadow">
+              <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                <FileText size={18} className="text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm text-text-primary">View Invoices</p>
+                <p className="text-text-secondary text-xs">Download invoices for all your orders</p>
+              </div>
+              <ChevronRight size={18} className="text-text-secondary" />
+            </div>
+          </Link>
+
           {/* Order History */}
           {pastOrders.length > 0 && (
             <>
@@ -229,6 +243,13 @@ export default function OrdersPage() {
                       </div>
                       <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     </div>
+                    <Link
+                      href="/invoices"
+                      className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 hover:underline"
+                    >
+                      <FileText size={12} />
+                      View Invoice
+                    </Link>
                   </div>
                 );
               })}

@@ -6,6 +6,11 @@ import hard10L from "./10L-Hard.png";
 import hard20L from "./20L-Hard.png";
 import waterDelivery from "./Water-Delivery-Nairobi.png";
 import waterDeliveryMiMaji from "./Water-Delivery-Nairobi-MiMaji.png";
+import threeBottles from "./3-bottles.png";
+import trackOrder from "./track-order.png";
+import rewards from "./rewards.png";
+import officeBottle from "./officebottle.png";
+import impactWaterIsLife from "./impactwaterislife.png";
 
 export const images: Record<string, typeof logo1> = {
   "/logo1.png": logo1,
@@ -16,6 +21,11 @@ export const images: Record<string, typeof logo1> = {
   "/20L-Hard.png": hard20L,
   "/Water-Delivery-Nairobi.png": waterDelivery,
   "/Water-Delivery-Nairobi-MiMaji.png": waterDeliveryMiMaji,
+  "/3-bottles.png": threeBottles,
+  "/track-order.png": trackOrder,
+  "/rewards.png": rewards,
+  "/officebottle.png": officeBottle,
+  "/impactwaterislife.png": impactWaterIsLife,
 };
 
-export { logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji };
+export { logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife };

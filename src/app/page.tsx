@@ -1,7 +1,7 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji } from "@/assets/images";
-import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users } from "lucide-react";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife } from "@/assets/images";
+import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2 } from "lucide-react";
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
@@ -354,24 +354,24 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
       <section className="max-w-6xl mx-auto px-8 py-16">
         <div className="grid grid-cols-3 gap-8">
           <div className="bg-surface shadow-card rounded-2xl p-8 text-center hover:shadow-card-hover transition-shadow">
-            <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center mx-auto mb-4">
-              <Droplets size={28} className="text-primary" />
+            <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-4">
+              <img src={threeBottles.src} alt="Order Water" className="object-cover w-full h-full" />
             </div>
             <h3 className="font-bold text-text-primary text-lg mb-2">Order Water</h3>
             <p className="text-text-secondary text-sm">Browse purified water in 5L, 10L & 20L. Hard jug or soft bottle.</p>
             <Link href="/buy" className="text-primary text-sm font-semibold mt-4 inline-block hover:underline">Shop Now →</Link>
           </div>
           <div className="bg-surface shadow-card rounded-2xl p-8 text-center hover:shadow-card-hover transition-shadow">
-            <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center mx-auto mb-4">
-              <Truck size={28} className="text-primary" />
+            <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-4">
+              <img src={trackOrder.src} alt="Track Delivery" className="object-cover w-full h-full" />
             </div>
             <h3 className="font-bold text-text-primary text-lg mb-2">Track Delivery</h3>
             <p className="text-text-secondary text-sm">Real-time tracking of your water delivery with driver info.</p>
             <AuthLink href="/orders" className="text-primary text-sm font-semibold mt-4 inline-block hover:underline">My Orders →</AuthLink>
           </div>
           <div className="bg-surface shadow-card rounded-2xl p-8 text-center hover:shadow-card-hover transition-shadow">
-            <div className="w-16 h-16 rounded-full bg-[#FFF5EC] flex items-center justify-center mx-auto mb-4">
-              <Star size={28} className="text-rating" />
+            <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-4">
+              <img src={rewards.src} alt="Earn Rewards" className="object-cover w-full h-full" />
             </div>
             <h3 className="font-bold text-text-primary text-lg mb-2">Earn Rewards</h3>
             <p className="text-text-secondary text-sm">Join Water Warriors! Earn points with every order for free water & discounts.</p>
@@ -407,6 +407,42 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
         </div>
       </section>
 
+      {/* Office Ordering Banner */}
+      <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white">
+        <div className="max-w-6xl mx-auto px-8 py-16 flex items-center gap-12">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <Building2 size={28} />
+              <h2 className="text-3xl font-extrabold">Water for Your Office</h2>
+            </div>
+            <p className="text-white/80 text-lg mt-2 max-w-md">
+              Keep your team hydrated with scheduled water deliveries. Corporate accounts available with volume discounts and monthly invoicing.
+            </p>
+            <div className="flex gap-4 mt-6">
+              <Link
+                href="/buy"
+                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+              >
+                <ShoppingCart size={20} />
+                Order for Office
+              </Link>
+              <Link
+                href="/account-settings"
+                className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+              >
+                <Building2 size={20} />
+                Set Up Corporate Account
+              </Link>
+            </div>
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="w-[350px] h-[250px] rounded-3xl overflow-hidden">
+              <img src={officeBottle.src} alt="Office water delivery" className="object-cover w-full h-full rounded-3xl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Impact Section */}
       <section className="max-w-6xl mx-auto px-8 py-16">
         <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-2xl p-10 flex items-center gap-8">
@@ -424,7 +460,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           </div>
           <div className="flex-1 flex justify-center">
             <div className="w-64 h-48 rounded-2xl overflow-hidden">
-              <img src={waterDeliveryMiMaji.src} alt="Community water access" className="object-cover w-full h-full rounded-2xl" />
+              <img src={impactWaterIsLife.src} alt="Community water access" className="object-cover w-full h-full rounded-2xl" />
             </div>
           </div>
         </div>

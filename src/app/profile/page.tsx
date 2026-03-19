@@ -12,6 +12,7 @@ import Button from "@/components/ui/Button";
 
 const menuItems = [
   { label: "My Orders", icon: FileText, href: "/orders" },
+  { label: "Invoices", icon: FileText, href: "/invoices" },
   { label: "Account & Profile", icon: User, href: "/account-settings" },
   { label: "Saved Addresses", icon: MapPin, href: "/saved-addresses" },
   { label: "Payment Methods", icon: CreditCard, href: "/payment-methods" },
