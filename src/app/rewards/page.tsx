@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, Trophy, Droplets, Truck, Shield, Gift, Crown, Zap } from "lucide-react";
+import { Star, Droplets, Truck, Shield, Gift, Crown, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -43,12 +43,12 @@ const tiers = [
   },
 ];
 
-const redeemOptions = [
+const redeemOptions: { points: number; reward: string; description: string; icon?: typeof Truck; image?: string }[] = [
   { points: 100, reward: "Free Delivery", icon: Truck, description: "No delivery fee on your next order" },
   { points: 250, reward: "10% Discount", icon: Gift, description: "10% off your next order" },
-  { points: 500, reward: "Free 5L Jug", icon: Droplets, description: "One free 5L purified water" },
-  { points: 750, reward: "Free 10L Jug", icon: Droplets, description: "One free 10L purified water" },
-  { points: 1000, reward: "Free 20L Jug", icon: Droplets, description: "One free 20L purified water" },
+  { points: 500, reward: "Free 5L Jug", description: "One free 5L purified water", image: "/5L-Soft.png" },
+  { points: 750, reward: "Free 10L Jug", description: "One free 10L purified water", image: "/10L-Soft.png" },
+  { points: 1000, reward: "Free 20L Jug", description: "One free 20L purified water", image: "/20L-Soft.png" },
 ];
 
 export default function RewardsPage() {
@@ -156,13 +156,18 @@ function RewardsContent({ currentTier, nextTier, user }: { currentTier: typeof t
       <h2 className="font-bold text-base text-text-primary mb-3">Redeem Points</h2>
       <div className="flex flex-col gap-3 mb-6">
         {redeemOptions.map((option) => {
-          const Icon = option.icon;
           const canRedeem = REWARDS_CURRENT >= option.points;
           return (
             <div key={option.points} className={`bg-surface shadow-card rounded-xl p-4 flex items-center gap-3 ${!canRedeem ? "opacity-50" : ""}`}>
-              <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
-                <Icon size={18} className="text-primary" />
-              </div>
+              {option.image ? (
+                <div className="w-12 h-12 rounded-xl bg-primary-light flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <Image src={option.image} alt={option.reward} width={40} height={40} className="object-contain" />
+                </div>
+              ) : option.icon ? (
+                <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                  <option.icon size={18} className="text-primary" />
+                </div>
+              ) : null}
               <div className="flex-1">
                 <p className="font-bold text-sm text-text-primary">{option.reward}</p>
                 <p className="text-text-secondary text-xs">{option.description}</p>
@@ -228,7 +233,7 @@ function DesktopNav() {
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center">
-          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+          <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>

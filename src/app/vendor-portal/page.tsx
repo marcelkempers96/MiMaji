@@ -248,7 +248,7 @@ function DesktopVendorNav() {
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center">
-          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+          <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
           <span className="text-xs bg-primary-light text-primary px-2 py-0.5 rounded-full font-semibold ml-2">Vendor</span>
         </Link>
         <nav className="flex items-center gap-6">

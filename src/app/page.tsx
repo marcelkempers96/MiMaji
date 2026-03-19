@@ -18,7 +18,7 @@ export default function HomePage() {
         {/* Header */}
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center">
-            <Image src="/logo1" alt="MiMaji" width={100} height={36} className="h-7 w-auto" />
+            <Image src="/logo1.png" alt="MiMaji" width={100} height={36} className="h-7 w-auto" />
           </div>
           {user ? (
             <Link href="/dashboard" className="text-primary text-sm font-semibold">
@@ -252,7 +252,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
       <header className="bg-surface border-b border-[#E0E0E0]">
         <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+            <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
           </div>
           <nav className="flex items-center gap-8">
             <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
@@ -445,7 +445,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
           <div className="grid grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center mb-4">
-                <Image src="/logo1" alt="MiMaji" width={100} height={36} className="h-7 w-auto brightness-0 invert" />
+                <Image src="/logo1.png" alt="MiMaji" width={100} height={36} className="h-7 w-auto brightness-0 invert" />
               </div>
               <p className="text-white/60 text-sm mb-4">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
               <p className="text-white/40 text-xs">For every 100L delivered, 10L goes to rural communities.</p>
