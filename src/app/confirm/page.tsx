@@ -8,12 +8,13 @@ import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
+import { createOrder, updateOrderStatus } from "@/lib/orders";
 
 type PaymentMethod = "stk-push" | "mpesa-app";
 
 export default function ConfirmOrderPage() {
   const router = useRouter();
-  const { items, totalItems, total } = useCart();
+  const { items, totalItems, total, clearCart } = useCart();
   const { user } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
@@ -22,21 +23,45 @@ export default function ConfirmOrderPage() {
   const [copied, setCopied] = useState(false);
 
   const handleConfirm = async () => {
-    if (!user?.phone) return;
+    if (!user?.phone || !user?.id) return;
 
-    if (paymentMethod === "mpesa-app") {
-      // For M-PESA app payment, just show instructions and redirect
-      setPaymentStatus("sent");
-      setTimeout(() => router.push("/track"), 3000);
-      return;
-    }
-
-    // STK Push flow
     setPaymentStatus("loading");
     setErrorMsg("");
 
     try {
-      const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+      // Create order in Supabase
+      const productName = items.length === 1
+        ? `${items[0].quantity}x ${items[0].name}`
+        : `${totalItems} items`;
+
+      const orderItems = items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+
+      const { orderId, error: orderError } = await createOrder({
+        customerId: user.id,
+        deliveryAddress: selectedLocation?.address || "Not set",
+        quantity: Math.min(totalItems, 10),
+        priceTotal: total,
+        productName,
+        orderItems,
+      });
+
+      if (orderError || !orderId) {
+        throw new Error(orderError || "Failed to create order");
+      }
+
+      if (paymentMethod === "mpesa-app") {
+        // For M-PESA app payment, mark as pending and show instructions
+        setPaymentStatus("sent");
+        clearCart();
+        setTimeout(() => router.push(`/track?orderId=${orderId}`), 3000);
+        return;
+      }
+
+      // STK Push flow
       const res = await fetch("/api/mpesa/stkpush", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,8 +77,12 @@ export default function ConfirmOrderPage() {
         throw new Error(data.error || "Payment failed");
       }
 
+      // Update order status to paid
+      await updateOrderStatus(orderId, "paid");
+
       setPaymentStatus("sent");
-      setTimeout(() => router.push("/track"), 2000);
+      clearCart();
+      setTimeout(() => router.push(`/track?orderId=${orderId}`), 2000);
     } catch (err) {
       setPaymentStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Payment failed. Please try again.");
@@ -216,8 +245,8 @@ export default function ConfirmOrderPage() {
             onClick={handleConfirm}
             disabled={paymentStatus === "loading" || paymentStatus === "sent"}
           >
-            {paymentStatus === "loading" ? "Sending M-Pesa request..." :
-             paymentStatus === "sent" ? "Processing..." :
+            {paymentStatus === "loading" ? "Processing order..." :
+             paymentStatus === "sent" ? "Redirecting..." :
              paymentMethod === "stk-push" ? "Pay with M-PESA" :
              "Confirm Order"}
           </Button>

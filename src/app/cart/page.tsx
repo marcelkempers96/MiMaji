@@ -40,9 +40,9 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (user) {
-      router.push("/confirm");
+      router.push("/delivery");
     } else {
-      router.push("/login?redirect=/confirm");
+      router.push("/login?redirect=/delivery");
     }
   };
 
@@ -74,8 +74,8 @@ export default function CartPage() {
         return (
           <div key={item.id} className="bg-white shadow-card rounded-xl p-4 mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
-                {(() => { const product = products.find(p => p.id === item.id); return product ? <img src={product.image.src} alt={item.name} className="object-contain" /> : <Droplets size={24} className="text-primary" />; })()}
+              <div className="w-12 h-16 bg-primary-light rounded-lg flex items-center justify-center shrink-0 overflow-hidden p-1">
+                {(() => { const product = products.find(p => p.id === item.id); return product ? <img src={product.image.src} alt={item.name} className="object-contain w-full h-full" /> : <Droplets size={24} className="text-primary" />; })()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-bold text-text-primary truncate">{item.name}</p>

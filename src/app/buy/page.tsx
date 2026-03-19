@@ -183,8 +183,8 @@ function BuyContent({ activeCategory, setActiveCategory, filteredProducts, quant
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-primary-light rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  <img src={product.image.src} alt={`${product.name} ${product.size}`} className="object-contain" />
+                <div className="w-14 h-18 bg-primary-light rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden p-1">
+                  <img src={product.image.src} alt={`${product.name} ${product.size}`} className="object-contain w-full h-full" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-text-primary">{product.name}</p>

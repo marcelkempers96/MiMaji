@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +14,8 @@ export async function POST(req: NextRequest) {
     const resultDesc = callback.ResultDesc;
     const merchantRequestID = callback.MerchantRequestID;
     const checkoutRequestID = callback.CheckoutRequestID;
+
+    const supabase = createServiceClient();
 
     if (resultCode === 0) {
       // Payment successful
@@ -29,10 +32,44 @@ export async function POST(req: NextRequest) {
         phone,
       });
 
-      // TODO: Update order status in Supabase to 'paid'
+      // Find the payment record by checkout ID and update
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("order_id")
+        .eq("mpesa_checkout_id", checkoutRequestID)
+        .single();
+
+      if (payment?.order_id) {
+        // Update payment status
+        await supabase
+          .from("payments")
+          .update({
+            status: "success",
+            mpesa_receipt: mpesaReceiptNumber,
+            raw_callback: callback,
+          })
+          .eq("mpesa_checkout_id", checkoutRequestID);
+
+        // Update order status to paid with mpesa ref
+        await supabase
+          .from("orders")
+          .update({
+            status: "paid",
+            mpesa_ref: mpesaReceiptNumber,
+          })
+          .eq("id", payment.order_id);
+      }
     } else {
       console.log("M-Pesa Payment Failed:", { resultCode, resultDesc, merchantRequestID });
-      // TODO: Update order status in Supabase to 'payment_failed'
+
+      // Update payment status to failed
+      await supabase
+        .from("payments")
+        .update({
+          status: "failed",
+          raw_callback: callback,
+        })
+        .eq("mpesa_checkout_id", checkoutRequestID);
     }
 
     return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
