@@ -1,80 +1,106 @@
 "use client";
 
-import { logo1, soft5L, soft10L, soft20L } from "@/assets/images";
-import { Star, Droplets, Truck, Shield, Gift, Crown, Zap } from "lucide-react";
+import { logo1 } from "@/assets/images";
+import { Droplets, Gift, Copy, CheckCircle2, Users, Crown, Share2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
-
-const REWARDS_CURRENT = 150;
-
-const tiers = [
-  {
-    name: "Water Cadet",
-    minPoints: 0,
-    maxPoints: 249,
-    icon: Droplets,
-    color: "#8899AA",
-    benefits: ["Earn 1 point per KES 10 spent", "Birthday bonus points"],
-  },
-  {
-    name: "Water Ranger",
-    minPoints: 250,
-    maxPoints: 499,
-    icon: Shield,
-    color: "#2979C1",
-    benefits: ["All Cadet benefits", "10% off every 5th order", "Priority customer support"],
-  },
-  {
-    name: "Water Hero",
-    minPoints: 500,
-    maxPoints: 999,
-    icon: Zap,
-    color: "#F5A623",
-    benefits: ["All Ranger benefits", "Free 5L jug every month", "Free delivery on all orders", "Early access to new products"],
-  },
-  {
-    name: "Water Warrior",
-    minPoints: 1000,
-    maxPoints: Infinity,
-    icon: Crown,
-    color: "#E8544E",
-    benefits: ["All Hero benefits", "VIP status", "20% off all orders", "Free 20L jug every month", "Exclusive Warrior merchandise", "Dedicated account manager"],
-  },
-];
-
-const redeemOptions: { points: number; reward: string; description: string; icon?: typeof Truck; image?: string }[] = [
-  { points: 100, reward: "Free Delivery", icon: Truck, description: "No delivery fee on your next order" },
-  { points: 250, reward: "10% Discount", icon: Gift, description: "10% off your next order" },
-  { points: 500, reward: "Free 5L Jug", description: "One free 5L purified water", image: soft5L.src },
-  { points: 750, reward: "Free 10L Jug", description: "One free 10L purified water", image: soft10L.src },
-  { points: 1000, reward: "Free 20L Jug", description: "One free 20L purified water", image: soft20L.src },
-];
+import { useRouter } from "next/navigation";
+import { getRewardsSummary, initRewards, type ReferralRecord } from "@/lib/rewards";
 
 export default function RewardsPage() {
-  const { user } = useAuth();
-  const currentTier = tiers.find(t => REWARDS_CURRENT >= t.minPoints && REWARDS_CURRENT <= t.maxPoints) || tiers[0];
-  const nextTier = tiers[tiers.indexOf(currentTier) + 1];
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [copied, setCopied] = useState(false);
+
+  const [summary, setSummary] = useState({
+    freeLitres: 0,
+    referralCode: "",
+    referralsCount: 0,
+    qualifiedReferrals: 0,
+    pendingReferrals: 0,
+    totalEarnedFromReferrals: 0,
+    referralCapReached: false,
+    milestoneBonusAwarded: false,
+    referrals: [] as ReferralRecord[],
+  });
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/rewards");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user?.id) {
+      // Ensure rewards record exists
+      initRewards(user.id);
+      setSummary(getRewardsSummary(user.id));
+    }
+  }, [user?.id]);
+
+  const handleCopyCode = () => {
+    if (!summary.referralCode) return;
+    navigator.clipboard.writeText(summary.referralCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleShare = () => {
+    if (!summary.referralCode) return;
+    const text = `Join MiMaji and get 1L of free water! Use my referral code ${summary.referralCode} when you sign up, and we both get 5L free when you order 10L+. Download at mimaji.co.ke`;
+    if (navigator.share) {
+      navigator.share({ title: "MiMaji Referral", text }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
+  if (!user) return null;
+
+  const referralCapLitres = 50;
+  const referralProgress = Math.min(summary.totalEarnedFromReferrals / referralCapLitres, 1) * 100;
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="md:hidden">
-        <TopBar title="Water Warriors Rewards" showBack={true} />
+        <TopBar title="Rewards & Referrals" showBack={true} />
       </div>
 
       {/* Mobile Layout */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
-        <RewardsContent currentTier={currentTier} nextTier={nextTier} user={user} />
+        <RewardsContent
+          user={user}
+          summary={summary}
+          referralProgress={referralProgress}
+          referralCapLitres={referralCapLitres}
+          copied={copied}
+          onCopyCode={handleCopyCode}
+          onShare={handleShare}
+        />
       </div>
 
       {/* Desktop Layout */}
       <div className="hidden md:block">
         <DesktopNav />
-        <div className="max-w-5xl mx-auto px-8 py-12">
-          <h1 className="text-3xl font-extrabold text-text-primary mb-2">Water Warriors Rewards</h1>
-          <p className="text-text-secondary mb-8">Earn points with every order. Rise through the ranks. Get rewarded.</p>
-          <RewardsContent currentTier={currentTier} nextTier={nextTier} user={user} />
+        <div className="max-w-3xl mx-auto px-8 py-10">
+          <h1 className="text-3xl font-extrabold text-text-primary mb-2">Rewards & Referrals</h1>
+          <p className="text-text-secondary mb-8">Share MiMaji with friends and earn free water.</p>
+          <RewardsContent
+            user={user}
+            summary={summary}
+            referralProgress={referralProgress}
+            referralCapLitres={referralCapLitres}
+            copied={copied}
+            onCopyCode={handleCopyCode}
+            onShare={handleShare}
+          />
         </div>
         <DesktopFooter />
       </div>
@@ -82,148 +108,164 @@ export default function RewardsPage() {
   );
 }
 
-function RewardsContent({ currentTier, nextTier, user }: { currentTier: typeof tiers[0]; nextTier?: typeof tiers[0]; user: { phone: string; name: string } | null }) {
-  const TierIcon = currentTier.icon;
-
+function RewardsContent({
+  user,
+  summary,
+  referralProgress,
+  referralCapLitres,
+  copied,
+  onCopyCode,
+  onShare,
+}: {
+  user: { name: string };
+  summary: ReturnType<typeof getRewardsSummary>;
+  referralProgress: number;
+  referralCapLitres: number;
+  copied: boolean;
+  onCopyCode: () => void;
+  onShare: () => void;
+}) {
   return (
     <>
-      {/* Current Status */}
-      <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-5 text-white mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-            <TierIcon size={32} />
-          </div>
-          <div>
-            <p className="text-white/70 text-xs font-medium">Your Rank</p>
-            <p className="text-2xl font-extrabold">{currentTier.name}</p>
-            <p className="text-white/80 text-sm">{user?.name || "Guest"}</p>
-          </div>
+      {/* Free Litres Balance */}
+      <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-5 text-white mb-5">
+        <p className="text-white/70 text-xs font-medium mb-1">Your Free Water Balance</p>
+        <div className="flex items-baseline gap-2 mb-1">
+          <span className="text-4xl font-extrabold">{summary.freeLitres}</span>
+          <span className="text-white/80 text-lg font-semibold">litres</span>
         </div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-white/70 text-xs">Points</span>
-          <span className="font-bold text-lg">{REWARDS_CURRENT} pts</span>
-        </div>
-        {nextTier && (
-          <>
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden mb-1">
-              <div
-                className="h-full bg-white rounded-full"
-                style={{ width: `${((REWARDS_CURRENT - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100}%` }}
-              />
+        <p className="text-white/60 text-xs">Free litres are applied at checkout</p>
+
+        <div className="mt-4 bg-white/10 rounded-xl p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-white/70 text-xs">Referral earnings</span>
+            <span className="text-white text-xs font-bold">{summary.totalEarnedFromReferrals}L / {referralCapLitres}L</span>
+          </div>
+          <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+            <div className="h-full bg-white rounded-full transition-all" style={{ width: `${referralProgress}%` }} />
+          </div>
+          {summary.referralCapReached && summary.milestoneBonusAwarded && (
+            <div className="flex items-center gap-1 mt-2">
+              <Crown size={12} className="text-yellow-300" />
+              <span className="text-yellow-200 text-[10px] font-semibold">50L milestone reached! +10L bonus awarded</span>
             </div>
-            <p className="text-white/60 text-xs">{nextTier.minPoints - REWARDS_CURRENT} pts to {nextTier.name}</p>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* How to Earn */}
-      <div className="bg-surface shadow-card rounded-xl p-5 mb-6">
-        <h2 className="font-bold text-base text-text-primary mb-3">How to Earn Points</h2>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
-              <Droplets size={18} className="text-primary" />
+      {/* How It Works */}
+      <div className="bg-surface shadow-card rounded-xl p-5 mb-5">
+        <h2 className="font-bold text-base text-text-primary mb-4">How It Works</h2>
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#E8F5E9] flex items-center justify-center flex-shrink-0">
+              <Gift size={16} className="text-[#2ECC71]" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-text-primary">Order Water</p>
-              <p className="text-xs text-text-secondary">1 point per KES 10 spent</p>
+            <div>
+              <p className="font-bold text-sm text-text-primary">1L Welcome Bonus</p>
+              <p className="text-text-secondary text-xs">Every new user gets 1 litre free on sign up</p>
             </div>
-            <span className="text-primary font-bold text-sm">+1pt/KES 10</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#FFF5EC] flex items-center justify-center flex-shrink-0">
-              <Star size={18} className="text-rating" />
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+              <Users size={16} className="text-primary" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-text-primary">Leave a Review</p>
-              <p className="text-xs text-text-secondary">Rate your delivery experience</p>
+            <div>
+              <p className="font-bold text-sm text-text-primary">Refer a Friend → 5L Each</p>
+              <p className="text-text-secondary text-xs">When your friend signs up with your code and orders at least 10 litres, you <span className="font-semibold">both</span> get 5L free</p>
             </div>
-            <span className="text-rating font-bold text-sm">+10 pts</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#E8F5E9] flex items-center justify-center flex-shrink-0">
-              <Gift size={18} className="text-[#2ECC71]" />
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#FFF5EC] flex items-center justify-center flex-shrink-0">
+              <Crown size={16} className="text-[#F5A623]" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-text-primary">Refer a Friend</p>
-              <p className="text-xs text-text-secondary">When they place their first order</p>
+            <div>
+              <p className="font-bold text-sm text-text-primary">50L Milestone → +10L Bonus</p>
+              <p className="text-text-secondary text-xs">Earn up to 50L from referrals. Once you hit 50L, you get an extra 10L bonus!</p>
             </div>
-            <span className="text-[#2ECC71] font-bold text-sm">+50 pts</span>
           </div>
         </div>
       </div>
 
-      {/* Redeem Points */}
-      <h2 className="font-bold text-base text-text-primary mb-3">Redeem Points</h2>
-      <div className="flex flex-col gap-3 mb-6">
-        {redeemOptions.map((option) => {
-          const canRedeem = REWARDS_CURRENT >= option.points;
-          return (
-            <div key={option.points} className={`bg-surface shadow-card rounded-xl p-4 flex items-center gap-3 ${!canRedeem ? "opacity-50" : ""}`}>
-              {option.image ? (
-                <div className="w-12 h-12 rounded-xl bg-primary-light flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  <img src={option.image} alt={option.reward} className="object-contain" />
-                </div>
-              ) : option.icon ? (
-                <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
-                  <option.icon size={18} className="text-primary" />
-                </div>
-              ) : null}
-              <div className="flex-1">
-                <p className="font-bold text-sm text-text-primary">{option.reward}</p>
-                <p className="text-text-secondary text-xs">{option.description}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-sm text-primary">{option.points} pts</p>
-                {canRedeem && (
-                  <button className="text-xs text-primary font-semibold">Redeem</button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      {/* Referral Code Card */}
+      <div className="bg-surface shadow-card rounded-xl p-5 mb-5">
+        <h2 className="font-bold text-base text-text-primary mb-3">Your Referral Code</h2>
+        <div className="bg-background rounded-xl p-4 flex items-center justify-between mb-3">
+          <span className="font-mono font-extrabold text-xl text-primary tracking-wider">{summary.referralCode}</span>
+          <button onClick={onCopyCode} className="flex items-center gap-1 text-primary text-sm font-semibold hover:text-[#1a5a9a] transition-colors">
+            {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+        <button
+          onClick={onShare}
+          className="w-full bg-primary text-white rounded-xl py-3 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1a5a9a] transition-colors"
+        >
+          <Share2 size={16} />
+          Share with Friends
+        </button>
+        <p className="text-text-secondary text-xs text-center mt-2">
+          Your friend enters this code during sign up
+        </p>
       </div>
 
-      {/* Tier System */}
-      <h2 className="font-bold text-base text-text-primary mb-3">Warrior Tiers</h2>
-      <div className="flex flex-col gap-3 mb-6">
-        {tiers.map((tier) => {
-          const Icon = tier.icon;
-          const isCurrent = tier.name === currentTier.name;
-          return (
-            <div key={tier.name} className={`bg-surface shadow-card rounded-xl p-4 ${isCurrent ? "border-2 border-primary" : ""}`}>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${tier.color}20` }}>
-                  <Icon size={20} style={{ color: tier.color }} />
+      {/* Referral Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="bg-surface shadow-card rounded-xl p-4 text-center">
+          <p className="text-2xl font-extrabold text-primary">{summary.referralsCount}</p>
+          <p className="text-text-secondary text-xs">Friends Invited</p>
+        </div>
+        <div className="bg-surface shadow-card rounded-xl p-4 text-center">
+          <p className="text-2xl font-extrabold text-[#2ECC71]">{summary.qualifiedReferrals}</p>
+          <p className="text-text-secondary text-xs">Qualified</p>
+        </div>
+        <div className="bg-surface shadow-card rounded-xl p-4 text-center">
+          <p className="text-2xl font-extrabold text-[#F5A623]">{summary.pendingReferrals}</p>
+          <p className="text-text-secondary text-xs">Pending</p>
+        </div>
+      </div>
+
+      {/* Referral History */}
+      {summary.referrals.length > 0 && (
+        <div className="bg-surface shadow-card rounded-xl p-5 mb-5">
+          <h2 className="font-bold text-sm text-text-primary mb-3">Referral History</h2>
+          <div className="space-y-3">
+            {summary.referrals.map((ref) => (
+              <div key={ref.friendUserId} className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${ref.qualified ? "bg-[#E8F5E9]" : "bg-gray-100"}`}>
+                  <Users size={14} className={ref.qualified ? "text-[#2ECC71]" : "text-text-secondary"} />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-sm text-text-primary">{tier.name}</p>
-                    {isCurrent && <span className="bg-primary text-white text-[10px] px-2 py-0.5 rounded-full">You</span>}
-                  </div>
+                  <p className="text-sm font-medium text-text-primary">{ref.friendName || "Friend"}</p>
                   <p className="text-text-secondary text-xs">
-                    {tier.maxPoints === Infinity ? `${tier.minPoints}+ pts` : `${tier.minPoints} - ${tier.maxPoints} pts`}
+                    Joined {new Date(ref.signedUpAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                 </div>
+                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                  ref.qualified
+                    ? "bg-[#E8F5E9] text-[#2ECC71]"
+                    : "bg-gray-100 text-text-secondary"
+                }`}>
+                  {ref.qualified ? "+5L earned" : "Pending"}
+                </span>
               </div>
-              <ul className="space-y-1 ml-13">
-                {tier.benefits.map((benefit) => (
-                  <li key={benefit} className="text-text-secondary text-xs flex items-center gap-2">
-                    <span className="w-1 h-1 rounded-full bg-text-secondary flex-shrink-0" />
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+          {summary.pendingReferrals > 0 && (
+            <p className="text-text-secondary text-xs mt-3">
+              Pending friends need to order at least 10 litres to qualify.
+            </p>
+          )}
+        </div>
+      )}
 
+      {/* CTA */}
       <Link
         href="/buy"
         className="block w-full bg-primary text-white text-center rounded-xl py-4 font-bold text-sm hover:bg-[#1a5a9a] transition-colors"
       >
-        Order Now & Earn Points
+        <Droplets size={16} className="inline mr-2" />
+        Order Water Now
       </Link>
     </>
   );
@@ -241,7 +283,6 @@ function DesktopNav() {
           <Link href="/rewards" className="text-primary font-medium text-sm">Rewards</Link>
           <Link href="/impact" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Impact</Link>
           <Link href="/contact" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Contact</Link>
-          <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
         </nav>
       </div>
     </header>

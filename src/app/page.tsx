@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mpesa1 } from "@/assets/images";
-import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
+import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
@@ -127,21 +127,21 @@ export default function HomePage() {
         </div>
 
         {/* Rewards */}
-        <h2 className="text-base font-bold text-text-primary mb-3">Water Warriors Rewards</h2>
+        <h2 className="text-base font-bold text-text-primary mb-3">Rewards & Referrals</h2>
         <Link href="/rewards">
           <div className="bg-surface shadow-card rounded-xl p-4 mb-5 hover:shadow-card-hover transition-shadow">
             <div className="flex items-center gap-3 mb-3">
-              <Star size={20} className="text-rating" />
-              <span className="font-bold text-sm text-text-primary">Earn Points with Every Order</span>
+              <Gift size={20} className="text-[#2ECC71]" />
+              <span className="font-bold text-sm text-text-primary">Refer Friends, Get Free Water</span>
             </div>
             <p className="text-text-secondary text-xs mb-3">
-              Rise from Water Cadet to Water Warrior! Earn points, get free deliveries, discounts & free water.
+              Get 1L free on sign up. Refer friends and both earn 5L free when they order 10L+. Earn up to 60L!
             </p>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-[#E0E0E0] rounded-full overflow-hidden">
-                <div className="h-full bg-rating rounded-full w-[30%]" />
+                <div className="h-full bg-[#2ECC71] rounded-full w-[0%]" />
               </div>
-              <span className="text-xs text-text-secondary font-medium">150 / 500 pts</span>
+              <span className="text-xs text-text-secondary font-medium">0L / 50L</span>
             </div>
             <p className="text-xs text-primary font-semibold mt-2">View Rewards →</p>
           </div>
