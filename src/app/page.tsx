@@ -45,7 +45,7 @@ export default function HomePage() {
             <ShoppingCart size={18} />
             Order Now
           </Link>
-          {/* IMAGE SUGGESTION: Hero banner with Nairobi skyline + water delivery truck/bottles */}
+          <Image src="/Water-Delivery-Nairobi.png" alt="Water delivery in Nairobi" width={400} height={267} className="mt-4 rounded-xl w-full h-auto" priority />
         </div>
 
         {/* Action Tabs */}
@@ -299,14 +299,9 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             </div>
           </div>
           <div className="flex-1 flex justify-center">
-            {/* IMAGE SUGGESTION: Photo of 20L water bottles (hard jug + soft bottle) on a clean background */}
             <div className="relative">
-              <div className="w-72 h-72 bg-white/10 rounded-3xl flex items-center justify-center">
-                <div className="text-center">
-                  <Droplets size={80} className="text-white/60 mx-auto" />
-                  <p className="text-white/60 text-lg font-semibold mt-4">Pure Water</p>
-                  <p className="text-white/40 text-sm">5L · 10L · 20L</p>
-                </div>
+              <div className="w-72 h-72 rounded-3xl flex items-center justify-center overflow-hidden">
+                <Image src="/Water-Delivery-Nairobi-MiMaji.png" alt="MiMaji water delivery" width={400} height={267} className="object-cover w-full h-full rounded-3xl" />
               </div>
               <div className="absolute -bottom-4 -right-4 bg-surface rounded-xl shadow-lg p-4 w-48">
                 <div className="flex items-center gap-2 mb-2">
@@ -427,13 +422,8 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             </Link>
           </div>
           <div className="flex-1 flex justify-center">
-            {/* IMAGE SUGGESTION: Photo of clean water being provided to a rural community / children drinking water */}
-            <div className="w-64 h-48 bg-white/60 rounded-2xl flex items-center justify-center">
-              <div className="text-center">
-                <Users size={48} className="text-[#2ECC71]/40 mx-auto mb-2" />
-                <p className="text-[#2ECC71]/60 text-sm font-medium">2,500+ families served</p>
-                <p className="text-text-secondary/40 text-[10px] mt-1">[ Place image: Rural community water access ]</p>
-              </div>
+            <div className="w-64 h-48 rounded-2xl overflow-hidden">
+              <Image src="/Water-Delivery-Nairobi-MiMaji.png" alt="Community water access" width={400} height={267} className="object-cover w-full h-full rounded-2xl" />
             </div>
           </div>
         </div>

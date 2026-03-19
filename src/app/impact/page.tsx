@@ -124,13 +124,8 @@ function ImpactContent() {
             </li>
           </ul>
         </div>
-        {/* IMAGE SUGGESTION: A map of Kenya with water access points highlighted */}
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-6 flex items-center justify-center min-h-[160px]">
-          <div className="text-center">
-            <Globe size={48} className="text-primary/40 mx-auto mb-2" />
-            <p className="text-text-secondary text-xs">MajiMap — Interactive water access map</p>
-            <p className="text-text-secondary/60 text-[10px] mt-1">[ Place image: Kenya map with water point markers ]</p>
-          </div>
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl overflow-hidden min-h-[160px]">
+          <Image src="/Water-Delivery-Nairobi-MiMaji.png" alt="MiMaji water access in Kenya" width={400} height={267} className="object-cover w-full h-full" />
         </div>
       </div>
 
