@@ -1,7 +1,8 @@
 "use client";
 
+import { logo1, soft5L, soft10L, soft20L } from "@/assets/images";
 import { Star, Droplets, Truck, Shield, Gift, Crown, Zap } from "lucide-react";
-import Image from "next/image";
+
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
@@ -46,9 +47,9 @@ const tiers = [
 const redeemOptions: { points: number; reward: string; description: string; icon?: typeof Truck; image?: string }[] = [
   { points: 100, reward: "Free Delivery", icon: Truck, description: "No delivery fee on your next order" },
   { points: 250, reward: "10% Discount", icon: Gift, description: "10% off your next order" },
-  { points: 500, reward: "Free 5L Jug", description: "One free 5L purified water", image: "/5L-Soft.png" },
-  { points: 750, reward: "Free 10L Jug", description: "One free 10L purified water", image: "/10L-Soft.png" },
-  { points: 1000, reward: "Free 20L Jug", description: "One free 20L purified water", image: "/20L-Soft.png" },
+  { points: 500, reward: "Free 5L Jug", description: "One free 5L purified water", image: soft5L.src },
+  { points: 750, reward: "Free 10L Jug", description: "One free 10L purified water", image: soft10L.src },
+  { points: 1000, reward: "Free 20L Jug", description: "One free 20L purified water", image: soft20L.src },
 ];
 
 export default function RewardsPage() {
@@ -161,7 +162,7 @@ function RewardsContent({ currentTier, nextTier, user }: { currentTier: typeof t
             <div key={option.points} className={`bg-surface shadow-card rounded-xl p-4 flex items-center gap-3 ${!canRedeem ? "opacity-50" : ""}`}>
               {option.image ? (
                 <div className="w-12 h-12 rounded-xl bg-primary-light flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  <Image src={option.image} alt={option.reward} width={40} height={40} className="object-contain" />
+                  <img src={option.image} alt={option.reward} className="object-contain" />
                 </div>
               ) : option.icon ? (
                 <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
@@ -233,7 +234,7 @@ function DesktopNav() {
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
         <Link href="/" className="flex items-center">
-          <Image src="/logo1.png" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
+          <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>

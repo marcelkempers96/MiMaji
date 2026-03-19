@@ -1,13 +1,13 @@
 "use client";
 
-import Image from "next/image";
+import { StaticImageData } from "next/image";
 
 export interface ProductCardProduct {
   id: string;
   name: string;
   size: string;
   price: number;
-  image: string;
+  image: StaticImageData;
   category: "hard" | "soft";
 }
 
@@ -30,7 +30,7 @@ export default function ProductCard({
     >
       {/* Product image */}
       <div className="flex items-center justify-center w-16 h-16 rounded-lg bg-primary-light shrink-0 overflow-hidden">
-        <Image src={product.image} alt={`${product.name} ${product.size}`} width={64} height={64} className="object-contain" />
+        <img src={product.image.src} alt={`${product.name} ${product.size}`} className="object-contain" />
       </div>
 
       {/* Product info */}

@@ -2,8 +2,8 @@
 
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
+import { logo1 } from "@/assets/images";
 
 interface TopBarProps {
   title: string;
@@ -25,7 +25,7 @@ export default function TopBar({ title, showBack = true }: TopBarProps) {
       )}
       <h1 className="text-lg font-bold text-text-primary flex-1">{title}</h1>
       <Link href="/">
-        <Image src="/logo1.png" alt="MiMaji" width={80} height={29} className="h-6 w-auto" />
+        <img src={logo1.src} alt="MiMaji" className="h-6 w-auto" />
       </Link>
     </div>
   );
