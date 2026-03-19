@@ -1,6 +1,6 @@
 "use client";
 
-import { Droplets } from "lucide-react";
+import Image from "next/image";
 
 export interface ProductCardProduct {
   id: string;
@@ -28,9 +28,9 @@ export default function ProductCard({
         selected ? "border-2 border-primary" : "border-2 border-transparent"
       }`}
     >
-      {/* Product image placeholder */}
-      <div className="flex items-center justify-center w-16 h-16 rounded-lg bg-primary-light shrink-0">
-        <Droplets size={28} strokeWidth={2} className="text-primary" />
+      {/* Product image */}
+      <div className="flex items-center justify-center w-16 h-16 rounded-lg bg-primary-light shrink-0 overflow-hidden">
+        <Image src={product.image} alt={`${product.name} ${product.size}`} width={64} height={64} className="object-contain" />
       </div>
 
       {/* Product info */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Phone, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
+import Image from "next/image";
 import TopBar from "@/components/layout/TopBar";
 import Link from "next/link";
 
@@ -10,7 +11,10 @@ const WHATSAPP_LINK = `https://wa.me/254758434076`;
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
-      <TopBar title="Contact Us" showBack={true} />
+      {/* Mobile TopBar only */}
+      <div className="md:hidden">
+        <TopBar title="Contact Us" showBack={true} />
+      </div>
 
       {/* Mobile Layout */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
@@ -149,9 +153,8 @@ function DesktopNav() {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center gap-2">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2979C1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-          <span className="text-2xl font-bold text-primary">MiMaji</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>

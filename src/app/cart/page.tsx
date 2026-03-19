@@ -1,16 +1,40 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Droplets, Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Trash2, Tag, Droplets } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { products } from "@/data/products";
+
+const DISCOUNT_TIERS = [
+  { minQty: 1, maxQty: 2, discount: 0, label: "Standard" },
+  { minQty: 3, maxQty: 5, discount: 5, label: "5% off" },
+  { minQty: 6, maxQty: 9, discount: 10, label: "10% off" },
+  { minQty: 10, maxQty: Infinity, discount: 15, label: "15% off" },
+];
+
+function getDiscount(qty: number) {
+  const tier = DISCOUNT_TIERS.find((t) => qty >= t.minQty && qty <= t.maxQty);
+  return tier || DISCOUNT_TIERS[0];
+}
+
+function getBasePrice(itemId: string): number {
+  const product = products.find((p) => p.id === itemId);
+  return product?.price || 0;
+}
+
+function getDiscountedPrice(basePrice: number, qty: number) {
+  const tier = getDiscount(qty);
+  return Math.round(basePrice * (1 - tier.discount / 100));
+}
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, subtotal, deliveryFee, total } = useCart();
+  const { items, updateQuantity, removeItem, deliveryFee } = useCart();
   const { user } = useAuth();
 
   const handleCheckout = () => {
@@ -20,6 +44,19 @@ export default function CartPage() {
       router.push("/login?redirect=/confirm");
     }
   };
+
+  // Calculate totals with discounts
+  const cartWithDiscounts = items.map((item) => {
+    const basePrice = getBasePrice(item.id) || item.price;
+    const discount = getDiscount(item.quantity);
+    const discountedPrice = getDiscountedPrice(basePrice, item.quantity);
+    return { ...item, basePrice, discountedPrice, discount };
+  });
+
+  const discountedSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.discountedPrice * item.quantity, 0);
+  const originalSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
+  const totalSavings = originalSubtotal - discountedSubtotal;
+  const total = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
 
   const cartContent = items.length === 0 ? (
     <div className="flex flex-col items-center justify-center px-4 pt-24 gap-4">
@@ -31,43 +68,93 @@ export default function CartPage() {
     </div>
   ) : (
     <div className="px-4 mt-2">
-      {items.map((item) => (
-        <div key={item.id} className="flex items-center gap-3 bg-white shadow-card rounded-xl p-4 mb-3">
-          <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center shrink-0">
-            <Droplets size={24} className="text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-bold text-text-primary truncate">{item.name}</p>
-            <p className="text-[13px] text-text-secondary">KES {item.price.toLocaleString()}</p>
-          </div>
-          <div className="flex items-center gap-0">
-            <button
-              onClick={() => {
-                if (item.quantity <= 1) removeItem(item.id);
-                else updateQuantity(item.id, item.quantity - 1);
-              }}
-              className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center"
-            >
-              {item.quantity <= 1 ? <Trash2 size={16} className="text-cta-alt" /> : <Minus size={16} className="text-text-secondary" />}
-            </button>
-            <span className="w-8 text-center font-bold text-sm text-text-primary">{item.quantity}</span>
-            <button
-              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-              className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center"
-            >
-              <Plus size={16} className="text-primary" />
-            </button>
-          </div>
-        </div>
-      ))}
+      {cartWithDiscounts.map((item) => {
+        const hasDiscount = item.discount.discount > 0;
+        return (
+          <div key={item.id} className="bg-white shadow-card rounded-xl p-4 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                {(() => { const product = products.find(p => p.id === item.id); return product ? <Image src={product.image} alt={item.name} width={48} height={48} className="object-contain" /> : <Droplets size={24} className="text-primary" />; })()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-bold text-text-primary truncate">{item.name}</p>
+                <div className="flex items-center gap-2">
+                  {hasDiscount ? (
+                    <>
+                      <span className="text-[13px] text-text-secondary line-through">KES {item.basePrice.toLocaleString()}</span>
+                      <span className="text-[13px] font-semibold text-[#2ECC71]">KES {item.discountedPrice.toLocaleString()}</span>
+                    </>
+                  ) : (
+                    <span className="text-[13px] text-text-secondary">KES {item.basePrice.toLocaleString()}</span>
+                  )}
+                </div>
+                {hasDiscount && (
+                  <span className="inline-flex items-center gap-1 bg-[#E8F5E9] text-[#2ECC71] text-[10px] px-1.5 py-0.5 rounded-full font-semibold mt-1">
+                    <Tag size={10} /> {item.discount.label}
+                  </span>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-sm text-text-primary">KES {(item.discountedPrice * item.quantity).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+              <span className="text-xs text-text-secondary">Quantity</span>
+              <div className="flex items-center gap-0">
+                <button
+                  onClick={() => {
+                    if (item.quantity <= 1) removeItem(item.id);
+                    else updateQuantity(item.id, item.quantity - 1);
+                  }}
+                  className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center"
+                >
+                  {item.quantity <= 1 ? <Trash2 size={16} className="text-cta-alt" /> : <Minus size={16} className="text-text-secondary" />}
+                </button>
+                <span className="w-8 text-center font-bold text-sm text-text-primary">{item.quantity}</span>
+                <button
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center"
+                >
+                  <Plus size={16} className="text-primary" />
+                </button>
+              </div>
+            </div>
 
-      <div className="flex justify-between items-center mt-4 text-sm text-text-secondary">
-        <span>Delivery Fee:</span>
-        <span>KES {deliveryFee.toLocaleString()}</span>
-      </div>
-      <div className="flex justify-between items-center mt-2">
-        <span className="font-bold text-lg text-text-primary">Total:</span>
-        <span className="font-bold text-xl text-text-primary">KES {total.toLocaleString()}</span>
+            {/* Next discount tier hint */}
+            {item.discount.discount < 15 && (
+              <div className="mt-2 text-[10px] text-text-secondary">
+                {item.quantity < 3
+                  ? `Add ${3 - item.quantity} more for 5% off!`
+                  : item.quantity < 6
+                  ? `Add ${6 - item.quantity} more for 10% off!`
+                  : `Add ${10 - item.quantity} more for 15% off!`}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Order Summary */}
+      <div className="bg-surface shadow-card rounded-xl p-4 mt-2">
+        <div className="flex justify-between items-center text-sm text-text-secondary mb-2">
+          <span>Subtotal</span>
+          <span>KES {discountedSubtotal.toLocaleString()}</span>
+        </div>
+        {totalSavings > 0 && (
+          <div className="flex justify-between items-center text-sm mb-2">
+            <span className="text-[#2ECC71] font-medium flex items-center gap-1"><Tag size={12} /> You save</span>
+            <span className="text-[#2ECC71] font-semibold">- KES {totalSavings.toLocaleString()}</span>
+          </div>
+        )}
+        <div className="flex justify-between items-center text-sm text-text-secondary mb-2">
+          <span>Delivery Fee</span>
+          <span>KES {deliveryFee.toLocaleString()}</span>
+        </div>
+        <div className="h-px bg-gray-100 my-2" />
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-lg text-text-primary">Total</span>
+          <span className="font-bold text-xl text-text-primary">KES {total.toLocaleString()}</span>
+        </div>
       </div>
     </div>
   );
@@ -109,9 +196,8 @@ function DesktopNav() {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center gap-2">
-          <Droplets size={28} className="text-primary" />
-          <span className="text-2xl font-bold text-primary">MiMaji</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>

@@ -2,7 +2,7 @@
 
 import { useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Droplets } from "lucide-react";
+import Image from "next/image";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
@@ -61,9 +61,8 @@ function LoginContent() {
 
       <div className="flex flex-col items-center justify-center px-6 pt-20 max-w-md mx-auto md:max-w-lg">
         {/* Logo */}
-        <div className="flex items-center gap-2 mb-10">
-          <Droplets size={48} className="text-primary" />
-          <span className="text-[24px] font-bold text-primary">MiMaji</span>
+        <div className="flex items-center mb-10">
+          <Image src="/logo1" alt="MiMaji" width={140} height={50} className="h-10 w-auto" />
         </div>
 
         {step === "phone" && (

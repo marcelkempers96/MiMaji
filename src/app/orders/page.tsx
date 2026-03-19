@@ -1,6 +1,7 @@
 "use client";
 
-import { Droplets, ChevronRight, Star, Trophy } from "lucide-react";
+import { Droplets, ChevronRight, Star, Trophy, Package, Truck, CheckCircle2, Clock } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { mockOrders } from "@/data/orders";
@@ -15,6 +16,21 @@ const REWARDS_MILESTONES = [
   { points: 500, label: "Free 5L Jug", reached: false },
   { points: 1000, label: "VIP Status", reached: false },
 ];
+
+const statusSteps = [
+  { key: "Processing", label: "Processing", icon: Clock },
+  { key: "Confirmed", label: "Confirmed", icon: Package },
+  { key: "In Transit", label: "Out for Delivery", icon: Truck },
+  { key: "Delivered", label: "Delivered", icon: CheckCircle2 },
+];
+
+function getStepIndex(status: string) {
+  if (status === "Processing") return 0;
+  if (status === "Confirmed") return 1;
+  if (status === "In Transit") return 2;
+  if (status === "Delivered") return 3;
+  return 0;
+}
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -31,8 +47,71 @@ export default function OrdersPage() {
 
   if (!user) return null;
 
+  const liveOrders = mockOrders.filter((o) => o.status !== "Delivered");
+  const pastOrders = mockOrders.filter((o) => o.status === "Delivered");
+
   const ordersContent = (
     <>
+      {/* Live Orders Section */}
+      {liveOrders.length > 0 && (
+        <div className="mb-5">
+          <h2 className="font-bold text-sm text-text-primary mb-3">Active Orders</h2>
+          {liveOrders.map((order) => {
+            const currentStep = getStepIndex(order.status);
+            return (
+              <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-bold text-sm text-text-primary">{order.date}</span>
+                  <span className="text-xs font-medium text-primary bg-primary-light px-2 py-0.5 rounded-full">
+                    {order.id}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Droplets size={20} className="text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-text-primary">{order.productName}</p>
+                    <p className="text-text-secondary text-sm">KES {order.amountPaid.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Mini Progress Steps */}
+                <div className="flex items-center gap-1 mb-4">
+                  {statusSteps.slice(0, 3).map((step, i) => {
+                    const active = i <= currentStep;
+                    const StepIcon = step.icon;
+                    return (
+                      <div key={step.key} className="flex items-center flex-1">
+                        <div className="flex flex-col items-center flex-1">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${active ? "bg-primary" : "bg-gray-100"}`}>
+                            <StepIcon size={14} className={active ? "text-white" : "text-text-secondary"} />
+                          </div>
+                          <span className={`text-[9px] mt-1 text-center leading-tight ${active ? "text-primary font-semibold" : "text-text-secondary"}`}>
+                            {step.label}
+                          </span>
+                        </div>
+                        {i < 2 && (
+                          <div className={`h-0.5 w-full mt-[-12px] ${i < currentStep ? "bg-primary" : "bg-gray-200"}`} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Link
+                  href={`/track?orderId=${order.id}`}
+                  className="flex items-center justify-center gap-2 w-full bg-primary text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors"
+                >
+                  <Truck size={16} />
+                  Track Order
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Rewards Milestones */}
       <Link href="/rewards">
         <div className="bg-surface shadow-card rounded-xl p-4 mb-5 hover:shadow-card-hover transition-shadow">
@@ -77,37 +156,44 @@ export default function OrdersPage() {
         </div>
       </Link>
 
-      {/* Order History Header */}
+      {/* Order History */}
       <h2 className="font-bold text-sm text-text-primary mb-3">Order History</h2>
 
-      {/* Orders List */}
-      {mockOrders.map((order) => (
-        <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-bold text-sm text-text-primary">{order.date}</span>
-            <div className="flex items-center gap-1">
-              <span className={`w-2 h-2 rounded-full inline-block ${order.status === "Delivered" ? "bg-success" : order.status === "In Transit" ? "bg-primary" : "bg-rating"}`} />
-              <span className={`text-sm font-medium ${order.status === "Delivered" ? "text-success" : order.status === "In Transit" ? "text-primary" : "text-rating"}`}>{order.status}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
-              <Droplets size={20} className="text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-text-primary">{order.productName}</p>
-              <p className="text-text-secondary text-sm">KES {order.originalPrice.toLocaleString()}</p>
-            </div>
-            <span className="font-bold text-text-primary">KES {order.amountPaid.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-end mt-3">
-            <Link href="/track" className="flex items-center gap-1 text-primary text-sm font-medium">
-              View Details
-              <ChevronRight size={16} />
-            </Link>
-          </div>
+      {pastOrders.length === 0 ? (
+        <div className="bg-surface shadow-card rounded-xl p-6 text-center">
+          <p className="text-text-secondary text-sm">No past orders yet.</p>
         </div>
-      ))}
+      ) : (
+        pastOrders.map((order) => (
+          <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-bold text-sm text-text-primary">{order.date}</span>
+              <div className="flex items-center gap-1">
+                <CheckCircle2 size={14} className="text-success" />
+                <span className="text-sm font-medium text-success">Delivered</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                <Droplets size={20} className="text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm text-text-primary">{order.productName}</p>
+                <p className="text-text-secondary text-xs">Paid KES {order.amountPaid.toLocaleString()}</p>
+              </div>
+              {order.originalPrice !== order.amountPaid && (
+                <div className="text-right">
+                  <span className="text-text-secondary text-xs line-through">KES {order.originalPrice.toLocaleString()}</span>
+                  <p className="font-bold text-sm text-text-primary">KES {order.amountPaid.toLocaleString()}</p>
+                </div>
+              )}
+              {order.originalPrice === order.amountPaid && (
+                <span className="font-bold text-text-primary">KES {order.amountPaid.toLocaleString()}</span>
+              )}
+            </div>
+          </div>
+        ))
+      )}
     </>
   );
 
@@ -138,9 +224,8 @@ function DesktopNav() {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center gap-2">
-          <Droplets size={28} className="text-primary" />
-          <span className="text-2xl font-bold text-primary">MiMaji</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo1" alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
