@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { useAuth } from "./AuthContext";
 
 export type LocationType = "house" | "apartment" | "office" | "other";
 
@@ -52,6 +53,13 @@ interface LocationContextType {
   updateSavedLocation: (id: string, updates: Partial<SavedLocation>) => void;
 }
 
+const hasSupabaseConfig =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
+
 // New accounts start with no saved addresses — user needs to add their first address
 const STORAGE_KEY = "mimaji_saved_locations";
 
@@ -69,6 +77,35 @@ function persistLocations(locations: SavedLocation[]) {
   } catch {}
 }
 
+async function loadLocationsFromSupabase(userId: string): Promise<SavedLocation[] | null> {
+  if (!hasSupabaseConfig) return null;
+  try {
+    const { supabase } = await import("@/lib/supabase");
+    const { data } = await supabase
+      .from("profiles")
+      .select("saved_locations")
+      .eq("id", userId)
+      .single();
+    if (data?.saved_locations && Array.isArray(data.saved_locations)) {
+      return data.saved_locations as SavedLocation[];
+    }
+    return [];
+  } catch {
+    return null;
+  }
+}
+
+async function persistLocationsToSupabase(userId: string, locations: SavedLocation[]) {
+  if (!hasSupabaseConfig) return;
+  try {
+    const { supabase } = await import("@/lib/supabase");
+    await supabase
+      .from("profiles")
+      .update({ saved_locations: locations })
+      .eq("id", userId);
+  } catch {}
+}
+
 const LocationContext = createContext<LocationContextType>({
   neighbourhood: "Nairobi",
   setNeighbourhood: () => {},
@@ -82,23 +119,56 @@ const LocationContext = createContext<LocationContextType>({
 });
 
 export function LocationProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [neighbourhood, setNeighbourhood] = useState("Nairobi");
   const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const prevUserIdRef = useRef<string | null>(null);
 
-  // Load saved locations from localStorage on mount
+  // Load saved locations from Supabase (if logged in) or localStorage on mount
   useEffect(() => {
-    setSavedLocations(loadSavedLocations());
-    setLoaded(true);
-  }, []);
+    let cancelled = false;
+    const userId = user?.id || null;
 
-  // Persist to localStorage whenever savedLocations changes (only after initial load)
+    // Skip if user hasn't changed
+    if (userId === prevUserIdRef.current && loaded) return;
+    prevUserIdRef.current = userId;
+
+    if (userId && hasSupabaseConfig) {
+      loadLocationsFromSupabase(userId).then((supaLocs) => {
+        if (cancelled) return;
+        if (supaLocs && supaLocs.length > 0) {
+          setSavedLocations(supaLocs);
+          persistLocations(supaLocs); // sync to localStorage as cache
+        } else {
+          // Fall back to localStorage (might have data from before login)
+          const local = loadSavedLocations();
+          setSavedLocations(local);
+          // Push local data to Supabase if we have some
+          if (local.length > 0) {
+            persistLocationsToSupabase(userId, local);
+          }
+        }
+        setLoaded(true);
+      });
+    } else {
+      setSavedLocations(loadSavedLocations());
+      setLoaded(true);
+    }
+
+    return () => { cancelled = true; };
+  }, [user?.id, loaded]);
+
+  // Persist whenever savedLocations changes (only after initial load)
   useEffect(() => {
     if (loaded) {
       persistLocations(savedLocations);
+      if (user?.id && hasSupabaseConfig) {
+        persistLocationsToSupabase(user.id, savedLocations);
+      }
     }
-  }, [savedLocations, loaded]);
+  }, [savedLocations, loaded, user?.id]);
 
   const selectLocation = useCallback((location: SavedLocation) => {
     setSelectedLocation(location);

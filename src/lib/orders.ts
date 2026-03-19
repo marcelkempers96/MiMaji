@@ -58,7 +58,29 @@ export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
     console.error("Error fetching orders:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map(mapSupabaseOrder);
+}
+
+function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
+  return {
+    id: row.id as string,
+    customer_id: row.customer_id as string,
+    delivery_address: (row.delivery_address as string) || "",
+    quantity: Number(row.quantity) || 0,
+    price_total: Number(row.price_total) || 0,
+    status: (row.status as string) || "pending_payment",
+    mpesa_ref: (row.mpesa_ref as string) || null,
+    product_name: (row.product_name as string) || null,
+    order_items: (row.order_items as OrderRecord["order_items"]) || [],
+    estimated_delivery_minutes: row.estimated_delivery_minutes != null ? Number(row.estimated_delivery_minutes) : null,
+    created_at: (row.created_at as string) || new Date().toISOString(),
+    updated_at: (row.updated_at as string) || new Date().toISOString(),
+    vendor_id: (row.vendor_id as string) || null,
+    vendor_name: (row.vendor_name as string) || null,
+    vendor_location: (row.vendor_location as string) || null,
+    vendors_tried: (row.vendors_tried as string[]) || [],
+    current_vendor_offer: (row.current_vendor_offer as string) || null,
+  };
 }
 
 export async function fetchOrderById(orderId: string): Promise<OrderRecord | null> {
@@ -76,7 +98,7 @@ export async function fetchOrderById(orderId: string): Promise<OrderRecord | nul
     console.error("Error fetching order:", error);
     return null;
   }
-  return data;
+  return data ? mapSupabaseOrder(data) : null;
 }
 
 export async function createOrder(params: {
@@ -125,6 +147,11 @@ export async function createOrder(params: {
       product_name: params.productName,
       order_items: params.orderItems,
       status: "pending_payment",
+      vendor_id: null,
+      vendor_name: null,
+      vendor_location: null,
+      vendors_tried: [],
+      current_vendor_offer: null,
     })
     .select("id")
     .single();

@@ -105,14 +105,14 @@ function LoginContent() {
     setError("");
     setLoading(true);
 
-    const result = await signup(cleaned, password, name.trim());
+    const result = await signup(cleaned, password, name.trim(), referralCode.trim() || undefined);
     if (result.error) {
       setError(result.error);
       setLoading(false);
       return;
     }
 
-    // Flag that we just signed up so the useEffect will init rewards
+    // Flag that we just signed up so the useEffect will init rewards (for mock mode)
     setJustSignedUp(true);
   };
 

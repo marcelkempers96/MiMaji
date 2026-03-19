@@ -30,7 +30,7 @@ export interface StoreLocation {
   lng: number;
 }
 
-// ── Mock vendor list with multi-location support ──
+// ── Vendor info ──
 export interface VendorInfo {
   id: string;
   name: string;
@@ -46,6 +46,7 @@ export interface VendorInfo {
   locations: StoreLocation[];
 }
 
+// ── Mock vendor list with multi-location support ──
 export const MOCK_VENDORS: VendorInfo[] = [
   {
     id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, hours: "6AM - 9PM",
@@ -93,6 +94,42 @@ export const MOCK_VENDORS: VendorInfo[] = [
   },
 ];
 
+// ── Fetch all active vendors ──
+export async function fetchVendors(): Promise<VendorInfo[]> {
+  if (!hasSupabaseConfig) return MOCK_VENDORS;
+
+  const { data: vendors, error } = await supabase
+    .from("vendors")
+    .select("*, vendor_locations(*)")
+    .eq("active", true);
+
+  if (error || !vendors) {
+    console.error("Error fetching vendors:", error);
+    return [];
+  }
+
+  return vendors.map((v: Record<string, unknown>) => ({
+    id: v.id as string,
+    name: v.name as string,
+    area: v.area as string,
+    distance: "",
+    rating: Number(v.rating) || 0,
+    reviews: Number(v.reviews) || 0,
+    hours: (v.hours as string) || "7AM - 8PM",
+    products: (v.products as string[]) || [],
+    businessRegNo: (v.business_reg_no as string) || "",
+    mpesaNumber: (v.mpesa_number as string) || "",
+    phoneNumbers: (v.phone_numbers as string[]) || [],
+    locations: ((v.vendor_locations as Array<Record<string, unknown>>) || []).map((l) => ({
+      id: l.id as string,
+      name: l.name as string,
+      area: l.area as string,
+      lat: Number(l.lat),
+      lng: Number(l.lng),
+    })),
+  }));
+}
+
 // ── Fetch orders for vendor portal ──
 export async function fetchVendorOrders(vendorId: string): Promise<OrderRecord[]> {
   if (!hasSupabaseConfig) {
@@ -134,9 +171,7 @@ export async function updateVendorOrderStatus(orderId: string, status: string) {
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", orderId);
 
-  if (error) {
-    console.error("Error updating order status:", error);
-  }
+  if (error) console.error("Error updating order status:", error);
 }
 
 export interface VendorStats {
@@ -160,7 +195,7 @@ export async function fetchVendorStats(vendorId: string, orders: OrderRecord[]):
   };
 }
 
-// ── Haversine distance (km) between two lat/lng points ──
+// ── Haversine distance (km) ──
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -169,10 +204,6 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/**
- * Find the closest store location for a vendor, given a delivery lat/lng.
- * Falls back to the first location if no coordinates provided.
- */
 export function getClosestLocation(vendor: VendorInfo, deliveryLat?: number, deliveryLng?: number): StoreLocation {
   if (!deliveryLat || !deliveryLng || vendor.locations.length <= 1) {
     return vendor.locations[0];
@@ -181,20 +212,13 @@ export function getClosestLocation(vendor: VendorInfo, deliveryLat?: number, del
   let minDist = Infinity;
   for (const loc of vendor.locations) {
     const d = haversineKm(deliveryLat, deliveryLng, loc.lat, loc.lng);
-    if (d < minDist) {
-      minDist = d;
-      closest = loc;
-    }
+    if (d < minDist) { minDist = d; closest = loc; }
   }
   return closest;
 }
 
-// ── Vendor Routing Logic ──
+// ── Vendor Routing ──
 
-/**
- * Assign an order to the next available vendor.
- * Goes through MOCK_VENDORS sorted by distance, skipping any in vendors_tried.
- */
 export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: string; vendorName: string } | null> {
   if (!hasSupabaseConfig) {
     const orders = getMockOrders();
@@ -203,55 +227,82 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
 
     const order = orders[idx];
     const triedIds = order.vendors_tried || [];
-
     const nextVendor = MOCK_VENDORS.find((v) => !triedIds.includes(v.id));
     if (!nextVendor) return null;
 
     orders[idx].current_vendor_offer = nextVendor.id;
     orders[idx].updated_at = new Date().toISOString();
     saveMockOrders(orders);
-
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
   }
 
-  return null;
+  const { data: order } = await supabase.from("orders").select("vendors_tried").eq("id", orderId).single();
+  if (!order) return null;
+
+  const triedIds = (order.vendors_tried as string[]) || [];
+  const { data: vendors } = await supabase
+    .from("vendors").select("id, name").eq("active", true).order("rating", { ascending: false });
+
+  if (!vendors) return null;
+  const next = vendors.find((v: { id: string }) => !triedIds.includes(v.id));
+  if (!next) return null;
+
+  await supabase.from("orders").update({
+    current_vendor_offer: next.id,
+    updated_at: new Date().toISOString(),
+  }).eq("id", orderId);
+
+  return { vendorId: next.id, vendorName: next.name };
 }
 
-/**
- * Vendor accepts an order: finds the closest store location,
- * sets vendor info, ETA, and status to "confirmed".
- */
 export async function acceptOrder(
   orderId: string,
   vendorId: string,
   estimatedMinutes: number,
   storeLocationId?: string
 ): Promise<void> {
-  const vendor = MOCK_VENDORS.find((v) => v.id === vendorId);
-  if (!vendor) return;
-
-  // Use specified store location, or find closest
-  let store: StoreLocation;
-  if (storeLocationId) {
-    store = vendor.locations.find((l) => l.id === storeLocationId) || vendor.locations[0];
-  } else {
-    store = vendor.locations[0];
+  if (!hasSupabaseConfig) {
+    const vendor = MOCK_VENDORS.find((v) => v.id === vendorId);
+    if (!vendor) return;
+    let store: StoreLocation;
+    if (storeLocationId) {
+      store = vendor.locations.find((l) => l.id === storeLocationId) || vendor.locations[0];
+    } else {
+      store = vendor.locations[0];
+    }
+    await updateOrder(orderId, {
+      vendor_id: vendorId,
+      vendor_name: vendor.name,
+      vendor_location: `${store.name}, ${store.area}`,
+      estimated_delivery_minutes: estimatedMinutes,
+      current_vendor_offer: null,
+      status: "confirmed",
+    });
+    return;
   }
 
-  await updateOrder(orderId, {
+  let vendorName = "Vendor";
+  let locationStr = "";
+
+  const { data: vendor } = await supabase.from("vendors").select("name").eq("id", vendorId).single();
+  if (vendor) vendorName = vendor.name;
+
+  if (storeLocationId) {
+    const { data: loc } = await supabase.from("vendor_locations").select("name, area").eq("id", storeLocationId).single();
+    if (loc) locationStr = `${loc.name}, ${loc.area}`;
+  }
+
+  await supabase.from("orders").update({
     vendor_id: vendorId,
-    vendor_name: vendor.name,
-    vendor_location: `${store.name}, ${store.area}`,
+    vendor_name: vendorName,
+    vendor_location: locationStr,
     estimated_delivery_minutes: estimatedMinutes,
     current_vendor_offer: null,
     status: "confirmed",
-  });
+    updated_at: new Date().toISOString(),
+  }).eq("id", orderId);
 }
 
-/**
- * Vendor rejects an order: adds vendor to vendors_tried, clears current_vendor_offer,
- * then attempts to assign to the next vendor.
- */
 export async function rejectOrder(orderId: string, vendorId: string): Promise<{ nextVendor: string | null }> {
   if (!hasSupabaseConfig) {
     const orders = getMockOrders();
@@ -260,9 +311,7 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
 
     const order = orders[idx];
     const triedIds = order.vendors_tried || [];
-    if (!triedIds.includes(vendorId)) {
-      triedIds.push(vendorId);
-    }
+    if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
     orders[idx].vendors_tried = triedIds;
     orders[idx].current_vendor_offer = null;
     orders[idx].updated_at = new Date().toISOString();
@@ -272,5 +321,18 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
     return { nextVendor: result?.vendorName || null };
   }
 
-  return { nextVendor: null };
+  const { data: order } = await supabase.from("orders").select("vendors_tried").eq("id", orderId).single();
+  if (!order) return { nextVendor: null };
+
+  const triedIds = (order.vendors_tried as string[]) || [];
+  if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
+
+  await supabase.from("orders").update({
+    vendors_tried: triedIds,
+    current_vendor_offer: null,
+    updated_at: new Date().toISOString(),
+  }).eq("id", orderId);
+
+  const result = await assignOrderToVendor(orderId);
+  return { nextVendor: result?.vendorName || null };
 }
