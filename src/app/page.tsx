@@ -3,6 +3,7 @@
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Star, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users } from "lucide-react";
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
+import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
 
 export default function HomePage() {
@@ -140,6 +141,9 @@ export default function HomePage() {
             <p className="text-xs text-primary font-semibold mt-2">View Rewards →</p>
           </div>
         </Link>
+
+        {/* WhatsApp Banner - static, above Water is Life */}
+        <WhatsAppMobileBanner />
 
         {/* Impact */}
         <Link href="/impact">
