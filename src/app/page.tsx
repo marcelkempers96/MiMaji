@@ -1,15 +1,26 @@
 "use client";
 
 import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1 } from "@/assets/images";
-import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
+import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2 } from "lucide-react";
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { getRewardsSummary, initRewards } from "@/lib/rewards";
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [freeLitres, setFreeLitres] = useState(0);
+
+  useEffect(() => {
+    if (user?.id) {
+      initRewards(user.id);
+      const summary = getRewardsSummary(user.id);
+      setFreeLitres(summary.freeLitres);
+    }
+  }, [user?.id]);
 
   return (
     <div className="bg-background min-h-screen pb-20">
@@ -161,16 +172,13 @@ export default function HomePage() {
             </p>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-[#E0E0E0] rounded-full overflow-hidden">
-                <div className="h-full bg-[#2ECC71] rounded-full w-[0%]" />
+                <div className="h-full bg-[#2ECC71] rounded-full" style={{ width: `${Math.min((freeLitres / 50) * 100, 100)}%` }} />
               </div>
-              <span className="text-xs text-text-secondary font-medium">0L / 50L</span>
+              <span className="text-xs text-text-secondary font-medium">{freeLitres}L / 50L</span>
             </div>
             <p className="text-xs text-primary font-semibold mt-2">View Rewards →</p>
           </div>
         </Link>
-
-        {/* WhatsApp Banner - static, above Water is Life */}
-        <WhatsAppMobileBanner />
 
         {/* Impact */}
         <Link href="/impact">
@@ -203,8 +211,8 @@ export default function HomePage() {
               Order for Office
             </Link>
             <Link
-              href="/contact"
-              className="bg-white/20 text-white text-center rounded-full px-4 py-1.5 text-[11px] font-bold hover:bg-white/30 transition-colors"
+              href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
+              className="bg-white/20 text-white text-center rounded-full px-4 py-1.5 text-[11px] font-bold hover:bg-white/30 transition-colors flex items-center gap-1"
             >
               Set Up Corporate Account
             </Link>
@@ -228,6 +236,9 @@ export default function HomePage() {
             </div>
           </div>
         </Link>
+
+        {/* WhatsApp Banner */}
+        <WhatsAppMobileBanner />
 
         {/* Footer */}
         <MobileFooter />

@@ -440,16 +440,17 @@ export default function ConfirmOrderPage() {
             </div>
 
             {/* Estimated Delivery Time */}
-            <div className="bg-[#E8F5E9] rounded-xl p-3">
-              <div className="flex items-center gap-2">
+            <div className="bg-[#E8F5E9] rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
                 <Clock size={16} className="text-[#2ECC71] flex-shrink-0" />
-                <div>
-                  <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide">Estimated Delivery</p>
-                  <p className="text-sm font-medium text-text-primary">
-                    {getEstimatedDelivery().duration} &middot; Arriving ~{getEstimatedDelivery().arrivalTime}
-                  </p>
-                </div>
+                <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide">Estimated Delivery</p>
               </div>
+              <p className="text-2xl font-extrabold text-text-primary">
+                ETA: {getEstimatedDelivery().duration}
+              </p>
+              <p className="text-sm text-text-secondary mt-1">
+                Arriving ~{getEstimatedDelivery().arrivalTime}
+              </p>
             </div>
 
             <div className="flex justify-between items-center">

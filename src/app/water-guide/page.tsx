@@ -66,7 +66,7 @@ function WaterGuideContent() {
           By MiMaji &mdash; mimaji.co.ke
         </p>
         <p className="text-white/70 text-sm mt-3 md:text-base">
-          At MiMaji, we believe every Nairobian deserves to know exactly what&apos;s in their water. This guide explains the key measures of water safety in simple, clear terms &mdash; so you can make informed decisions about the water your family drinks, cooks with, and bathes in.
+          At MiMaji, we believe every Kenyan deserves to know exactly what&apos;s in their water. This guide explains the key measures of water safety in simple, clear terms &mdash; so you can make informed decisions about the water your family drinks, cooks with, and bathes in.
         </p>
       </div>
 
