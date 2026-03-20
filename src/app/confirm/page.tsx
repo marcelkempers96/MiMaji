@@ -342,9 +342,14 @@ export default function ConfirmOrderPage() {
                   )}
                 </div>
                 <div className="h-px bg-gray-100" />
-                <div>
-                  <p className="text-[10px] text-text-secondary">Amount</p>
-                  <p className="text-sm font-bold text-[#2ECC71] font-mono">KES {order.total.toLocaleString()}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Amount</p>
+                    <p className="text-sm font-bold text-[#2ECC71] font-mono">KES {order.total.toLocaleString()}</p>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(order.total.toString()); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                    <Copy size={12} /> Copy
+                  </button>
                 </div>
               </div>
             </div>
