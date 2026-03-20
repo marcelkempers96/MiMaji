@@ -12,7 +12,37 @@ import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
 import { createOrder, updateOrderStatus, formatOrderId, generateDeliveryCode, DeliveryAddressDetails } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
 import { processOrderRewards, initRewards, getRewardsSummary, useFreeLitres, calculateOrderLitres } from "@/lib/rewards";
-import { getProductImage } from "@/data/products";
+import { getProductImage, products } from "@/data/products";
+
+// ── Discount tier logic (same as cart page) ──
+const DISCOUNT_TIERS = [
+  { minQty: 1, maxQty: 2, discount: 0, label: "Standard" },
+  { minQty: 3, maxQty: 5, discount: 5, label: "5% off" },
+  { minQty: 6, maxQty: 9, discount: 10, label: "10% off" },
+  { minQty: 10, maxQty: Infinity, discount: 15, label: "15% off" },
+];
+
+function getDiscount(qty: number) {
+  return DISCOUNT_TIERS.find((t) => qty >= t.minQty && qty <= t.maxQty) || DISCOUNT_TIERS[0];
+}
+
+function parseCartItemId(cartItemId: string): { productId: string; bottleType: "new" | "refill" } {
+  const match = cartItemId.match(/^(.+)-(new|refill)$/);
+  if (match) return { productId: match[1], bottleType: match[2] as "new" | "refill" };
+  return { productId: cartItemId, bottleType: "refill" };
+}
+
+function getBasePrice(itemId: string): number {
+  const { productId, bottleType } = parseCartItemId(itemId);
+  const product = products.find((p) => p.id === productId);
+  if (!product) return 0;
+  return bottleType === "new" ? product.priceNew : product.priceRefill;
+}
+
+function getDiscountedPrice(basePrice: number, qty: number) {
+  const tier = getDiscount(qty);
+  return Math.round(basePrice * (1 - tier.discount / 100));
+}
 
 function getEstimatedDelivery(): { duration: string; arrivalTime: string } {
   const now = new Date();
@@ -36,7 +66,7 @@ type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 
 export default function ConfirmOrderPage() {
   const router = useRouter();
-  const { items, totalItems, total, clearCart } = useCart();
+  const { items, totalItems, deliveryFee, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
@@ -44,6 +74,18 @@ export default function ConfirmOrderPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
+
+  // ── Recalculate cart totals using discount tiers (matches cart page exactly) ──
+  const cartWithDiscounts = items.map((item) => {
+    const basePrice = getBasePrice(item.id) || item.price;
+    const discount = getDiscount(item.quantity);
+    const discountedPrice = getDiscountedPrice(basePrice, item.quantity);
+    return { ...item, basePrice, discountedPrice, discount };
+  });
+  const discountedSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.discountedPrice * item.quantity, 0);
+  const originalSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
+  const totalSavings = originalSubtotal - discountedSubtotal;
+  const cartTotal = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
 
   // Auth guard: redirect to login if not authenticated (after loading completes)
   if (!authLoading && !user && paymentStatus !== "confirmed" && paymentStatus !== "awaiting_code") {
@@ -87,7 +129,7 @@ export default function ConfirmOrderPage() {
   }, 0);
 
   // Calculate discount per litre based on average price
-  const pricePerLitre = orderLitres > 0 ? (total - 100) / orderLitres : 0; // subtract delivery fee for per-litre calc
+  const pricePerLitre = orderLitres > 0 ? discountedSubtotal / orderLitres : 0;
 
   const handleClaimRewards = (claim: boolean) => {
     setClaimRewards(claim);
@@ -104,10 +146,11 @@ export default function ConfirmOrderPage() {
 
   // Cash on delivery service fee: 20 KES, then round up total to next 50
   const COD_SERVICE_FEE = 20;
-  const subtotalAfterRewards = Math.max(total - rewardsDiscount, 0);
+  const subtotalAfterRewards = Math.max(cartTotal - rewardsDiscount, 0);
   const codRawTotal = subtotalAfterRewards + COD_SERVICE_FEE;
   const codRoundedTotal = Math.ceil(codRawTotal / 50) * 50;
-  const finalTotal = paymentMethod === "cash" ? codRoundedTotal : Math.max(total - rewardsDiscount, 0);
+  const codFeeAmount = codRoundedTotal - subtotalAfterRewards;
+  const finalTotal = paymentMethod === "cash" ? codRoundedTotal : Math.max(cartTotal - rewardsDiscount, 0);
 
   // Store confirmed order details so they persist after cart is cleared
   const confirmedOrderRef = useRef<{
@@ -233,10 +276,10 @@ export default function ConfirmOrderPage() {
         ? `${items[0].quantity}x ${items[0].name}`
         : `${totalItems} items`;
 
-      const orderItems = items.map((item) => ({
+      const orderItems = cartWithDiscounts.map((item) => ({
         name: item.name,
         quantity: item.quantity,
-        price: item.price,
+        price: item.discountedPrice,
       }));
 
       // Save order params — order is NOT created yet
@@ -692,9 +735,61 @@ export default function ConfirmOrderPage() {
               </div>
             )}
 
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-text-secondary">Amount</span>
-              <span className="text-text-primary font-medium">{amountSummary()}</span>
+          </div>
+
+          {/* ── Full Order Breakdown ── */}
+          <div className="bg-surface shadow-card rounded-xl p-4 mt-4">
+            <h3 className="font-bold text-sm text-text-primary mb-3">Order Summary</h3>
+            <div className="space-y-3">
+              {cartWithDiscounts.map((item) => {
+                const img = getProductImage(item.id);
+                const hasDiscount = item.discount.discount > 0;
+                return (
+                  <div key={item.id} className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                      {img ? (
+                        <img src={img.src} alt={item.name} className="h-8 w-auto object-contain" />
+                      ) : (
+                        <Droplets size={16} className="text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-text-primary font-medium truncate">{item.quantity}x {item.name}</p>
+                      <div className="flex items-center gap-2">
+                        {hasDiscount ? (
+                          <>
+                            <span className="text-xs text-text-secondary line-through">KES {item.basePrice.toLocaleString()}</span>
+                            <span className="text-xs font-semibold text-[#2ECC71]">KES {item.discountedPrice.toLocaleString()} ea</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-text-secondary">KES {item.basePrice.toLocaleString()} ea</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-text-primary whitespace-nowrap">
+                      KES {(item.discountedPrice * item.quantity).toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="h-px bg-gray-100 my-3" />
+
+            {/* Subtotal */}
+            <div className="flex justify-between items-center text-sm text-text-secondary mb-1">
+              <span>Subtotal</span>
+              <span>KES {discountedSubtotal.toLocaleString()}</span>
+            </div>
+            {totalSavings > 0 && (
+              <div className="flex justify-between items-center text-sm mb-1">
+                <span className="text-[#2ECC71] font-medium">Bulk discount savings</span>
+                <span className="text-[#2ECC71] font-semibold">- KES {totalSavings.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-sm text-text-secondary mb-1">
+              <span>Delivery Fee</span>
+              <span>KES {deliveryFee.toLocaleString()}</span>
             </div>
           </div>
 
@@ -912,28 +1007,25 @@ export default function ConfirmOrderPage() {
             </div>
           )}
 
-          {/* Total */}
-          {rewardsDiscount > 0 && (
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm text-text-secondary">Subtotal</span>
-              <span className="text-sm text-text-secondary line-through">KES {total.toLocaleString()}</span>
+          {/* Final Total */}
+          <div className="bg-surface shadow-card rounded-xl p-4 mt-4">
+            {rewardsDiscount > 0 && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-[#2ECC71] font-semibold">Rewards Discount ({rewardsApplied}L)</span>
+                <span className="text-sm text-[#2ECC71] font-semibold">- KES {rewardsDiscount.toLocaleString()}</span>
+              </div>
+            )}
+            {paymentMethod === "cash" && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-text-secondary">COD Service Fee (rounded to nearest 50)</span>
+                <span className="text-sm text-text-secondary">+ KES {codFeeAmount.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="h-px bg-gray-100 my-2" />
+            <div className="flex justify-between items-center">
+              <span className="text-xl font-bold text-text-primary">Total to Pay</span>
+              <span className="text-xl font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span>
             </div>
-          )}
-          {rewardsDiscount > 0 && (
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm text-[#2ECC71] font-semibold">Rewards Discount ({rewardsApplied}L)</span>
-              <span className="text-sm text-[#2ECC71] font-semibold">-KES {rewardsDiscount.toLocaleString()}</span>
-            </div>
-          )}
-          {paymentMethod === "cash" && (
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm text-text-secondary">COD Service Fee</span>
-              <span className="text-sm text-text-secondary">+KES {(finalTotal - subtotalAfterRewards).toLocaleString()}</span>
-            </div>
-          )}
-          <div className="flex justify-between items-center">
-            <span className="text-xl font-bold text-text-primary">Total</span>
-            <span className="text-xl font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span>
           </div>
 
           {/* Error Message */}
