@@ -12,6 +12,7 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 import AddressSearch from "@/components/AddressSearch";
+import { waterBrands, NAIROBI_AREAS } from "@/data/products";
 import {
   RefreshCw,
   Package,
@@ -316,6 +317,8 @@ function AdminDashboardInner() {
         reviews: parseInt(newVendor.reviews) || 0,
         hours: newVendor.hours,
         products: newVendor.products,
+        brands: [],
+        areasServed: [],
         businessRegNo: newVendor.businessRegNo,
         mpesaNumber: newVendor.mpesaNumber,
         phoneNumbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
@@ -1524,6 +1527,165 @@ function AdminDashboardInner() {
                       <span className="text-text-primary">{vendor.reviews}</span>
                     </div>
                   </div>
+
+                  {/* Locations editing */}
+                  {editingVendor === vendor.id && (
+                    <div className="pt-2 border-t border-gray-100">
+                      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 flex items-center gap-1"><MapPin size={10} /> Store Locations</p>
+                      {(vendorEdits.locations ?? vendor.locations).map((loc, li) => (
+                        <div key={li} className="bg-gray-50 rounded-lg p-2 mb-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-semibold text-text-secondary">Location {li + 1}</span>
+                            {(vendorEdits.locations ?? vendor.locations).length > 1 && (
+                              <button onClick={() => {
+                                const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                                locs.splice(li, 1);
+                                setVendorEdits({ ...vendorEdits, locations: locs });
+                              }} className="text-cta-alt hover:text-red-700"><Trash2 size={12} /></button>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={loc.name}
+                            onChange={(e) => {
+                              const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                              locs[li] = { ...locs[li], name: e.target.value };
+                              setVendorEdits({ ...vendorEdits, locations: locs });
+                            }}
+                            placeholder="Location name"
+                            className="w-full border border-gray-200 rounded px-2 py-1 text-xs outline-none focus:border-primary mb-1"
+                          />
+                          <AddressSearch
+                            placeholder="Search address..."
+                            initialValue={loc.area}
+                            onSelect={(result) => {
+                              const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                              locs[li] = { ...locs[li], area: result.area || result.displayName.split(",").slice(1, 3).join(",").trim(), lat: result.lat, lng: result.lng };
+                              setVendorEdits({ ...vendorEdits, locations: locs });
+                            }}
+                          />
+                          {loc.lat !== 0 && loc.lng !== 0 && (
+                            <p className="text-[10px] text-text-secondary font-mono mt-1">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</p>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => {
+                          const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                          locs.push({ id: `${vendor.id}-loc${locs.length + 1}`, name: "", area: "", lat: 0, lng: 0 });
+                          setVendorEdits({ ...vendorEdits, locations: locs });
+                        }}
+                        className="text-primary text-[10px] font-semibold flex items-center gap-1 mt-1"
+                      >
+                        <Plus size={10} /> Add Location
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Locations display (non-edit mode) */}
+                  {editingVendor !== vendor.id && vendor.locations.length > 0 && (
+                    <div className="pt-2 border-t border-gray-100">
+                      <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Locations</p>
+                      {vendor.locations.map((loc, li) => (
+                        <div key={li} className="text-xs text-text-primary mb-0.5 flex items-center gap-1">
+                          <MapPin size={10} className="text-primary flex-shrink-0" />
+                          <span>{loc.name}</span>
+                          {loc.area && <span className="text-text-secondary">({loc.area})</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Brands & Products editing */}
+                  {editingVendor === vendor.id && (
+                    <div className="pt-2 border-t border-gray-100 space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Brands Stocked</p>
+                        <div className="flex flex-wrap gap-1">
+                          {waterBrands.map((brand) => {
+                            const brands = vendorEdits.brands ?? vendor.brands;
+                            const isSelected = brands.includes(brand.id);
+                            return (
+                              <button
+                                key={brand.id}
+                                onClick={() => {
+                                  const current = vendorEdits.brands ?? [...vendor.brands];
+                                  setVendorEdits({ ...vendorEdits, brands: isSelected ? current.filter((b) => b !== brand.id) : [...current, brand.id] });
+                                }}
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${isSelected ? "bg-primary text-white" : "bg-gray-100 text-text-secondary"}`}
+                              >
+                                {brand.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Product Types</p>
+                        <div className="flex flex-wrap gap-1">
+                          {["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].map((pt) => {
+                            const products = vendorEdits.products ?? vendor.products;
+                            const isSelected = products.includes(pt);
+                            return (
+                              <button
+                                key={pt}
+                                onClick={() => {
+                                  const current = vendorEdits.products ?? [...vendor.products];
+                                  setVendorEdits({ ...vendorEdits, products: isSelected ? current.filter((p) => p !== pt) : [...current, pt] });
+                                }}
+                                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${isSelected ? "bg-[#1a5a9a] text-white" : "bg-gray-100 text-text-secondary"}`}
+                              >
+                                {pt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Areas Served</p>
+                        <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                          {NAIROBI_AREAS.map((area) => {
+                            const areas = vendorEdits.areasServed ?? vendor.areasServed;
+                            const isSelected = areas.includes(area);
+                            return (
+                              <button
+                                key={area}
+                                onClick={() => {
+                                  const current = vendorEdits.areasServed ?? [...vendor.areasServed];
+                                  setVendorEdits({ ...vendorEdits, areasServed: isSelected ? current.filter((a) => a !== area) : [...current, area] });
+                                }}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${isSelected ? "bg-[#2ECC71] text-white" : "bg-gray-50 text-text-secondary"}`}
+                              >
+                                {area}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Brands/Products display (non-edit) */}
+                  {editingVendor !== vendor.id && (vendor.brands.length > 0 || vendor.products.length > 0) && (
+                    <div className="pt-2 border-t border-gray-100 space-y-1">
+                      {vendor.brands.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-[10px] text-text-secondary mr-1">Brands:</span>
+                          {vendor.brands.map((b) => (
+                            <span key={b} className="bg-primary-light text-primary text-[10px] font-semibold px-1.5 py-0.5 rounded">{waterBrands.find((wb) => wb.id === b)?.name || b}</span>
+                          ))}
+                        </div>
+                      )}
+                      {vendor.areasServed.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-[10px] text-text-secondary mr-1">Areas:</span>
+                          {vendor.areasServed.map((a) => (
+                            <span key={a} className="bg-green-50 text-[#2ECC71] text-[10px] font-semibold px-1.5 py-0.5 rounded">{a}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Edit/Save buttons */}
                   <div className="pt-2 border-t border-gray-100 flex gap-2">

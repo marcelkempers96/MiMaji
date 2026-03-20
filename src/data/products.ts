@@ -19,11 +19,21 @@ export interface WaterBrand {
 }
 
 export const waterBrands: WaterBrand[] = [
-  { id: "mimaji", name: "MiMaji", available: true },
-  { id: "keringet", name: "Keringet", available: false },
-  { id: "dasani", name: "Dasani", available: false },
-  { id: "aquamist", name: "Aquamist", available: false },
-  { id: "highlands", name: "Highlands", available: false },
+  { id: "keringet", name: "Keringet", available: true },
+  { id: "aquamist", name: "AquaMist", available: true },
+  { id: "mayers", name: "Mayers", available: true },
+];
+
+// Common Nairobi areas for vendor coverage selection
+export const NAIROBI_AREAS = [
+  "CBD", "Westlands", "Kilimani", "Lavington", "Kileleshwa", "Hurlingham",
+  "Karen", "Langata", "South C", "South B", "Nairobi West", "Upper Hill",
+  "Parklands", "Ngara", "Pangani", "Eastleigh", "Kasarani", "Roysambu",
+  "Ruaraka", "Kahawa", "Githurai", "Ruiru", "Thika Road", "Embakasi",
+  "Donholm", "Umoja", "Buruburu", "Kayole", "Utawala", "Syokimau",
+  "Athi River", "Kitengela", "Rongai", "Ngong", "Dagoretti", "Waithaka",
+  "Kawangware", "Satellite", "Runda", "Muthaiga", "Gigiri", "Spring Valley",
+  "Loresho", "Mountain View", "Zimmerman", "Mwiki", "Pipeline", "Imara Daima",
 ];
 
 export const products: Product[] = [

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, RefreshCw, PackagePlus, ShoppingCart, Lock } from "lucide-react";
+import { Minus, Plus, RefreshCw, PackagePlus, ShoppingCart } from "lucide-react";
 
 import Link from "next/link";
 import { logo1 } from "@/assets/images";
@@ -209,6 +209,19 @@ function BuyContent({
   desktop?: boolean;
 }) {
   const [showBrandPicker, setShowBrandPicker] = useState(false);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+
+  const toggleBrand = (id: string) => {
+    setSelectedBrands((prev) => {
+      const next = prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id];
+      try { sessionStorage.setItem("mimaji_brand_preference", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const brandLabel = selectedBrands.length === 0
+    ? "No preference"
+    : waterBrands.filter((b) => selectedBrands.includes(b.id)).map((b) => b.name).join(", ");
 
   return (
     <>
@@ -227,7 +240,6 @@ function BuyContent({
             <span className={`text-base font-bold block ${activeCategory === "soft" ? "text-primary" : "text-text-primary"}`}>
               Soft Bottle
             </span>
-            <span className="text-[11px] text-text-secondary">Lightweight, flexible plastic</span>
           </button>
           <button
             onClick={() => setActiveCategory("hard")}
@@ -240,7 +252,6 @@ function BuyContent({
             <span className={`text-base font-bold block ${activeCategory === "hard" ? "text-primary" : "text-text-primary"}`}>
               Hard Jug
             </span>
-            <span className="text-[11px] text-text-secondary">Sturdy, durable reusable jug</span>
           </button>
         </div>
       </div>
@@ -278,22 +289,26 @@ function BuyContent({
           className="w-full flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-gray-200 text-sm"
         >
           <span className="text-text-secondary">Brand Preference</span>
-          <span className="text-primary font-semibold text-xs">MiMaji (Default)</span>
+          <span className="text-primary font-semibold text-xs">{brandLabel}</span>
         </button>
         {showBrandPicker && (
           <div className="bg-white rounded-xl border border-gray-200 mt-2 p-3 space-y-2">
-            {waterBrands.map((brand) => (
-              <div key={brand.id} className={`flex items-center justify-between rounded-lg px-3 py-2 ${brand.available ? "bg-primary-light" : "bg-gray-50"}`}>
-                <span className={`text-sm font-medium ${brand.available ? "text-primary" : "text-text-secondary"}`}>{brand.name}</span>
-                {brand.available ? (
-                  <span className="text-[10px] font-semibold text-white bg-primary rounded-full px-2 py-0.5">Selected</span>
-                ) : (
-                  <span className="text-[10px] font-semibold text-text-secondary bg-gray-200 rounded-full px-2 py-0.5 flex items-center gap-1">
-                    <Lock size={8} /> Coming Soon
-                  </span>
-                )}
-              </div>
-            ))}
+            <p className="text-[10px] text-text-secondary mb-1">Select your preferred brand(s). We&apos;ll match you with nearby vendors that stock them.</p>
+            {waterBrands.map((brand) => {
+              const isSelected = selectedBrands.includes(brand.id);
+              return (
+                <button
+                  key={brand.id}
+                  onClick={() => toggleBrand(brand.id)}
+                  className={`w-full flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors ${isSelected ? "bg-primary-light border border-primary" : "bg-gray-50 border border-transparent"}`}
+                >
+                  <span className={`text-sm font-medium ${isSelected ? "text-primary" : "text-text-primary"}`}>{brand.name}</span>
+                  {isSelected && (
+                    <span className="text-[10px] font-semibold text-white bg-primary rounded-full px-2 py-0.5">Selected</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

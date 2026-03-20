@@ -194,6 +194,10 @@ export default function ConfirmOrderPage() {
       lng: selectedLocation.lng,
     } : null;
 
+    // Read brand preference from session
+    let brandPreference: string[] = [];
+    try { const bp = sessionStorage.getItem("mimaji_brand_preference"); if (bp) brandPreference = JSON.parse(bp); } catch {}
+
     const { orderId, error: orderError } = await createOrder({
       customerId: user.id,
       deliveryAddress: pending.address,
@@ -206,6 +210,7 @@ export default function ConfirmOrderPage() {
       scheduledTime: scheduledDelivery?.time,
       deliveryCode: user.deliveryPin,
       paymentMethod,
+      brandPreference,
     });
 
     if (orderError || !orderId) {

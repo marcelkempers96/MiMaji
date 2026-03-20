@@ -40,6 +40,8 @@ export interface VendorInfo {
   reviews: number;
   hours: string;
   products: string[];
+  brands: string[];
+  areasServed: string[];
   businessRegNo: string;
   mpesaNumber: string;
   phoneNumbers: string[];
@@ -51,6 +53,8 @@ export const MOCK_VENDORS: VendorInfo[] = [
   {
     id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, hours: "6AM - 9PM",
     products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"],
+    brands: ["keringet", "aquamist"],
+    areasServed: ["Kilimani", "Hurlingham", "Lavington", "Kileleshwa"],
     businessRegNo: "BN-2024-001234", mpesaNumber: "254700111222", phoneNumbers: ["+254700111222", "+254700111223"],
     locations: [
       { id: "v1-loc1", name: "AquaPure Kilimani Main", area: "Kilimani, Nairobi", lat: -1.2921, lng: 36.7877 },
@@ -60,6 +64,8 @@ export const MOCK_VENDORS: VendorInfo[] = [
   {
     id: "v2", name: "WaterPoint Westlands", area: "Westlands, Nairobi", distance: "1.2 km", rating: 4.6, reviews: 89, hours: "7AM - 8PM",
     products: ["20L Hard", "20L Soft", "10L Soft"],
+    brands: ["keringet", "mayers"],
+    areasServed: ["Westlands", "Parklands", "Spring Valley", "Runda"],
     businessRegNo: "BN-2024-002345", mpesaNumber: "254700222333", phoneNumbers: ["+254700222333"],
     locations: [
       { id: "v2-loc1", name: "WaterPoint Westlands", area: "Westlands, Nairobi", lat: -1.2673, lng: 36.8110 },
@@ -68,6 +74,8 @@ export const MOCK_VENDORS: VendorInfo[] = [
   {
     id: "v3", name: "CleanWater Hub", area: "Lavington, Nairobi", distance: "2.1 km", rating: 4.9, reviews: 234, hours: "6AM - 10PM",
     products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"],
+    brands: ["aquamist", "mayers", "keringet"],
+    areasServed: ["Lavington", "Kileleshwa", "South C", "Nairobi West"],
     businessRegNo: "BN-2024-003456", mpesaNumber: "254700333444", phoneNumbers: ["+254700333444", "+254700333445"],
     locations: [
       { id: "v3-loc1", name: "CleanWater Hub Lavington", area: "Lavington, Nairobi", lat: -1.2786, lng: 36.7718 },
@@ -78,6 +86,8 @@ export const MOCK_VENDORS: VendorInfo[] = [
   {
     id: "v4", name: "Maji Fresh Karen", area: "Karen, Nairobi", distance: "5.3 km", rating: 4.7, reviews: 67, hours: "7AM - 9PM",
     products: ["20L Hard", "20L Soft"],
+    brands: ["mayers"],
+    areasServed: ["Karen", "Langata", "Rongai", "Ngong"],
     businessRegNo: "BN-2024-004567", mpesaNumber: "254700444555", phoneNumbers: ["+254700444555"],
     locations: [
       { id: "v4-loc1", name: "Maji Fresh Karen", area: "Karen, Nairobi", lat: -1.3226, lng: 36.7126 },
@@ -86,6 +96,8 @@ export const MOCK_VENDORS: VendorInfo[] = [
   {
     id: "v5", name: "PureDrops CBD", area: "CBD, Nairobi", distance: "3.8 km", rating: 4.5, reviews: 112, hours: "6AM - 8PM",
     products: ["20L Soft", "10L Soft", "5L Soft"],
+    brands: ["aquamist", "keringet"],
+    areasServed: ["CBD", "Upper Hill", "South B", "Eastleigh"],
     businessRegNo: "BN-2024-005678", mpesaNumber: "254700555666", phoneNumbers: ["+254700555666", "+254700555667"],
     locations: [
       { id: "v5-loc1", name: "PureDrops CBD", area: "CBD, Nairobi", lat: -1.2864, lng: 36.8172 },
@@ -117,6 +129,8 @@ export async function fetchVendors(): Promise<VendorInfo[]> {
     reviews: Number(v.reviews) || 0,
     hours: (v.hours as string) || "7AM - 8PM",
     products: (v.products as string[]) || [],
+    brands: (v.brands as string[]) || [],
+    areasServed: (v.areas_served as string[]) || [],
     businessRegNo: (v.business_reg_no as string) || "",
     mpesaNumber: (v.mpesa_number as string) || "",
     phoneNumbers: (v.phone_numbers as string[]) || [],
@@ -219,6 +233,11 @@ export function getClosestLocation(vendor: VendorInfo, deliveryLat?: number, del
 
 // ── Vendor Routing ──
 
+/**
+ * Assign order to the best matching vendor.
+ * Priority: brand match > proximity > rating.
+ * Skips vendors already tried.
+ */
 export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: string; vendorName: string } | null> {
   if (!hasSupabaseConfig) {
     const orders = getMockOrders();
@@ -227,8 +246,34 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
 
     const order = orders[idx];
     const triedIds = order.vendors_tried || [];
-    const nextVendor = MOCK_VENDORS.find((v) => !triedIds.includes(v.id));
-    if (!nextVendor) return null;
+    const brandPref = order.brand_preference || [];
+    const deliveryLat = order.delivery_address_details?.lat;
+    const deliveryLng = order.delivery_address_details?.lng;
+
+    // Score each untried vendor
+    const candidates = MOCK_VENDORS
+      .filter((v) => !triedIds.includes(v.id))
+      .map((v) => {
+        let score = 0;
+        // Brand match: +10 per matching brand
+        if (brandPref.length > 0) {
+          const matches = brandPref.filter((b: string) => v.brands.includes(b)).length;
+          score += matches * 10;
+        }
+        // Proximity: closer = higher score (max 5 points)
+        if (deliveryLat && deliveryLng) {
+          const closest = getClosestLocation(v, deliveryLat, deliveryLng);
+          const dist = haversineKm(deliveryLat, deliveryLng, closest.lat, closest.lng);
+          score += Math.max(0, 5 - dist); // 5 points at 0km, 0 points at 5km+
+        }
+        // Rating bonus
+        score += v.rating;
+        return { vendor: v, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (candidates.length === 0) return null;
+    const nextVendor = candidates[0].vendor;
 
     orders[idx].current_vendor_offer = nextVendor.id;
     orders[idx].updated_at = new Date().toISOString();
@@ -236,15 +281,25 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
   }
 
-  const { data: order } = await supabase.from("orders").select("vendors_tried").eq("id", orderId).single();
+  const { data: order } = await supabase.from("orders").select("vendors_tried, brand_preference").eq("id", orderId).single();
   if (!order) return null;
 
   const triedIds = (order.vendors_tried as string[]) || [];
+  const brandPref = (order.brand_preference as string[]) || [];
   const { data: vendors } = await supabase
-    .from("vendors").select("id, name").eq("active", true).order("rating", { ascending: false });
+    .from("vendors").select("id, name, brands").eq("active", true).order("rating", { ascending: false });
 
   if (!vendors) return null;
-  const next = vendors.find((v: { id: string }) => !triedIds.includes(v.id));
+
+  // Prefer vendors that carry requested brands
+  const untried = vendors.filter((v: { id: string }) => !triedIds.includes(v.id));
+  let next = untried[0];
+  if (brandPref.length > 0) {
+    const brandMatch = untried.find((v: { brands?: string[] }) =>
+      brandPref.some((b: string) => (v.brands || []).includes(b))
+    );
+    if (brandMatch) next = brandMatch;
+  }
   if (!next) return null;
 
   await supabase.from("orders").update({
