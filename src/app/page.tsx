@@ -198,7 +198,7 @@ export default function HomePage() {
               Order for Office
             </Link>
             <Link
-              href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
+              href="/corporate"
               className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
             >
               Set Up Corporate Account →
@@ -563,7 +563,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
                 Order for Office
               </Link>
               <Link
-                href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
+                href="/corporate"
                 className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap"
               >
                 Set Up Corporate Account →

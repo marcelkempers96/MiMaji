@@ -72,6 +72,7 @@ export default function DesktopFooter() {
               <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
               <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
               <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
+              <Link href="/corporate" className="text-white/60 text-sm hover:text-white transition-colors">Corporate Solutions</Link>
               <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
               <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
               <Link href="/vendor-login" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Login</Link>
