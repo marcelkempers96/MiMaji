@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
+import { waterBrands, NAIROBI_AREAS } from "@/data/products";
 
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -39,6 +40,11 @@ export default function VendorPortalPage() {
   const [settingsLocations, setSettingsLocations] = useState<Array<{ name: string; area: string; address: string; lat: number; lng: number }>>([{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
   const [settingsHours, setSettingsHours] = useState("7:00 AM - 8:00 PM");
   const [settingsRadius, setSettingsRadius] = useState(10);
+  const [settingsBrands, setSettingsBrands] = useState<string[]>([]);
+  const [settingsProducts, setSettingsProducts] = useState<string[]>([]);
+  const [settingsAreasServed, setSettingsAreasServed] = useState<string[]>([]);
+  const [settingsCustomBrand, setSettingsCustomBrand] = useState("");
+  const [settingsCustomProduct, setSettingsCustomProduct] = useState("");
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   const handleSaveSettings = () => {
@@ -51,6 +57,9 @@ export default function VendorPortalPage() {
         locations: settingsLocations.filter((l) => l.name),
         hours: settingsHours,
         radius: settingsRadius,
+        brands: settingsBrands,
+        products: settingsProducts,
+        areasServed: settingsAreasServed,
       };
       localStorage.setItem(`mimaji_vendor_settings_${user?.id || "default"}`, JSON.stringify(vendorSettings));
       setSettingsSaved(true);
@@ -74,6 +83,9 @@ export default function VendorPortalPage() {
           setSettingsLocations(saved.locations?.length > 0 ? saved.locations.map((l: Record<string, unknown>) => ({ name: (l.name as string) || "", area: (l.area as string) || "", address: (l.address as string) || "", lat: (l.lat as number) || 0, lng: (l.lng as number) || 0 })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
           if (saved.hours) setSettingsHours(saved.hours);
           if (saved.radius) setSettingsRadius(saved.radius);
+          if (saved.brands) setSettingsBrands(saved.brands);
+          if (saved.products) setSettingsProducts(saved.products);
+          if (saved.areasServed) setSettingsAreasServed(saved.areasServed);
         } catch { /* fall through to mock */ }
       } else {
         const vendor = MOCK_VENDORS.find((v) => v.id === user.id) || MOCK_VENDORS[0];
@@ -84,6 +96,9 @@ export default function VendorPortalPage() {
           setSettingsPhoneNumbers(vendor.phoneNumbers.length > 0 ? [...vendor.phoneNumbers] : [""]);
           setSettingsLocations(vendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })));
           setSelectedStoreId(vendor.locations[0]?.id || "");
+          setSettingsBrands(vendor.brands || []);
+          setSettingsProducts(vendor.products || []);
+          setSettingsAreasServed(vendor.areasServed || []);
         }
       }
     }
@@ -252,6 +267,118 @@ export default function VendorPortalPage() {
         ))}
         <button onClick={() => setSettingsLocations([...settingsLocations, { name: "", area: "", address: "", lat: 0, lng: 0 }])} className="text-primary text-xs font-semibold flex items-center gap-1 mt-1"><Plus size={14} /> Add Location</button>
       </div>
+      {/* Brands */}
+      <div>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Brands Stocked</label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {waterBrands.map((brand) => {
+            const isSelected = settingsBrands.includes(brand.id);
+            return (
+              <button
+                key={brand.id}
+                type="button"
+                onClick={() => setSettingsBrands(isSelected ? settingsBrands.filter((b) => b !== brand.id) : [...settingsBrands, brand.id])}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isSelected ? "bg-primary text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"}`}
+              >
+                {brand.name}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex gap-2">
+          <input type="text" value={settingsCustomBrand} onChange={(e) => setSettingsCustomBrand(e.target.value)} placeholder="Add custom brand..." className="flex-1 h-8 px-3 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
+          <button
+            type="button"
+            onClick={() => {
+              if (settingsCustomBrand.trim()) {
+                const id = settingsCustomBrand.trim().toLowerCase().replace(/\s+/g, "-");
+                if (!settingsBrands.includes(id)) setSettingsBrands([...settingsBrands, id]);
+                setSettingsCustomBrand("");
+              }
+            }}
+            className="px-3 h-8 bg-primary text-white rounded-lg text-xs font-semibold"
+          >
+            Add
+          </button>
+        </div>
+        {settingsBrands.filter((b) => !waterBrands.some((wb) => wb.id === b)).length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {settingsBrands.filter((b) => !waterBrands.some((wb) => wb.id === b)).map((b) => (
+              <span key={b} className="bg-primary-light text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                {b} <button onClick={() => setSettingsBrands(settingsBrands.filter((x) => x !== b))} className="hover:text-red-600">&times;</button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Product Types */}
+      <div>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Product Types</label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].map((pt) => {
+            const isSelected = settingsProducts.includes(pt);
+            return (
+              <button
+                key={pt}
+                type="button"
+                onClick={() => setSettingsProducts(isSelected ? settingsProducts.filter((p) => p !== pt) : [...settingsProducts, pt])}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isSelected ? "bg-[#1a5a9a] text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"}`}
+              >
+                {pt}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex gap-2">
+          <input type="text" value={settingsCustomProduct} onChange={(e) => setSettingsCustomProduct(e.target.value)} placeholder="Add custom product type..." className="flex-1 h-8 px-3 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
+          <button
+            type="button"
+            onClick={() => {
+              if (settingsCustomProduct.trim() && !settingsProducts.includes(settingsCustomProduct.trim())) {
+                setSettingsProducts([...settingsProducts, settingsCustomProduct.trim()]);
+                setSettingsCustomProduct("");
+              }
+            }}
+            className="px-3 h-8 bg-[#1a5a9a] text-white rounded-lg text-xs font-semibold"
+          >
+            Add
+          </button>
+        </div>
+        {settingsProducts.filter((p) => !["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].includes(p)).length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {settingsProducts.filter((p) => !["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].includes(p)).map((p) => (
+              <span key={p} className="bg-blue-50 text-[#1a5a9a] text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+                {p} <button onClick={() => setSettingsProducts(settingsProducts.filter((x) => x !== p))} className="hover:text-red-600">&times;</button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Areas Served */}
+      <div>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Areas Served</label>
+        <div className="flex flex-wrap gap-1.5 mb-2 max-h-32 overflow-y-auto">
+          {NAIROBI_AREAS.map((area) => {
+            const isSelected = settingsAreasServed.includes(area);
+            return (
+              <button
+                key={area}
+                type="button"
+                onClick={() => setSettingsAreasServed(isSelected ? settingsAreasServed.filter((a) => a !== area) : [...settingsAreasServed, area])}
+                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${isSelected ? "bg-[#2ECC71] text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"}`}
+              >
+                {area}
+              </button>
+            );
+          })}
+        </div>
+        {settingsAreasServed.length > 0 && (
+          <p className="text-[10px] text-text-secondary">{settingsAreasServed.length} area{settingsAreasServed.length !== 1 ? "s" : ""} selected</p>
+        )}
+      </div>
+
       <div>
         <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Operating Hours</label>
         <input type="text" value={settingsHours} onChange={(e) => setSettingsHours(e.target.value)} className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />

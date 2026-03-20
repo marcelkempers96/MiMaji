@@ -41,6 +41,8 @@ export interface OrderRecord {
   delivery_code: string | null;
   // Payment method used for this order
   payment_method: string | null;
+  // Brand preference for vendor matching
+  brand_preference: string[];
 }
 
 /** Generate a 4-digit delivery confirmation code from the order ID */
@@ -135,6 +137,7 @@ function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
     scheduled_time: (row.scheduled_time as string) || null,
     delivery_code: (row.delivery_code as string) || null,
     payment_method: (row.payment_method as string) || null,
+    brand_preference: (row.brand_preference as string[]) || [],
   };
 }
 
@@ -170,6 +173,8 @@ export async function createOrder(params: {
   deliveryCode?: string;
   /** Payment method: stk-push, mpesa-app, or cash */
   paymentMethod?: string;
+  /** Brand preference IDs for vendor matching */
+  brandPreference?: string[];
 }): Promise<{ orderId: string | null; error: string | null }> {
   if (!hasSupabaseConfig) {
     const orderId = crypto.randomUUID();
@@ -197,6 +202,7 @@ export async function createOrder(params: {
       scheduled_time: params.scheduledTime || null,
       delivery_code: params.deliveryCode || generateDeliveryCode(orderId),
       payment_method: params.paymentMethod || null,
+      brand_preference: params.brandPreference || [],
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -235,6 +241,7 @@ export async function createOrder(params: {
       scheduled_time: params.scheduledTime || null,
       delivery_code: generateDeliveryCode(tempId),
       payment_method: params.paymentMethod || null,
+      brand_preference: params.brandPreference || [],
     })
     .select("id")
     .single();
