@@ -162,9 +162,9 @@ export default function AdminDashboard() {
 
   // ── Computed stats ──
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((s, o) => s + o.price_total, 0);
+  const totalRevenue = orders.reduce((s: number, o: OrderRecord) => s + o.price_total, 0);
   const activeOrders = orders.filter(
-    (o) => o.status !== "delivered" && o.status !== "cancelled"
+    (o: OrderRecord) => o.status !== "delivered" && o.status !== "cancelled"
   ).length;
   const totalVendors = MOCK_VENDORS.length;
 
@@ -174,35 +174,35 @@ export default function AdminDashboard() {
   }
 
   const totalLitres = orders
-    .filter((o) => o.status === "delivered")
-    .reduce((s, o) => s + parseLitres(o), 0);
+    .filter((o: OrderRecord) => o.status === "delivered")
+    .reduce((s: number, o: OrderRecord) => s + parseLitres(o), 0);
 
   const totalBottles = orders
-    .filter((o) => o.status === "delivered")
-    .reduce((s, o) => {
+    .filter((o: OrderRecord) => o.status === "delivered")
+    .reduce((s: number, o: OrderRecord) => {
       if (o.order_items && o.order_items.length > 0) {
-        return s + o.order_items.reduce((a, i) => a + i.quantity, 0);
+        return s + o.order_items.reduce((a: number, i: { name: string; quantity: number; price: number }) => a + i.quantity, 0);
       }
       return s + o.quantity;
     }, 0);
 
   const last7Days = getLast7Days();
   const revenueByDay = last7Days.map((day) => {
-    const dayOrders = orders.filter((o) => o.created_at.startsWith(day));
+    const dayOrders = orders.filter((o: OrderRecord) => o.created_at.startsWith(day));
     return {
       date: day,
       label: new Date(day + "T00:00:00").toLocaleDateString("en-KE", {
         weekday: "short",
         day: "numeric",
       }),
-      revenue: dayOrders.reduce((s, o) => s + o.price_total, 0),
+      revenue: dayOrders.reduce((s: number, o: OrderRecord) => s + o.price_total, 0),
       count: dayOrders.length,
     };
   });
   const maxRevenue = Math.max(...revenueByDay.map((d) => d.revenue), 1);
 
   function vendorOrderCount(vendorId: string): number {
-    return orders.filter((o) => o.vendor_id === vendorId).length;
+    return orders.filter((o: OrderRecord) => o.vendor_id === vendorId).length;
   }
 
   // ── Status update ──
