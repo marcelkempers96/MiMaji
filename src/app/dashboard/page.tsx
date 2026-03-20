@@ -18,6 +18,7 @@ import {
   X,
   User,
   Receipt,
+  Home,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -31,6 +32,7 @@ const shortcuts = [
   { label: "Invoices", icon: Receipt, href: "/invoices" },
   { label: "Account & Profile", icon: User, href: "/account-settings" },
   { label: "Saved Addresses", icon: MapPin, href: "/saved-addresses" },
+  { label: "Homepage", icon: Home, href: "/" },
   { label: "Support", icon: MessageCircle, href: "/support" },
 ];
 

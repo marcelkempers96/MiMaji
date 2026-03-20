@@ -16,10 +16,15 @@ export default function VendorLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect once logged in
+  // Redirect once logged in as vendor
   useEffect(() => {
     if (user) {
-      router.push("/vendor-portal");
+      if (user.role === "vendor") {
+        router.push("/vendor-portal");
+      } else {
+        setError("This account is not a vendor account. Please use a vendor login.");
+        setLoading(false);
+      }
     }
   }, [user, router]);
 
@@ -31,7 +36,14 @@ export default function VendorLoginPage() {
     }
     setError("");
     setLoading(true);
-    const result = await login(phone, password);
+
+    // Normalize phone number (strip spaces, leading +, handle leading 0)
+    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
+    if (cleaned.startsWith("0")) {
+      cleaned = "254" + cleaned.slice(1);
+    }
+
+    const result = await login(cleaned, password);
     if (result.error) {
       setError(result.error);
       setLoading(false);

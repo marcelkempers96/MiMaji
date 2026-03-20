@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound } from "lucide-react";
+import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound, Calendar, Gift } from "lucide-react";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
 import { createOrder, updateOrderStatus, formatOrderId } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
-import { processOrderRewards, initRewards } from "@/lib/rewards";
+import { processOrderRewards, initRewards, getRewardsSummary, useFreeLitres, calculateOrderLitres } from "@/lib/rewards";
 
 function getEstimatedDelivery(): { duration: string; arrivalTime: string } {
   const now = new Date();
@@ -43,6 +43,45 @@ export default function ConfirmOrderPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
+
+  // Scheduled delivery
+  const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(null);
+  useState(() => {
+    try {
+      const raw = sessionStorage.getItem("mimaji_scheduled_delivery");
+      if (raw) {
+        setScheduledDelivery(JSON.parse(raw));
+      }
+    } catch {}
+  });
+
+  // Rewards
+  const [freeLitres, setFreeLitres] = useState(0);
+  const [claimRewards, setClaimRewards] = useState(false);
+  const [rewardsApplied, setRewardsApplied] = useState(0);
+
+  useState(() => {
+    if (user?.id) {
+      initRewards(user.id);
+      const summary = getRewardsSummary(user.id);
+      setFreeLitres(summary.freeLitres);
+    }
+  });
+
+  const orderLitres = items.reduce((acc, item) => {
+    const match = item.name.match(/(\d+)L/i);
+    return acc + (match ? parseInt(match[1]) * item.quantity : 0);
+  }, 0);
+
+  const handleClaimRewards = (claim: boolean) => {
+    setClaimRewards(claim);
+    if (claim && freeLitres > 0) {
+      const claimable = Math.min(freeLitres, orderLitres);
+      setRewardsApplied(claimable);
+    } else {
+      setRewardsApplied(0);
+    }
+  };
 
   // Store confirmed order details so they persist after cart is cleared
   const confirmedOrderRef = useRef<{
@@ -79,6 +118,8 @@ export default function ConfirmOrderPage() {
         priceTotal: total,
         productName,
         orderItems,
+        scheduledDate: scheduledDelivery?.date,
+        scheduledTime: scheduledDelivery?.time,
       });
 
       if (orderError || !orderId) {
@@ -139,8 +180,12 @@ export default function ConfirmOrderPage() {
 
       // Process referral rewards (checks if this order qualifies for referral bonuses)
       try {
-        initRewards(user.id); // Ensure rewards record exists (no-op if already initialised)
+        initRewards(user.id);
         processOrderRewards(user.id, orderItems);
+        // Apply claimed rewards
+        if (claimRewards && rewardsApplied > 0) {
+          useFreeLitres(user.id, rewardsApplied);
+        }
       } catch (e) {
         console.error("Rewards processing failed:", e);
       }
@@ -156,6 +201,7 @@ export default function ConfirmOrderPage() {
       };
 
       clearCart();
+      try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}
       setPaymentStatus("confirmed");
     } catch (err) {
       setPaymentStatus("error");
@@ -453,11 +499,66 @@ export default function ConfirmOrderPage() {
               </p>
             </div>
 
+            {/* Scheduled Delivery Info */}
+            {scheduledDelivery && (
+              <div className="bg-primary-light rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Calendar size={16} className="text-primary" />
+                  <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide">Scheduled Delivery</p>
+                </div>
+                <p className="text-sm font-bold text-text-primary">{scheduledDelivery.date} at {scheduledDelivery.time}</p>
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <span className="text-sm text-text-secondary">Amount</span>
               <span className="text-text-primary font-medium">{amountSummary()}</span>
             </div>
           </div>
+
+          {/* Claim Rewards */}
+          {freeLitres > 0 && (
+            <div className="mt-4">
+              <h3 className="font-bold text-sm text-text-primary mb-3 flex items-center gap-2">
+                <Gift size={16} className="text-[#2ECC71]" />
+                Claim Rewards
+              </h3>
+              <button
+                onClick={() => handleClaimRewards(!claimRewards)}
+                className={`w-full flex items-center gap-3 rounded-xl p-4 transition-all text-left ${
+                  claimRewards
+                    ? "bg-[#E8F5E9] border-2 border-[#2ECC71]"
+                    : "bg-surface border-2 border-transparent shadow-card"
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  claimRewards ? "bg-[#2ECC71]" : "bg-gray-100"
+                }`}>
+                  <Gift size={20} className={claimRewards ? "text-white" : "text-text-secondary"} />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-text-primary">
+                    Use {freeLitres}L Free Water
+                  </p>
+                  <p className="text-text-secondary text-xs">
+                    {claimRewards
+                      ? `Applying ${rewardsApplied}L to this order`
+                      : `You have ${freeLitres}L of free water available`}
+                  </p>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                  claimRewards ? "border-[#2ECC71] bg-[#2ECC71]" : "border-gray-300"
+                }`}>
+                  {claimRewards && <CheckCircle2 size={14} className="text-white" />}
+                </div>
+              </button>
+              {claimRewards && rewardsApplied > 0 && (
+                <p className="text-[#2ECC71] text-xs font-semibold mt-2 text-center">
+                  {rewardsApplied}L of free water will be applied to this order!
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="h-px bg-gray-100 my-4" />
 

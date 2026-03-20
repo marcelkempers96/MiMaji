@@ -309,17 +309,34 @@ function LoginContent() {
             </div>
           )}
 
-          {/* Remember Me */}
+          {/* Remember Me & Forgot Password */}
           {mode === "login" && (
-            <label className="flex items-center gap-2 mt-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-text-secondary">Remember me</span>
-            </label>
+            <div className="flex items-center justify-between mt-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-text-secondary">Remember me</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const cleaned = getFullPhone();
+                  if (cleaned.length < 9) {
+                    setError("Enter your phone number first, then tap Forgot Password");
+                    return;
+                  }
+                  setError("");
+                  alert(`A password reset link has been sent to the phone number ending in ...${cleaned.slice(-4)}. Please check your SMS.`);
+                }}
+                className="text-sm text-primary font-semibold hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
           )}
 
           {error && <p className="text-cta-alt text-xs mt-3">{error}</p>}
