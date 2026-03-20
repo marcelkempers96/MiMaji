@@ -22,7 +22,6 @@ import majimap from "./majimap.png";
 import test1 from "./test1.png";
 import webicon from "./webicon.png";
 import watermany from "./watermany.png";
-// Corporate service images — swap these with final assets when ready
 import watertruck from "./watertruck.png";
 import watertank from "./watertank.png";
 import watercleaning from "./watercleaning.png";

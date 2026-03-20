@@ -36,13 +36,25 @@ type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 export default function ConfirmOrderPage() {
   const router = useRouter();
   const { items, totalItems, total, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "confirmed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
+
+  // Auth guard: redirect to login if not authenticated (after loading completes)
+  if (!authLoading && !user && paymentStatus !== "confirmed") {
+    router.push("/login?redirect=/delivery");
+    return null;
+  }
+
+  // Empty cart guard: redirect to shop if cart is empty (unless showing confirmation)
+  if (!authLoading && user && items.length === 0 && paymentStatus !== "confirmed") {
+    router.push("/buy");
+    return null;
+  }
 
   // Scheduled delivery
   const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(null);
@@ -102,7 +114,10 @@ export default function ConfirmOrderPage() {
   } | null>(null);
 
   const handleConfirm = async () => {
-    if (!user?.phone || !user?.id) return;
+    if (!user?.phone || !user?.id) {
+      router.push("/login?redirect=/delivery");
+      return;
+    }
 
     setPaymentStatus("loading");
     setErrorMsg("");

@@ -12,7 +12,6 @@ const services = [
     title: "Water Truck Delivery",
     description:
       "Reliable bulk water delivery for apartments, businesses, construction sites, schools, and other organizations that need a dependable supply. We deliver water in bulk directly to your location on a schedule that works for you.",
-    // TODO: Replace placeholder with final watertruck.png asset
     image: watertruck,
     alt: "Water truck delivering clean water",
     icon: Truck,
@@ -26,7 +25,6 @@ const services = [
     title: "Water Tanks",
     description:
       "We supply water tanks in a wide range of sizes for residential, commercial, and agricultural use. Popular capacities include 500L, 1,000L, 2,500L, 5,000L, and 10,000L. Choose from vertical, horizontal, or rectangular loft designs — all made with UV-protected, food-grade materials.",
-    // TODO: Replace placeholder with final watertank.png asset
     image: watertank,
     alt: "Water storage tanks for residential and commercial use",
     icon: Droplets,
@@ -40,7 +38,6 @@ const services = [
     title: "Water Tank Cleaning",
     description:
       "Keep your stored water safe and clean with professional tank cleaning services. Regular cleaning helps maintain tank hygiene, prevents sediment build-up, and supports safe water storage for your home or business.",
-    // TODO: Replace placeholder with final watercleaning.png asset
     image: watercleaning,
     alt: "Professional water tank cleaning service",
     icon: SprayCan,
