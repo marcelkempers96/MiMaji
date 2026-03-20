@@ -21,6 +21,7 @@ interface AuthContextType {
   login: (phone: string, password: string) => Promise<{ error?: string }>;
   signup: (phone: string, password: string, name: string, referralCode?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
+  updateProfile: (updates: { name?: string; email?: string; mpesaNumber?: string }) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({}),
   signup: async (_p, _pw, _n, _r) => ({}),
   logout: async () => {},
+  updateProfile: async () => ({}),
 });
 
 function formatPhoneEmail(phone: string): string {
@@ -206,8 +208,41 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     clearMockSession();
   }, []);
 
+  const updateProfile = useCallback(async (updates: { name?: string; email?: string; mpesaNumber?: string }): Promise<{ error?: string }> => {
+    if (!user) return { error: "Not logged in" };
+    const updatedUser = { ...user };
+    if (updates.name !== undefined) updatedUser.name = updates.name;
+    setUser(updatedUser);
+    saveMockSession(updatedUser);
+
+    // Update in signups storage too
+    try {
+      const raw = localStorage.getItem("mimaji_mock_signups");
+      const signups = raw ? JSON.parse(raw) : {};
+      for (const [phone, entry] of Object.entries(signups)) {
+        const e = entry as { password: string; user: User };
+        if (e.user.id === user.id) {
+          if (updates.name !== undefined) e.user.name = updates.name;
+          signups[phone] = e;
+        }
+      }
+      localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+    } catch {}
+
+    // Store email and mpesa number in a separate profile settings key
+    try {
+      const profileKey = `mimaji_profile_${user.id}`;
+      const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
+      if (updates.email !== undefined) existing.email = updates.email;
+      if (updates.mpesaNumber !== undefined) existing.mpesaNumber = updates.mpesaNumber;
+      localStorage.setItem(profileKey, JSON.stringify(existing));
+    } catch {}
+
+    return {};
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, session: null, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, session: null, loading, login, signup, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
@@ -313,8 +348,22 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
   }, [getSupabase]);
 
+  const updateProfile = useCallback(async (updates: { name?: string; email?: string; mpesaNumber?: string }): Promise<{ error?: string }> => {
+    const sb = await getSupabase();
+    const metadata: Record<string, string> = {};
+    if (updates.name !== undefined) metadata.full_name = updates.name;
+    if (updates.email !== undefined) metadata.email = updates.email;
+    if (updates.mpesaNumber !== undefined) metadata.mpesa_number = updates.mpesaNumber;
+    const { error } = await sb.auth.updateUser({ data: metadata });
+    if (error) return { error: error.message };
+    if (updates.name && user) {
+      setUser({ ...user, name: updates.name });
+    }
+    return {};
+  }, [getSupabase, user]);
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, session, loading, login, signup, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

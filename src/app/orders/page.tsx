@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle } from "lucide-react";
+import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle, KeyRound, Copy } from "lucide-react";
 import { getProductImage } from "@/data/products";
 import { useState, useEffect, useCallback } from "react";
 
@@ -10,7 +10,7 @@ import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId } from "@/lib/orders";
+import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
 import { getRewardsSummary, initRewards } from "@/lib/rewards";
 
 const statusSteps = [
@@ -72,6 +72,20 @@ export default function OrdersPage() {
       window.removeEventListener("focus", handleFocus);
     };
   }, [loadOrders]);
+
+  // MPESA code entry for orders without mpesa_ref
+  const [mpesaCodeInputs, setMpesaCodeInputs] = useState<Record<string, string>>({});
+  const [submittingCode, setSubmittingCode] = useState<string | null>(null);
+
+  const handleSubmitMpesaCode = async (orderId: string) => {
+    const code = mpesaCodeInputs[orderId]?.trim().toUpperCase();
+    if (!code || code.length < 5) return;
+    setSubmittingCode(orderId);
+    await updateOrderStatus(orderId, "paid", code);
+    loadOrders();
+    setSubmittingCode(null);
+    setMpesaCodeInputs((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
+  };
 
   if (!user) return null;
 
@@ -175,6 +189,55 @@ export default function OrdersPage() {
                         );
                       })}
                     </div>
+
+                    {/* Delivery Code Banner */}
+                    {(order.delivery_code || order.id) && (
+                      <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-3 mb-3">
+                        <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide mb-1 text-center">Your Delivery Code</p>
+                        <div className="flex justify-center gap-1.5">
+                          {(order.delivery_code || generateDeliveryCode(order.id)).split("").map((digit, i) => (
+                            <div key={i} className="w-9 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                              <span className="text-lg font-extrabold text-primary">{digit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* MPESA Code TODO - for mpesa-app orders without payment code */}
+                    {order.payment_method === "mpesa-app" && !order.mpesa_ref && (
+                      <div className="bg-[#FFF5EC] border border-[#F5A623] rounded-xl p-3 mb-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <KeyRound size={14} className="text-[#F5A623]" />
+                          <p className="text-xs font-bold text-[#F5A623] uppercase">Action Required</p>
+                        </div>
+                        <p className="text-text-primary text-xs font-medium mb-2">
+                          Enter your M-PESA payment code so we can confirm your order.
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={mpesaCodeInputs[order.id] || ""}
+                            onChange={(e) => setMpesaCodeInputs((prev) => ({ ...prev, [order.id]: e.target.value.toUpperCase() }))}
+                            placeholder="e.g. UCJLD9PMW4"
+                            className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono font-bold text-text-primary tracking-wider text-center focus:border-primary focus:outline-none"
+                            maxLength={15}
+                            disabled={submittingCode === order.id}
+                          />
+                          <button
+                            onClick={() => handleSubmitMpesaCode(order.id)}
+                            disabled={!mpesaCodeInputs[order.id]?.trim() || (mpesaCodeInputs[order.id]?.trim().length || 0) < 5 || submittingCode === order.id}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
+                              mpesaCodeInputs[order.id]?.trim()?.length >= 5 && submittingCode !== order.id
+                                ? "bg-[#2ECC71] text-white hover:bg-[#27ae60]"
+                                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                            }`}
+                          >
+                            {submittingCode === order.id ? "..." : "Submit"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <Link
                       href={`/track?orderId=${order.id}`}
