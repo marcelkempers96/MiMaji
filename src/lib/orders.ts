@@ -22,6 +22,18 @@ export interface OrderRecord {
   // Scheduling fields
   scheduled_date: string | null;
   scheduled_time: string | null;
+  // Delivery confirmation code (4-digit PIN the customer shares with driver)
+  delivery_code: string | null;
+}
+
+/** Generate a 4-digit delivery confirmation code from the order ID */
+export function generateDeliveryCode(orderId: string): string {
+  let hash = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    hash = ((hash << 5) - hash + orderId.charCodeAt(i)) | 0;
+  }
+  const code = Math.abs(hash) % 10000;
+  return code.toString().padStart(4, "0");
 }
 
 // Check if real Supabase credentials are configured
@@ -85,6 +97,7 @@ function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
     current_vendor_offer: (row.current_vendor_offer as string) || null,
     scheduled_date: (row.scheduled_date as string) || null,
     scheduled_time: (row.scheduled_time as string) || null,
+    delivery_code: (row.delivery_code as string) || null,
   };
 }
 
@@ -139,6 +152,7 @@ export async function createOrder(params: {
       current_vendor_offer: null,
       scheduled_date: params.scheduledDate || null,
       scheduled_time: params.scheduledTime || null,
+      delivery_code: generateDeliveryCode(orderId),
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -146,6 +160,8 @@ export async function createOrder(params: {
     return { orderId, error: null };
   }
 
+  // Generate a temporary ID for the delivery code, then use the real DB id
+  const tempId = crypto.randomUUID();
   const { data, error } = await supabase
     .from("orders")
     .insert({
@@ -163,6 +179,7 @@ export async function createOrder(params: {
       current_vendor_offer: null,
       scheduled_date: params.scheduledDate || null,
       scheduled_time: params.scheduledTime || null,
+      delivery_code: generateDeliveryCode(tempId),
     })
     .select("id")
     .single();

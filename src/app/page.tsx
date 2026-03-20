@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, webicon } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2 } from "lucide-react";
 
 import Link from "next/link";
@@ -46,7 +46,7 @@ export default function HomePage() {
 
         {/* Hero */}
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5 relative overflow-hidden">
-          <img src={webicon.src} alt="" className="absolute top-4 right-4 w-20 h-20 opacity-15 object-contain" />
+          <img src={watermany.src} alt="" className="absolute top-4 right-4 w-20 h-20 opacity-15 object-contain" />
           <h1 className="text-2xl font-extrabold leading-tight">
             Order Water Online
           </h1>
@@ -384,7 +384,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white relative overflow-hidden">
-        <img src={webicon.src} alt="" className="absolute top-8 right-8 w-40 h-40 opacity-10 object-contain" />
+        <img src={watermany.src} alt="" className="absolute top-8 right-8 w-40 h-40 opacity-10 object-contain" />
         <div className="max-w-6xl mx-auto px-8 py-20 flex items-center gap-12 relative">
           <div className="flex-1">
             <h1 className="text-5xl font-extrabold leading-tight">

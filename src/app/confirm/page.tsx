@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
-import { createOrder, updateOrderStatus, formatOrderId } from "@/lib/orders";
+import { createOrder, updateOrderStatus, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
 import { processOrderRewards, initRewards, getRewardsSummary, useFreeLitres, calculateOrderLitres } from "@/lib/rewards";
 
@@ -98,6 +98,7 @@ export default function ConfirmOrderPage() {
     total: number;
     address: string;
     paymentMethod: PaymentMethod;
+    deliveryCode: string;
   } | null>(null);
 
   const handleConfirm = async () => {
@@ -205,6 +206,7 @@ export default function ConfirmOrderPage() {
         total: finalTotal,
         address: selectedLocation?.address || "Not set",
         paymentMethod,
+        deliveryCode: generateDeliveryCode(orderId),
       };
 
       clearCart();
@@ -427,6 +429,21 @@ export default function ConfirmOrderPage() {
               <p className="font-bold text-sm text-text-primary">{order.mpesaRef}</p>
             </div>
           )}
+
+          {/* Delivery Confirmation Code */}
+          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-4 mb-4">
+            <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 text-center">Your Delivery Code</p>
+            <div className="flex justify-center gap-2 mb-2">
+              {order.deliveryCode.split("").map((digit, i) => (
+                <div key={i} className="w-12 h-14 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                  <span className="text-2xl font-extrabold text-primary">{digit}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-text-secondary text-[11px] text-center">
+              Share this code with the delivery driver to confirm your delivery.
+            </p>
+          </div>
 
           {/* Track Order Button */}
           <Link href={`/track?orderId=${order.orderId}`}>

@@ -8,7 +8,7 @@ import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { OrderRecord, formatOrderDate, formatOrderId } from "@/lib/orders";
+import { OrderRecord, formatOrderDate, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
 
 export default function VendorPortalPage() {
@@ -24,6 +24,11 @@ export default function VendorPortalPage() {
   const [etaModalOrderId, setEtaModalOrderId] = useState<string | null>(null);
   const [etaMinutes, setEtaMinutes] = useState(30);
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
+
+  // Delivery code confirmation modal
+  const [deliveryCodeModalOrder, setDeliveryCodeModalOrder] = useState<OrderRecord | null>(null);
+  const [deliveryCodeInput, setDeliveryCodeInput] = useState("");
+  const [deliveryCodeError, setDeliveryCodeError] = useState("");
 
   // Settings state
   const [settingsBusinessName, setSettingsBusinessName] = useState("");
@@ -142,8 +147,24 @@ export default function VendorPortalPage() {
     loadOrders();
   };
 
-  const handleCompleteOrder = async (orderId: string) => {
-    await updateVendorOrderStatus(orderId, "delivered");
+  const handleCompleteOrder = (orderId: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (order) {
+      setDeliveryCodeModalOrder(order);
+      setDeliveryCodeInput("");
+      setDeliveryCodeError("");
+    }
+  };
+
+  const handleConfirmDeliveryCode = async () => {
+    if (!deliveryCodeModalOrder) return;
+    const expectedCode = deliveryCodeModalOrder.delivery_code || generateDeliveryCode(deliveryCodeModalOrder.id);
+    if (deliveryCodeInput !== expectedCode) {
+      setDeliveryCodeError("Incorrect code. Please ask the customer for their 4-digit delivery code.");
+      return;
+    }
+    await updateVendorOrderStatus(deliveryCodeModalOrder.id, "delivered");
+    setDeliveryCodeModalOrder(null);
     loadOrders();
   };
 
@@ -345,6 +366,68 @@ export default function VendorPortalPage() {
             </div>
             <button onClick={handleConfirmAccept} className="w-full mt-4 bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#1a5a9a] transition-colors flex items-center justify-center gap-2">
               <CheckCircle size={18} /> Accept Order ({etaMinutes} min)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery Code Confirmation Modal */}
+      {deliveryCodeModalOrder && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg text-text-primary">Confirm Delivery</h3>
+              <button onClick={() => setDeliveryCodeModalOrder(null)} className="text-text-secondary hover:text-text-primary"><X size={20} /></button>
+            </div>
+            <p className="text-text-secondary text-sm mb-1">
+              Order: <span className="font-bold text-text-primary">{formatOrderId(deliveryCodeModalOrder.id)}</span>
+            </p>
+            <p className="text-text-secondary text-sm mb-4">
+              Enter the customer&apos;s 4-digit delivery code to confirm delivery.
+            </p>
+            <div className="flex justify-center gap-2 mb-4">
+              {[0, 1, 2, 3].map((i) => (
+                <input
+                  key={i}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={deliveryCodeInput[i] || ""}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    const newCode = deliveryCodeInput.split("");
+                    newCode[i] = val;
+                    setDeliveryCodeInput(newCode.join("").slice(0, 4));
+                    setDeliveryCodeError("");
+                    if (val && i < 3) {
+                      const next = e.target.parentElement?.children[i + 1] as HTMLInputElement;
+                      next?.focus();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace" && !deliveryCodeInput[i] && i > 0) {
+                      const prev = (e.target as HTMLElement).parentElement?.children[i - 1] as HTMLInputElement;
+                      prev?.focus();
+                    }
+                  }}
+                  className="w-14 h-16 text-center text-2xl font-extrabold text-primary border-2 border-gray-200 rounded-xl focus:border-primary outline-none transition-colors"
+                  autoFocus={i === 0}
+                />
+              ))}
+            </div>
+            {deliveryCodeError && (
+              <p className="text-cta-alt text-xs text-center mb-3 font-semibold">{deliveryCodeError}</p>
+            )}
+            <button
+              onClick={handleConfirmDeliveryCode}
+              disabled={deliveryCodeInput.length < 4}
+              className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
+                deliveryCodeInput.length >= 4
+                  ? "bg-[#2ECC71] text-white hover:bg-[#27ae60]"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              <CheckCircle size={18} /> Confirm Delivery
             </button>
           </div>
         </div>
