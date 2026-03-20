@@ -2,16 +2,34 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck } from "lucide-react";
+import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock } from "lucide-react";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { useLocation } from "@/context/LocationContext";
+import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
 import { createOrder, updateOrderStatus, formatOrderId } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
 import { processOrderRewards, initRewards } from "@/lib/rewards";
+
+function getEstimatedDelivery(): { duration: string; arrivalTime: string } {
+  const now = new Date();
+  // Convert to Kenya time (UTC+3)
+  const kenyaOffset = 3 * 60;
+  const kenyaNow = new Date(now.getTime() + (kenyaOffset + now.getTimezoneOffset()) * 60000);
+  // Add 35 minutes (average delivery time)
+  const arrival = new Date(kenyaNow.getTime() + 35 * 60000);
+  const hours = arrival.getHours();
+  const minutes = arrival.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHour = hours % 12 || 12;
+  const displayMin = minutes.toString().padStart(2, "0");
+  return {
+    duration: "30–45 min",
+    arrivalTime: `${displayHour}:${displayMin} ${ampm} EAT`,
+  };
+}
 
 type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 
@@ -314,10 +332,40 @@ export default function ConfirmOrderPage() {
               <span className="text-sm text-text-secondary">Account</span>
               <span className="text-text-primary font-medium">{user?.phone || "Not set"}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-text-secondary">Deliver To</span>
-              <span className="text-text-primary font-medium">{selectedLocation?.address || "Not set"}</span>
+
+            {/* Full Delivery Address */}
+            <div className="bg-primary-light rounded-xl p-3">
+              <div className="flex items-start gap-2">
+                <MapPin size={16} className="text-primary flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1">Deliver To</p>
+                  <p className="text-sm font-medium text-text-primary">
+                    {selectedLocation
+                      ? buildDisplayAddress(selectedLocation) || selectedLocation.address
+                      : "Not set"}
+                  </p>
+                  {selectedLocation?.additionalDirections && (
+                    <p className="text-xs text-text-secondary italic mt-1">
+                      &quot;{selectedLocation.additionalDirections}&quot;
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Estimated Delivery Time */}
+            <div className="bg-[#E8F5E9] rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-[#2ECC71] flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide">Estimated Delivery</p>
+                  <p className="text-sm font-medium text-text-primary">
+                    {getEstimatedDelivery().duration} &middot; Arriving ~{getEstimatedDelivery().arrivalTime}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-between items-center">
               <span className="text-sm text-text-secondary">Amount</span>
               <span className="text-text-primary font-medium">{amountSummary()}</span>

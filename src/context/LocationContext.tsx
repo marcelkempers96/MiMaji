@@ -61,19 +61,23 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
 // New accounts start with no saved addresses — user needs to add their first address
-const STORAGE_KEY = "mimaji_saved_locations";
+const STORAGE_KEY_PREFIX = "mimaji_saved_locations";
 
-function loadSavedLocations(): SavedLocation[] {
+function getStorageKey(userId?: string | null): string {
+  return userId ? `${STORAGE_KEY_PREFIX}_${userId}` : STORAGE_KEY_PREFIX;
+}
+
+function loadSavedLocations(userId?: string | null): SavedLocation[] {
   try {
     if (typeof window === "undefined") return [];
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey(userId));
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
-function persistLocations(locations: SavedLocation[]) {
+function persistLocations(locations: SavedLocation[], userId?: string | null) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(locations));
   } catch {}
 }
 
@@ -140,10 +144,10 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         if (supaLocs && supaLocs.length > 0) {
           setSavedLocations(supaLocs);
-          persistLocations(supaLocs); // sync to localStorage as cache
+          persistLocations(supaLocs, userId); // sync to localStorage as cache
         } else {
-          // Fall back to localStorage (might have data from before login)
-          const local = loadSavedLocations();
+          // Fall back to user-specific localStorage
+          const local = loadSavedLocations(userId);
           setSavedLocations(local);
           // Push local data to Supabase if we have some
           if (local.length > 0) {
@@ -152,7 +156,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         }
         setLoaded(true);
       });
+    } else if (userId) {
+      // Logged in but no Supabase — use user-specific localStorage
+      setSavedLocations(loadSavedLocations(userId));
+      setLoaded(true);
     } else {
+      // Not logged in — use generic localStorage
       setSavedLocations(loadSavedLocations());
       setLoaded(true);
     }
@@ -163,7 +172,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   // Persist whenever savedLocations changes (only after initial load)
   useEffect(() => {
     if (loaded) {
-      persistLocations(savedLocations);
+      persistLocations(savedLocations, user?.id);
       if (user?.id && hasSupabaseConfig) {
         persistLocationsToSupabase(user.id, savedLocations);
       }

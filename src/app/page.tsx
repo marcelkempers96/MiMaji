@@ -89,7 +89,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Pay with M-Pesa</p>
-              <p className="text-text-secondary text-xs">Secure STK push payment to your phone</p>
+              <p className="text-text-secondary text-xs">Fast, secure mobile payment</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -154,13 +154,52 @@ export default function HomePage() {
 
         {/* Impact */}
         <Link href="/impact">
-          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-5 hover:shadow-card transition-shadow">
+          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-3 hover:shadow-card transition-shadow">
             <div className="flex items-center gap-3">
               <Heart size={20} className="text-[#2ECC71]" />
               <div>
                 <p className="font-bold text-sm text-text-primary">Water is Life</p>
                 <p className="text-text-secondary text-xs">For every 100L, we supply 10L to rural communities</p>
                 <p className="text-[#2ECC71] text-xs font-semibold mt-1">Learn about our impact →</p>
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        {/* Corporate / Office Water */}
+        <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-xl p-4 mb-3">
+          <div className="flex items-center gap-3">
+            <Building2 size={20} className="text-white" />
+            <div>
+              <p className="font-bold text-sm text-white">Water for Your Office</p>
+              <p className="text-white/70 text-xs">Scheduled deliveries, volume discounts & monthly invoicing</p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <Link
+              href="/buy"
+              className="flex-1 bg-cta-alt text-white text-center rounded-full py-2 text-xs font-bold hover:bg-[#d44a44] transition-colors"
+            >
+              Order for Office
+            </Link>
+            <Link
+              href="/contact"
+              className="flex-1 bg-white/20 text-white text-center rounded-full py-2 text-xs font-bold hover:bg-white/30 transition-colors"
+            >
+              Corporate Account
+            </Link>
+          </div>
+        </div>
+
+        {/* Water Quality Guide */}
+        <Link href="/water-guide">
+          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-4 mb-5 hover:shadow-card transition-shadow">
+            <div className="flex items-center gap-3">
+              <Droplets size={20} className="text-primary" />
+              <div>
+                <p className="font-bold text-sm text-text-primary">Water Quality Guide</p>
+                <p className="text-text-secondary text-xs">Learn what makes water safe — E. coli, TDS, pH & more</p>
+                <p className="text-primary text-xs font-semibold mt-1">Read the full guide →</p>
               </div>
             </div>
           </div>
