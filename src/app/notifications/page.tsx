@@ -9,6 +9,14 @@ import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
 import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderId } from "@/lib/orders";
+import { supabase } from "@/lib/supabase";
+
+const hasSupabaseConfig =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
 interface Notification {
   id: string;
@@ -160,6 +168,31 @@ export default function NotificationsPage() {
 
   const refreshNotifications = useCallback(async () => {
     if (!user?.id) return;
+
+    if (hasSupabaseConfig) {
+      // Fetch from Supabase notifications table
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setNotifications(data.map((n: Record<string, unknown>) => ({
+          id: n.id as string,
+          type: ((n.type as string) || "promo") as Notification["type"],
+          title: n.title as string,
+          message: n.message as string,
+          orderId: (n.order_id as string) || undefined,
+          read: n.read as boolean,
+          createdAt: n.created_at as string,
+        })));
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Fallback: generate from orders (mock mode)
     const orders = await fetchUserOrders(user.id);
     const notifs = generateOrderNotifications(orders, user.id);
     setNotifications(notifs);
@@ -170,23 +203,34 @@ export default function NotificationsPage() {
     refreshNotifications();
   }, [refreshNotifications]);
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
     if (!user?.id) return;
-    const updated = notifications.map((n) => ({ ...n, read: true }));
-    saveNotifications(user.id, updated);
-    setNotifications(updated);
+    if (hasSupabaseConfig) {
+      await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
+    } else {
+      saveNotifications(user.id, notifications.map((n) => ({ ...n, read: true })));
+    }
+    setNotifications(notifications.map((n) => ({ ...n, read: true })));
   };
 
-  const markRead = (id: string) => {
+  const markRead = async (id: string) => {
     if (!user?.id) return;
-    const updated = notifications.map((n) => n.id === id ? { ...n, read: true } : n);
-    saveNotifications(user.id, updated);
-    setNotifications(updated);
+    if (hasSupabaseConfig) {
+      await supabase.from("notifications").update({ read: true }).eq("id", id);
+    } else {
+      const updated = notifications.map((n) => n.id === id ? { ...n, read: true } : n);
+      saveNotifications(user.id, updated);
+    }
+    setNotifications(notifications.map((n) => n.id === id ? { ...n, read: true } : n));
   };
 
-  const clearAll = () => {
+  const clearAll = async () => {
     if (!user?.id) return;
-    saveNotifications(user.id, []);
+    if (hasSupabaseConfig) {
+      await supabase.from("notifications").delete().eq("user_id", user.id);
+    } else {
+      saveNotifications(user.id, []);
+    }
     setNotifications([]);
   };
 

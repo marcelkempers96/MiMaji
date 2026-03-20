@@ -9,6 +9,14 @@ import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
+
+const hasSupabaseConfig =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
 export default function AccountSettingsPage() {
   const { user, updateProfile } = useAuth();
@@ -21,9 +29,24 @@ export default function AccountSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
 
-  // Load saved profile data from localStorage on mount
+  // Load saved profile data on mount
   useEffect(() => {
-    if (user?.id) {
+    if (!user?.id) return;
+
+    if (hasSupabaseConfig) {
+      // Load from Supabase profiles table
+      supabase.from("profiles").select("email, mpesa_number, avatar_url").eq("id", user.id).single().then(({ data }) => {
+        if (data) {
+          if (data.email) setEmail(data.email);
+          if (data.mpesa_number) {
+            setMpesaNumber(data.mpesa_number);
+            if (data.mpesa_number !== user.phone) setMpesaDifferent(true);
+          }
+          if (data.avatar_url) setProfilePicUrl(data.avatar_url);
+        }
+      });
+    } else {
+      // Fallback: localStorage
       try {
         const profileKey = `mimaji_profile_${user.id}`;
         const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
@@ -55,14 +78,18 @@ export default function AccountSettingsPage() {
       mpesaNumber: mpesaToSave,
     });
 
-    // Also save profile pic URL locally
+    // Save profile pic URL
     if (user?.id) {
-      try {
-        const profileKey = `mimaji_profile_${user.id}`;
-        const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
-        existing.profilePicUrl = profilePicUrl;
-        localStorage.setItem(profileKey, JSON.stringify(existing));
-      } catch {}
+      if (hasSupabaseConfig && profilePicUrl) {
+        await supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id);
+      } else {
+        try {
+          const profileKey = `mimaji_profile_${user.id}`;
+          const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
+          existing.profilePicUrl = profilePicUrl;
+          localStorage.setItem(profileKey, JSON.stringify(existing));
+        } catch {}
+      }
     }
 
     setSaving(false);
