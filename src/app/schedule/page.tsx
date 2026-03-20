@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect } from "react";
-import { Calendar, Clock, ChevronRight, Droplets, ShoppingCart } from "lucide-react";
+import { Calendar, Clock, ChevronRight, Droplets, ShoppingCart, ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,18 +11,50 @@ import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 
-function getNextSevenDays(): Array<{ date: string; label: string; dayName: string }> {
-  const days: Array<{ date: string; label: string; dayName: string }> = [];
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const FULL_MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+function formatDayLabel(d: Date): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(d);
+  target.setHours(0, 0, 0, 0);
+  const diff = Math.round((target.getTime() - today.getTime()) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  return DAY_NAMES[d.getDay()];
+}
+
+function getQuickDays(): Array<{ date: string; label: string; dayName: string }> {
+  const days: Array<{ date: string; label: string; dayName: string }> = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
     days.push({
       date: d.toISOString().split("T")[0],
-      label: `${d.getDate()} ${monthNames[d.getMonth()]}`,
-      dayName: i === 0 ? "Today" : i === 1 ? "Tomorrow" : dayNames[d.getDay()],
+      label: `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`,
+      dayName: formatDayLabel(d),
+    });
+  }
+  return days;
+}
+
+function getCalendarDays(year: number, month: number): Array<{ date: string; day: number; inMonth: boolean }> {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days: Array<{ date: string; day: number; inMonth: boolean }> = [];
+
+  // Padding for start of week
+  for (let i = 0; i < firstDay; i++) {
+    days.push({ date: "", day: 0, inMonth: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(year, month, d);
+    days.push({
+      date: dt.toISOString().split("T")[0],
+      day: d,
+      inMonth: true,
     });
   }
   return days;
@@ -42,7 +74,13 @@ export default function SchedulePage() {
   const { items } = useCart();
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const days = getNextSevenDays();
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const today = new Date();
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const [calYear, setCalYear] = useState(today.getFullYear());
+  const quickDays = getQuickDays();
+  const calendarDays = getCalendarDays(calYear, calMonth);
+  const todayStr = today.toISOString().split("T")[0];
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -77,11 +115,13 @@ export default function SchedulePage() {
         <Calendar size={16} className="text-primary" />
         Select Delivery Date
       </h3>
-      <div className="grid grid-cols-4 gap-2 mb-6 md:grid-cols-7">
-        {days.map((day) => (
+
+      {/* Quick Date Buttons (next 7 days) */}
+      <div className="grid grid-cols-4 gap-2 mb-3 md:grid-cols-7">
+        {quickDays.map((day) => (
           <button
             key={day.date}
-            onClick={() => setSelectedDate(day.date)}
+            onClick={() => { setSelectedDate(day.date); setShowFullCalendar(false); }}
             className={`flex flex-col items-center py-3 px-2 rounded-xl text-center transition-colors ${
               selectedDate === day.date
                 ? "bg-primary text-white"
@@ -95,6 +135,57 @@ export default function SchedulePage() {
           </button>
         ))}
       </div>
+
+      {/* Pick Another Date toggle */}
+      <button
+        onClick={() => setShowFullCalendar(!showFullCalendar)}
+        className="text-primary text-xs font-semibold mb-4 underline"
+      >
+        {showFullCalendar ? "Hide calendar" : "Pick another date..."}
+      </button>
+
+      {/* Full Calendar */}
+      {showFullCalendar && (
+        <div className="bg-surface shadow-card rounded-xl p-4 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={() => {
+              if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
+              else setCalMonth(calMonth - 1);
+            }} className="p-1 rounded-lg hover:bg-gray-100"><ChevronLeft size={18} /></button>
+            <span className="font-bold text-sm text-text-primary">{FULL_MONTH_NAMES[calMonth]} {calYear}</span>
+            <button onClick={() => {
+              if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); }
+              else setCalMonth(calMonth + 1);
+            }} className="p-1 rounded-lg hover:bg-gray-100"><ChevronRight size={18} /></button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {DAY_NAMES.map((dn) => (
+              <span key={dn} className="text-[10px] font-semibold text-text-secondary py-1">{dn}</span>
+            ))}
+            {calendarDays.map((cd, i) => {
+              if (!cd.inMonth) return <span key={`pad-${i}`} />;
+              const isPast = cd.date < todayStr;
+              const isSelected = cd.date === selectedDate;
+              return (
+                <button
+                  key={cd.date}
+                  disabled={isPast}
+                  onClick={() => { setSelectedDate(cd.date); }}
+                  className={`py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    isSelected
+                      ? "bg-primary text-white"
+                      : isPast
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-text-primary hover:bg-primary-light"
+                  }`}
+                >
+                  {cd.day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Time Selection */}
       <h3 className="font-bold text-sm text-text-primary mb-3 flex items-center gap-2">
@@ -125,7 +216,12 @@ export default function SchedulePage() {
         <div className="bg-[#E8F5E9] rounded-xl p-4 mb-6">
           <p className="text-sm font-bold text-text-primary mb-1">Scheduled Delivery</p>
           <p className="text-text-secondary text-xs">
-            {days.find((d) => d.date === selectedDate)?.dayName}, {days.find((d) => d.date === selectedDate)?.label} at {selectedTime}
+            {(() => {
+              const quick = quickDays.find((d) => d.date === selectedDate);
+              if (quick) return `${quick.dayName}, ${quick.label}`;
+              const dt = new Date(selectedDate + "T00:00:00");
+              return `${DAY_NAMES[dt.getDay()]}, ${dt.getDate()} ${MONTH_NAMES[dt.getMonth()]} ${dt.getFullYear()}`;
+            })()} at {selectedTime}
           </p>
         </div>
       )}

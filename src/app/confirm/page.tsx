@@ -88,13 +88,13 @@ export default function ConfirmOrderPage() {
   const cartTotal = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
 
   // Auth guard: redirect to login if not authenticated (after loading completes)
-  if (!authLoading && !user && paymentStatus !== "confirmed" && paymentStatus !== "awaiting_code") {
+  if (!authLoading && !user && paymentStatus === "idle") {
     router.push("/login?redirect=/delivery");
     return null;
   }
 
   // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
-  if (!authLoading && user && items.length === 0 && paymentStatus !== "confirmed" && paymentStatus !== "awaiting_code") {
+  if (!authLoading && user && items.length === 0 && paymentStatus === "idle") {
     router.push("/buy");
     return null;
   }

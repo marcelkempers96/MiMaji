@@ -4,12 +4,19 @@ import { logo1 } from "@/assets/images";
 import { Smartphone, CreditCard, Plus, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 
 export default function PaymentMethodsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  if (!authLoading && !user) {
+    router.push("/login?redirect=/payment-methods");
+    return null;
+  }
 
   const content = (
     <>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Plus, Home, Briefcase, Check, Trash2, Zap, Calendar, Clock } from "lucide-react";
+import { MapPin, Plus, Home, Briefcase, Check, Trash2, Zap, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { logo1 } from "@/assets/images";
 import Link from "next/link";
@@ -36,6 +36,22 @@ const TIME_SLOTS = [
   "16:00 - 18:00",
 ];
 
+const DAY_ABBRS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function getDeliveryCalDays(year: number, month: number): Array<{ date: string; day: number; inMonth: boolean }> {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days: Array<{ date: string; day: number; inMonth: boolean }> = [];
+  for (let i = 0; i < firstDay; i++) days.push({ date: "", day: 0, inMonth: false });
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(year, month, d);
+    days.push({ date: dt.toISOString().split("T")[0], day: d, inMonth: true });
+  }
+  return days;
+}
+
 export default function DeliveryPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -49,6 +65,11 @@ export default function DeliveryPage() {
   const [deliveryTiming, setDeliveryTiming] = useState<"now" | "schedule">("now");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [showDeliveryCalendar, setShowDeliveryCalendar] = useState(false);
+  const todayDate = new Date();
+  const [delCalMonth, setDelCalMonth] = useState(todayDate.getMonth());
+  const [delCalYear, setDelCalYear] = useState(todayDate.getFullYear());
+  const todayStr = todayDate.toISOString().split("T")[0];
   const scheduleDays = getNextSevenDays();
 
   const handleSelectLocation = (loc: SavedLocation) => {
@@ -212,11 +233,11 @@ export default function DeliveryPage() {
               <Calendar size={14} className="text-primary" />
               Select Date
             </h3>
-            <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="grid grid-cols-4 gap-2 mb-2">
               {scheduleDays.map((day) => (
                 <button
                   key={day.date}
-                  onClick={() => setSelectedDate(day.date)}
+                  onClick={() => { setSelectedDate(day.date); setShowDeliveryCalendar(false); }}
                   className={`flex flex-col items-center py-2.5 px-1.5 rounded-xl text-center transition-colors ${
                     selectedDate === day.date
                       ? "bg-primary text-white"
@@ -230,6 +251,31 @@ export default function DeliveryPage() {
                 </button>
               ))}
             </div>
+            <button onClick={() => setShowDeliveryCalendar(!showDeliveryCalendar)} className="text-primary text-[11px] font-semibold mb-3 underline">
+              {showDeliveryCalendar ? "Hide calendar" : "Pick another date..."}
+            </button>
+            {showDeliveryCalendar && (
+              <div className="bg-background rounded-xl p-3 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <button onClick={() => { if (delCalMonth === 0) { setDelCalMonth(11); setDelCalYear(delCalYear - 1); } else setDelCalMonth(delCalMonth - 1); }} className="p-1 rounded-lg hover:bg-gray-100"><ChevronLeft size={16} /></button>
+                  <span className="font-bold text-xs text-text-primary">{FULL_MONTHS[delCalMonth]} {delCalYear}</span>
+                  <button onClick={() => { if (delCalMonth === 11) { setDelCalMonth(0); setDelCalYear(delCalYear + 1); } else setDelCalMonth(delCalMonth + 1); }} className="p-1 rounded-lg hover:bg-gray-100"><ChevronRight size={16} /></button>
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {DAY_ABBRS.map((dn) => <span key={dn} className="text-[9px] font-semibold text-text-secondary py-1">{dn}</span>)}
+                  {getDeliveryCalDays(delCalYear, delCalMonth).map((cd, i) => {
+                    if (!cd.inMonth) return <span key={`pad-${i}`} />;
+                    const isPast = cd.date < todayStr;
+                    return (
+                      <button key={cd.date} disabled={isPast} onClick={() => setSelectedDate(cd.date)}
+                        className={`py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${cd.date === selectedDate ? "bg-primary text-white" : isPast ? "text-gray-300 cursor-not-allowed" : "text-text-primary hover:bg-primary-light"}`}>
+                        {cd.day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <h3 className="font-bold text-xs text-text-secondary uppercase tracking-wide mb-3 flex items-center gap-2">
               <Clock size={14} className="text-primary" />
@@ -257,7 +303,12 @@ export default function DeliveryPage() {
             {selectedDate && selectedTime && (
               <div className="bg-[#E8F5E9] rounded-xl p-3 mt-3">
                 <p className="text-xs font-bold text-[#2ECC71] text-center">
-                  Scheduled: {scheduleDays.find((d) => d.date === selectedDate)?.dayName}, {scheduleDays.find((d) => d.date === selectedDate)?.label} at {selectedTime}
+                  Scheduled: {(() => {
+                    const quick = scheduleDays.find((d) => d.date === selectedDate);
+                    if (quick) return `${quick.dayName}, ${quick.label}`;
+                    const dt = new Date(selectedDate + "T00:00:00");
+                    return `${DAY_ABBRS[dt.getDay()]}, ${dt.getDate()} ${SHORT_MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
+                  })()} at {selectedTime}
                 </p>
               </div>
             )}

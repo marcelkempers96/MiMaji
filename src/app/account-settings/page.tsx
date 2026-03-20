@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { User, Mail, Phone, Smartphone, Save, Building2, Camera, Banknote } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import Button from "@/components/ui/Button";
@@ -19,8 +20,15 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
 export default function AccountSettingsPage() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [name, setName] = useState(user?.name || "");
+
+  // Redirect unauthenticated users to login
+  if (!authLoading && !user) {
+    router.push("/login?redirect=/account-settings");
+    return null;
+  }
   const [email, setEmail] = useState("");
   const [phone] = useState(user?.phone || "");
   const [mpesaNumber, setMpesaNumber] = useState(user?.phone || "");

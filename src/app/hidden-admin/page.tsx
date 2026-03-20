@@ -11,6 +11,7 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co" &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
+import AddressSearch from "@/components/AddressSearch";
 import {
   RefreshCw,
   Package,
@@ -145,20 +146,92 @@ function getLast7Days(): string[] {
   return days;
 }
 
+// ── Admin Login Gate ──
+const ADMIN_CODE = "5566";
+
+function AdminLoginGate({ children }: { children: React.ReactNode }) {
+  const [code, setCode] = React.useState("");
+  const [authenticated, setAuthenticated] = React.useState(false);
+  const [error, setError] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      if (sessionStorage.getItem("mimaji_admin_auth") === "true") {
+        setAuthenticated(true);
+      }
+    } catch {}
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (code === ADMIN_CODE) {
+      setAuthenticated(true);
+      try { sessionStorage.setItem("mimaji_admin_auth", "true"); } catch {}
+    } else {
+      setError(true);
+      setTimeout(() => setError(false), 2000);
+    }
+  };
+
+  if (authenticated) return <>{children}</>;
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <form onSubmit={handleSubmit} className="bg-surface shadow-card rounded-2xl p-8 w-full max-w-sm text-center">
+        <div className="w-16 h-16 bg-text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+          <Ban size={32} className="text-white" />
+        </div>
+        <h1 className="text-xl font-bold text-text-primary mb-1">Admin Access</h1>
+        <p className="text-text-secondary text-sm mb-6">Enter the admin access code to continue.</p>
+        <input
+          type="password"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Enter code"
+          className={`w-full text-center text-2xl font-mono font-bold tracking-[0.5em] px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
+            error ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-primary"
+          }`}
+          maxLength={6}
+          autoFocus
+        />
+        {error && <p className="text-red-500 text-xs mt-2">Invalid code. Try again.</p>}
+        <button
+          type="submit"
+          className="w-full mt-4 bg-text-primary text-white rounded-xl py-3 font-semibold text-sm hover:bg-gray-800 transition-colors"
+        >
+          Enter Admin Panel
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ── Component ──
 export default function AdminDashboard() {
+  return (
+    <AdminLoginGate>
+      <AdminDashboardInner />
+    </AdminLoginGate>
+  );
+}
+
+function AdminDashboardInner() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [kenyaTime, setKenyaTime] = useState(getKenyaTime());
   const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
+  const [vendorDropdown, setVendorDropdown] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [cancelConfirm, setCancelConfirm] = useState<{ orderId: string; amount: number } | null>(null);
 
   // Users management
-  interface MockUser { id: string; phone: string; name: string; role: string }
+  interface MockUser { id: string; phone: string; name: string; role: string; password?: string }
   const [users, setUsers] = useState<MockUser[]>([]);
   const [editingUser, setEditingUser] = useState<MockUser | null>(null);
   const [deleteUserConfirm, setDeleteUserConfirm] = useState<string | null>(null);
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({ phone: "", name: "", password: "", role: "customer" });
+  const [showPasswords, setShowPasswords] = useState(false);
 
   // Vendor management
   const [editingVendor, setEditingVendor] = useState<string | null>(null);
@@ -312,8 +385,8 @@ export default function AdminDashboard() {
 
     // Fallback: localStorage mock
     const builtIn: MockUser[] = [
-      { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
-      { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
+      { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin", password: "admin123" },
+      { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor", password: "vendor123" },
     ];
     const seenIds = new Set(builtIn.map((u) => u.id));
     const allUsers: MockUser[] = [...builtIn];
@@ -323,11 +396,11 @@ export default function AdminDashboard() {
       const signups = raw ? JSON.parse(raw) : {};
       const seenPhones = new Set<string>();
       for (const entry of Object.values(signups)) {
-        const su = (entry as { user: MockUser }).user;
-        if (!seenIds.has(su.id) && !seenPhones.has(su.phone)) {
-          allUsers.push(su);
-          seenIds.add(su.id);
-          seenPhones.add(su.phone);
+        const e = entry as { password: string; user: MockUser };
+        if (!seenIds.has(e.user.id) && !seenPhones.has(e.user.phone)) {
+          allUsers.push({ ...e.user, password: e.password });
+          seenIds.add(e.user.id);
+          seenPhones.add(e.user.phone);
         }
       }
     } catch {}
@@ -381,6 +454,44 @@ export default function AdminDashboard() {
       } catch {}
     }
     setDeleteUserConfirm(null);
+  }
+
+  async function createUserAccount() {
+    let phone = newUser.phone.replace(/\s/g, "").replace(/^\+/, "");
+    if (phone.startsWith("0")) phone = "254" + phone.slice(1);
+    if (!phone || !newUser.name || !newUser.password) return;
+
+    if (hasSupabaseConfig) {
+      const email = `${phone}@mimaji.app`;
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: newUser.password,
+        options: { data: { full_name: newUser.name, phone } },
+      });
+      if (!error && data?.user) {
+        // Set role if not customer
+        if (newUser.role !== "customer") {
+          await supabase.from("profiles").update({ role: newUser.role }).eq("id", data.user.id);
+        }
+      }
+      await loadUsers();
+    } else {
+      // Mock: save to signups localStorage
+      const id = `admin-created-${Date.now()}`;
+      const mockUser = { id, phone, name: newUser.name, role: newUser.role };
+      try {
+        const raw = localStorage.getItem("mimaji_mock_signups");
+        const signups = raw ? JSON.parse(raw) : {};
+        signups[phone] = { password: newUser.password, user: mockUser };
+        if (phone.startsWith("254")) {
+          signups["0" + phone.slice(3)] = { password: newUser.password, user: mockUser };
+        }
+        localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+      } catch {}
+      loadUsers();
+    }
+    setNewUser({ phone: "", name: "", password: "", role: "customer" });
+    setShowCreateUser(false);
   }
 
   const loadOrders = useCallback(() => {
@@ -479,9 +590,22 @@ export default function AdminDashboard() {
   async function confirmCancel() {
     if (!cancelConfirm) return;
     await updateOrderStatus(cancelConfirm.orderId, "cancelled");
-    // Refresh from source of truth
     loadOrders();
     setCancelConfirm(null);
+  }
+
+  async function reassignVendor(orderId: string, vendorId: string) {
+    const vendor = allVendors.find(v => v.id === vendorId);
+    if (!vendor) return;
+    const { updateOrder } = await import("@/lib/orders");
+    await updateOrder(orderId, {
+      vendor_id: vendorId,
+      vendor_name: vendor.name,
+      vendor_location: vendor.locations?.[0]?.name || vendor.area || "",
+      current_vendor_offer: vendorId,
+    });
+    loadOrders();
+    setVendorDropdown(null);
   }
 
   // ── Tab buttons ──
@@ -817,53 +941,111 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-xs">
-                            {order.vendor_name || (
-                              <span className="text-text-secondary italic">
-                                Unassigned
-                              </span>
+                            {order.vendor_name ? (
+                              <span className="font-medium text-text-primary">{order.vendor_name}</span>
+                            ) : (
+                              <span className="text-text-secondary italic">Unassigned</span>
+                            )}
+                            {order.current_vendor_offer && (
+                              <p className="text-[10px] text-orange-600 mt-0.5">
+                                Reviewing: {allVendors.find(v => v.id === order.current_vendor_offer)?.name || "..."}
+                              </p>
+                            )}
+                            {order.vendors_tried && order.vendors_tried.length > 0 && (
+                              <p className="text-[10px] text-text-secondary mt-0.5">
+                                Tried: {order.vendors_tried.length} vendor{order.vendors_tried.length > 1 ? "s" : ""}
+                              </p>
                             )}
                           </td>
                           <td className="px-4 py-3 relative">
-                            <div className="relative">
-                              <button
-                                onClick={(e: React.MouseEvent) => {
-                                  e.stopPropagation();
-                                  setStatusDropdown(
-                                    statusDropdown === order.id
-                                      ? null
-                                      : order.id
-                                  );
-                                }}
-                                className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
-                              >
-                                Update
-                                <ChevronDown size={12} />
-                              </button>
-                              {statusDropdown === order.id && (
-                                <div
-                                  className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-40 py-1 min-w-[170px]"
-                                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                            <div className="flex items-center gap-1.5">
+                              {/* Status Update */}
+                              <div className="relative">
+                                <button
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation();
+                                    setVendorDropdown(null);
+                                    setStatusDropdown(
+                                      statusDropdown === order.id
+                                        ? null
+                                        : order.id
+                                    );
+                                  }}
+                                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
                                 >
-                                  {STATUS_OPTIONS.filter(
-                                    (s) => s !== order.status
-                                  ).map((status) => (
-                                    <button
-                                      key={status}
-                                      onClick={() =>
-                                        handleStatusUpdate(order.id, status)
-                                      }
-                                      className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                                    >
-                                      <span
-                                        className={`w-2 h-2 rounded-full ${
-                                          STATUS_COLORS[status].split(" ")[0]
+                                  Status
+                                  <ChevronDown size={12} />
+                                </button>
+                                {statusDropdown === order.id && (
+                                  <div
+                                    className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-40 py-1 min-w-[170px]"
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                  >
+                                    {STATUS_OPTIONS.filter(
+                                      (s) => s !== order.status
+                                    ).map((status) => (
+                                      <button
+                                        key={status}
+                                        onClick={() =>
+                                          handleStatusUpdate(order.id, status)
+                                        }
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                                      >
+                                        <span
+                                          className={`w-2 h-2 rounded-full ${
+                                            STATUS_COLORS[status].split(" ")[0]
+                                          }`}
+                                        />
+                                        {STATUS_LABELS[status]}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Vendor Reassign */}
+                              <div className="relative">
+                                <button
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation();
+                                    setStatusDropdown(null);
+                                    setVendorDropdown(
+                                      vendorDropdown === order.id ? null : order.id
+                                    );
+                                  }}
+                                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-primary rounded-lg transition-colors font-medium"
+                                >
+                                  <Store size={11} />
+                                  Assign
+                                </button>
+                                {vendorDropdown === order.id && (
+                                  <div
+                                    className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-40 py-1 min-w-[200px]"
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                  >
+                                    <p className="px-3 py-1.5 text-[10px] text-text-secondary uppercase tracking-wide font-semibold">Assign to Vendor</p>
+                                    {allVendors.map((v) => (
+                                      <button
+                                        key={v.id}
+                                        onClick={() => reassignVendor(order.id, v.id)}
+                                        className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 transition-colors ${
+                                          order.vendor_id === v.id ? "bg-primary-light font-semibold text-primary" : ""
                                         }`}
-                                      />
-                                      {STATUS_LABELS[status]}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
+                                      >
+                                        <Store size={12} className={order.vendor_id === v.id ? "text-primary" : "text-text-secondary"} />
+                                        <div>
+                                          <span>{v.name}</span>
+                                          {v.area && <span className="text-text-secondary ml-1">({v.area})</span>}
+                                        </div>
+                                        {order.vendor_id === v.id && <CheckCircle2 size={12} className="text-primary ml-auto" />}
+                                      </button>
+                                    ))}
+                                    {allVendors.length === 0 && (
+                                      <p className="px-3 py-2 text-xs text-text-secondary italic">No vendors available</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -1035,6 +1217,23 @@ export default function AdminDashboard() {
                   <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block flex items-center gap-1">
                     <MapPin size={12} /> Primary Store Location
                   </label>
+
+                  {/* Address Search */}
+                  <div className="mb-3">
+                    <AddressSearch
+                      placeholder="Search for store address..."
+                      onSelect={(result) => {
+                        setNewVendor({
+                          ...newVendor,
+                          locationName: result.displayName.split(",")[0] || "",
+                          locationArea: result.area || newVendor.area,
+                          locationLat: result.lat.toString(),
+                          locationLng: result.lng.toString(),
+                        });
+                      }}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <input type="text" value={newVendor.locationName} onChange={(e) => setNewVendor({ ...newVendor, locationName: e.target.value })}
@@ -1618,17 +1817,85 @@ export default function AdminDashboard() {
         {/* ═══ USERS TAB ═══ */}
         {activeTab === "users" && (
           <section className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-lg font-semibold text-text-primary">
                 User Accounts ({users.length})
               </h2>
-              <button
-                onClick={loadUsers}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
-              >
-                <RefreshCw size={12} /> Reload
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowPasswords(!showPasswords)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${showPasswords ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 hover:bg-gray-200"}`}
+                >
+                  {showPasswords ? "Hide Passwords" : "Show Passwords"}
+                </button>
+                <button
+                  onClick={() => setShowCreateUser(!showCreateUser)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary text-white hover:bg-primary/90 rounded-lg font-medium transition-colors"
+                >
+                  <Plus size={12} /> Create Account
+                </button>
+                <button
+                  onClick={loadUsers}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  <RefreshCw size={12} /> Reload
+                </button>
+              </div>
             </div>
+
+            {/* Create Account Form */}
+            {showCreateUser && (
+              <div className="bg-surface shadow-card rounded-2xl p-5">
+                <h3 className="font-semibold text-sm text-text-primary mb-3">Create New Account</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Phone (e.g. 0712345678)"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="vendor">Vendor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={createUserAccount}
+                      disabled={!newUser.phone || !newUser.name || !newUser.password}
+                      className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      Create
+                    </button>
+                    <button
+                      onClick={() => setShowCreateUser(false)}
+                      className="px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-surface shadow-card rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
@@ -1638,6 +1905,7 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 font-medium">User ID</th>
                       <th className="px-4 py-3 font-medium">Phone</th>
                       <th className="px-4 py-3 font-medium">Name</th>
+                      {showPasswords && <th className="px-4 py-3 font-medium">Password</th>}
                       <th className="px-4 py-3 font-medium">Role</th>
                       <th className="px-4 py-3 font-medium">Actions</th>
                     </tr>
@@ -1659,6 +1927,11 @@ export default function AdminDashboard() {
                             <span className="font-medium text-text-primary">{u.name}</span>
                           )}
                         </td>
+                        {showPasswords && (
+                          <td className="px-4 py-3 font-mono text-xs text-text-secondary">
+                            {u.password || <span className="italic text-gray-400">N/A (Supabase)</span>}
+                          </td>
+                        )}
                         <td className="px-4 py-3">
                           {editingUser?.id === u.id ? (
                             <select

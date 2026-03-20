@@ -25,9 +25,15 @@ const menuItems = [
 ];
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
+
+  // Redirect unauthenticated users to login
+  if (!authLoading && !user) {
+    router.push("/login?redirect=/profile");
+    return null;
+  }
   const [editName, setEditName] = useState(user?.name || "");
 
   const handleLogout = () => {

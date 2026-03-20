@@ -5,13 +5,22 @@ import { useState } from "react";
 import { MapPin, Plus, Home as HomeIcon, Building2, Trash2, Edit2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import { useLocation, SavedLocation } from "@/context/LocationContext";
+import { useAuth } from "@/context/AuthContext";
 import AddressForm, { AddressDisplay } from "@/components/AddressForm";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 
 export default function SavedAddressesPage() {
   const { savedLocations, addSavedLocation, removeSavedLocation, updateSavedLocation } = useLocation();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  if (!authLoading && !user) {
+    router.push("/login?redirect=/saved-addresses");
+    return null;
+  }
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
