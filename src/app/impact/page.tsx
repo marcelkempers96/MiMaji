@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDeliveryMiMaji } from "@/assets/images";
+import { logo1, impactMain, majimap } from "@/assets/images";
 import { Droplets, Heart, MapPin, Users, Globe, TrendingUp } from "lucide-react";
 
 import Link from "next/link";
@@ -33,7 +33,7 @@ function ImpactContent() {
     <>
       {/* Impact Main Image */}
       <div className="rounded-2xl overflow-hidden mb-4">
-        <img src="/impactmain.png" alt="MiMaji community water impact" className="w-full h-48 md:h-72 object-cover rounded-2xl" />
+        <img src={impactMain.src} alt="MiMaji community water impact" className="w-full h-48 md:h-72 object-cover rounded-2xl" />
       </div>
 
       {/* Hero Banner */}
@@ -131,7 +131,7 @@ function ImpactContent() {
           </ul>
         </div>
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl overflow-hidden min-h-[160px]">
-          <img src="/majimap.png" alt="MajiMap - Mapping water access across Kenya" className="object-cover w-full h-full" />
+          <img src={majimap.src} alt="MajiMap - Mapping water access across Kenya" className="object-cover w-full h-full" />
         </div>
       </div>
 

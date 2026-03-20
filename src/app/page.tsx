@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1 } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1 } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
 
 import Link from "next/link";
@@ -216,8 +216,8 @@ export default function HomePage() {
         <Link href="/water-guide">
           <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl overflow-hidden mb-5 hover:shadow-card transition-shadow">
             <div className="flex gap-1 h-24">
-              <img src="/warehouse.png" alt="MiMaji warehouse" className="w-1/2 object-cover" />
-              <img src="/clean1.png" alt="Clean water quality" className="w-1/2 object-cover" />
+              <img src={warehouse.src} alt="MiMaji warehouse" className="w-1/2 object-cover" />
+              <img src={clean1.src} alt="Clean water quality" className="w-1/2 object-cover" />
             </div>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-1">

@@ -15,6 +15,10 @@ import mimajiLocations from "./mimajilocations.png";
 import order1 from "./order1.png";
 import mpesa1 from "./mpesa1.png";
 import dev1 from "./dev1.png";
+import warehouse from "./warehouse.png";
+import clean1 from "./clean1.png";
+import impactMain from "./impactmain.png";
+import majimap from "./majimap.png";
 
 export const images: Record<string, typeof logo1> = {
   "/logo1.png": logo1,
@@ -34,6 +38,10 @@ export const images: Record<string, typeof logo1> = {
   "/order1.png": order1,
   "/mpesa1.png": mpesa1,
   "/dev1.png": dev1,
+  "/warehouse.png": warehouse,
+  "/clean1.png": clean1,
+  "/impactmain.png": impactMain,
+  "/majimap.png": majimap,
 };
 
-export { logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, order1, mpesa1, dev1 };
+export { logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, order1, mpesa1, dev1, warehouse, clean1, impactMain, majimap };
