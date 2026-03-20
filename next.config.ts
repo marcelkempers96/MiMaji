@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     contentDispositionType: "inline",
     unoptimized: true,
   },
+  trailingSlash: true,
   turbopack: {
     root: "/home/user/MiMaji",
   },

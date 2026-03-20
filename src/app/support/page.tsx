@@ -49,7 +49,7 @@ const quickActions = [
 
 export default function SupportPage() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <div className="md:hidden">
         <TopBar title="Help & Support" showBack={true} />
       </div>

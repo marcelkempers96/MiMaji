@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText } from "lucide-react";
+import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 import Link from "next/link";
@@ -76,8 +76,9 @@ export default function OrdersPage() {
 
   const liveOrders = orders.filter((o) => {
     const status = mapOrderStatus(o.status);
-    return status !== "Delivered";
+    return status !== "Delivered" && status !== "Cancelled";
   });
+  const cancelledOrders = orders.filter((o) => mapOrderStatus(o.status) === "Cancelled");
   const pastOrders = orders.filter((o) => {
     const status = mapOrderStatus(o.status);
     return status === "Delivered";
@@ -125,6 +126,20 @@ export default function OrdersPage() {
                           </p>
                         ))}
                         <p className="text-text-secondary text-sm mt-1">KES {order.price_total.toLocaleString()}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {order.payment_method === "cash" ? (
+                            <Banknote size={12} className="text-text-secondary" />
+                          ) : (
+                            <Smartphone size={12} className="text-text-secondary" />
+                          )}
+                          <span className="text-text-secondary text-xs">
+                            {order.payment_method === "stk-push" ? "M-PESA STK Push" :
+                             order.payment_method === "mpesa-app" ? "M-PESA App" :
+                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             "M-PESA"}
+                            {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -158,6 +173,67 @@ export default function OrdersPage() {
                       <Truck size={16} />
                       Track Order
                     </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Cancelled Orders */}
+          {cancelledOrders.length > 0 && (
+            <div className="mb-5">
+              <h2 className="font-bold text-sm text-text-primary mb-3">Cancelled Orders</h2>
+              {cancelledOrders.map((order) => {
+                const displayId = formatOrderId(order.id);
+                const displayDate = formatOrderDate(order.created_at);
+                const itemsList = order.order_items && order.order_items.length > 0
+                  ? order.order_items
+                  : order.product_name
+                    ? [{ name: order.product_name, quantity: order.quantity || 1, price: order.price_total }]
+                    : [{ name: "Water Order", quantity: 1, price: order.price_total }];
+
+                return (
+                  <div key={order.id} className="bg-surface shadow-card rounded-xl p-4 mb-3 border border-red-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-bold text-sm text-text-primary">{displayDate}</span>
+                      <div className="flex items-center gap-1">
+                        <XCircle size={14} className="text-red-500" />
+                        <span className="text-sm font-medium text-red-500">Cancelled</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Droplets size={20} className="text-red-400" />
+                      </div>
+                      <div className="flex-1">
+                        {itemsList.map((item, idx) => (
+                          <p key={idx} className="text-sm text-text-secondary line-through">
+                            <span className="font-bold">{item.quantity}x</span> {item.name}
+                          </p>
+                        ))}
+                        <p className="text-text-secondary text-xs mt-1">
+                          KES {order.price_total.toLocaleString()}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {order.payment_method === "cash" ? (
+                            <Banknote size={11} className="text-text-secondary" />
+                          ) : (
+                            <Smartphone size={11} className="text-text-secondary" />
+                          )}
+                          <span className="text-text-secondary text-[11px]">
+                            {order.payment_method === "stk-push" ? "M-PESA STK Push" :
+                             order.payment_method === "mpesa-app" ? "M-PESA App" :
+                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             "M-PESA"}
+                            {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="font-bold text-text-secondary">KES {order.price_total.toLocaleString()}</span>
+                    </div>
+                    <p className="text-red-500 text-xs mt-3 font-medium">
+                      This order was cancelled. If you paid, a refund will be processed to your M-PESA.
+                    </p>
                   </div>
                 );
               })}
@@ -238,9 +314,22 @@ export default function OrdersPage() {
                           </p>
                         ))}
                         <p className="text-text-secondary text-xs mt-1">
-                          {order.mpesa_ref ? `M-Pesa: ${order.mpesa_ref} · ` : ""}
                           Paid KES {order.price_total.toLocaleString()}
                         </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {order.payment_method === "cash" ? (
+                            <Banknote size={11} className="text-text-secondary" />
+                          ) : (
+                            <Smartphone size={11} className="text-text-secondary" />
+                          )}
+                          <span className="text-text-secondary text-[11px]">
+                            {order.payment_method === "stk-push" ? "M-PESA STK Push" :
+                             order.payment_method === "mpesa-app" ? "M-PESA App" :
+                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             "M-PESA"}
+                            {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
+                          </span>
+                        </div>
                       </div>
                       <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     </div>
@@ -262,7 +351,7 @@ export default function OrdersPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       {/* Mobile */}
       <div className="md:hidden">
         <TopBar title="My Orders" />

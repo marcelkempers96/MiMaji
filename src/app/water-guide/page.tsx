@@ -15,7 +15,7 @@ import { useState } from "react";
 
 export default function WaterGuidePage() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <TopBar title="Water Guide" showBack={true} />
 
       {/* Mobile Layout */}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { OrderRecord, formatOrderId, formatOrderDate } from "@/lib/orders";
+import { OrderRecord, formatOrderId, formatOrderDate, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS } from "@/lib/vendor";
 import {
   RefreshCw,
@@ -64,23 +64,6 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 };
 
 // ── Helpers ──
-const MOCK_ORDERS_KEY = "mimaji_mock_orders";
-
-function getOrders(): OrderRecord[] {
-  try {
-    const raw = localStorage.getItem(MOCK_ORDERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveOrders(orders: OrderRecord[]) {
-  try {
-    localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(orders));
-  } catch {}
-}
-
 function formatKES(amount: number): string {
   return `KES ${amount.toLocaleString("en-KE")}`;
 }
@@ -151,10 +134,13 @@ export default function AdminDashboard() {
   const [editingVendor, setEditingVendor] = useState<string | null>(null);
   const [vendorEdits, setVendorEdits] = useState<Partial<VendorInfo>>({});
 
+  // Demo account IDs (used to identify built-in accounts)
+  const DEMO_IDS = ["d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d"];
+
   function loadUsers() {
     const builtIn: MockUser[] = [
-      { id: "mock-admin-001", phone: "254700000000", name: "Admin User", role: "admin" },
-      { id: "mock-vendor-001", phone: "254711000000", name: "AquaPure Kilimani", role: "vendor" },
+      { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
+      { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
     ];
     try {
       const raw = localStorage.getItem("mimaji_mock_signups");
@@ -203,8 +189,10 @@ export default function AdminDashboard() {
   }
 
   const loadOrders = useCallback(() => {
-    setOrders(getOrders());
-    setLastRefresh(new Date());
+    fetchAllOrders().then((data) => {
+      setOrders(data);
+      setLastRefresh(new Date());
+    });
   }, []);
 
   // Initial load + polling
@@ -274,7 +262,7 @@ export default function AdminDashboard() {
   }
 
   // ── Status update ──
-  function handleStatusUpdate(orderId: string, newStatus: string) {
+  async function handleStatusUpdate(orderId: string, newStatus: string) {
     // Intercept cancel to show refund confirmation
     if (newStatus === "cancelled") {
       const order = orders.find((o) => o.id === orderId);
@@ -284,27 +272,17 @@ export default function AdminDashboard() {
         return;
       }
     }
-    const all = getOrders();
-    const idx = all.findIndex((o) => o.id === orderId);
-    if (idx !== -1) {
-      all[idx].status = newStatus;
-      all[idx].updated_at = new Date().toISOString();
-      saveOrders(all);
-      setOrders([...all]);
-    }
+    await updateOrderStatus(orderId, newStatus);
+    // Refresh from source of truth
+    loadOrders();
     setStatusDropdown(null);
   }
 
-  function confirmCancel() {
+  async function confirmCancel() {
     if (!cancelConfirm) return;
-    const all = getOrders();
-    const idx = all.findIndex((o) => o.id === cancelConfirm.orderId);
-    if (idx !== -1) {
-      all[idx].status = "cancelled";
-      all[idx].updated_at = new Date().toISOString();
-      saveOrders(all);
-      setOrders([...all]);
-    }
+    await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    // Refresh from source of truth
+    loadOrders();
     setCancelConfirm(null);
   }
 
@@ -450,8 +428,15 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3 text-text-secondary whitespace-nowrap">
                             {formatOrderDate(order.created_at)}
                           </td>
-                          <td className="px-4 py-3 font-mono text-xs">
-                            {truncate(order.customer_id, 10)}
+                          <td className="px-4 py-3 text-xs">
+                            {(() => {
+                              const u = users.find((u) => u.id === order.customer_id);
+                              return u ? (
+                                <span className="font-medium text-text-primary">{u.name}</span>
+                              ) : (
+                                <span className="font-mono text-text-secondary">{truncate(order.customer_id, 12)}</span>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3">
                             {order.order_items && order.order_items.length > 0
@@ -822,8 +807,8 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-gray-100">
                     {users.map((u) => (
                       <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs">{truncate(u.id, 18)}</td>
-                        <td className="px-4 py-3 font-mono text-xs">{u.phone}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">USR-{u.id.slice(0, 6).toUpperCase()}</td>
+                        <td className="px-4 py-3 font-mono text-xs">+{u.phone.replace(/^254/, "254 ")}</td>
                         <td className="px-4 py-3">
                           {editingUser?.id === u.id ? (
                             <input
@@ -876,7 +861,7 @@ export default function AdminDashboard() {
                               </>
                             ) : (
                               <>
-                                {!u.id.startsWith("mock-admin") && !u.id.startsWith("mock-vendor") && (
+                                {!DEMO_IDS.includes(u.id) && (
                                   <>
                                     <button
                                       onClick={() => setEditingUser({ ...u })}
@@ -909,8 +894,8 @@ export default function AdminDashboard() {
                                     )}
                                   </>
                                 )}
-                                {(u.id.startsWith("mock-admin") || u.id.startsWith("mock-vendor")) && (
-                                  <span className="text-xs text-text-secondary italic">Built-in account</span>
+                                {DEMO_IDS.includes(u.id) && (
+                                  <span className="text-xs text-text-secondary italic">Demo account</span>
                                 )}
                               </>
                             )}

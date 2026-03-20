@@ -24,6 +24,8 @@ export interface OrderRecord {
   scheduled_time: string | null;
   // Delivery confirmation code (4-digit PIN the customer shares with driver)
   delivery_code: string | null;
+  // Payment method used for this order
+  payment_method: string | null;
 }
 
 /** Generate a 4-digit delivery confirmation code from the order ID */
@@ -56,6 +58,24 @@ function getMockOrders(): OrderRecord[] {
 
 function saveMockOrders(orders: OrderRecord[]) {
   try { localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(orders)); } catch {}
+}
+
+/** Fetch ALL orders (for admin panel) */
+export async function fetchAllOrders(): Promise<OrderRecord[]> {
+  if (!hasSupabaseConfig) {
+    return getMockOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching all orders:", error);
+    return [];
+  }
+  return (data || []).map(mapSupabaseOrder);
 }
 
 export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
@@ -98,6 +118,7 @@ function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
     scheduled_date: (row.scheduled_date as string) || null,
     scheduled_time: (row.scheduled_time as string) || null,
     delivery_code: (row.delivery_code as string) || null,
+    payment_method: (row.payment_method as string) || null,
   };
 }
 
@@ -130,6 +151,8 @@ export async function createOrder(params: {
   scheduledTime?: string;
   /** Optional user-level delivery PIN to use instead of auto-generated one */
   deliveryCode?: string;
+  /** Payment method: stk-push, mpesa-app, or cash */
+  paymentMethod?: string;
 }): Promise<{ orderId: string | null; error: string | null }> {
   if (!hasSupabaseConfig) {
     const orderId = crypto.randomUUID();
@@ -155,6 +178,7 @@ export async function createOrder(params: {
       scheduled_date: params.scheduledDate || null,
       scheduled_time: params.scheduledTime || null,
       delivery_code: params.deliveryCode || generateDeliveryCode(orderId),
+      payment_method: params.paymentMethod || null,
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -191,6 +215,7 @@ export async function createOrder(params: {
       scheduled_date: params.scheduledDate || null,
       scheduled_time: params.scheduledTime || null,
       delivery_code: generateDeliveryCode(tempId),
+      payment_method: params.paymentMethod || null,
     })
     .select("id")
     .single();
@@ -246,7 +271,7 @@ export async function updateOrder(orderId: string, updates: Partial<OrderRecord>
 }
 
 // Map DB status to display status
-export function mapOrderStatus(dbStatus: string): "Processing" | "Confirmed" | "In Transit" | "Delivered" {
+export function mapOrderStatus(dbStatus: string): "Processing" | "Confirmed" | "In Transit" | "Delivered" | "Cancelled" {
   switch (dbStatus) {
     case "pending_payment":
     case "paid":
@@ -258,7 +283,7 @@ export function mapOrderStatus(dbStatus: string): "Processing" | "Confirmed" | "
     case "delivered":
       return "Delivered";
     case "cancelled":
-      return "Delivered"; // show as complete
+      return "Cancelled";
     default:
       return "Processing";
   }

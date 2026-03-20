@@ -62,9 +62,10 @@ function VendorMap({ mapHeight }: { mapHeight: string }) {
     <div className={`rounded-2xl overflow-hidden ${mapHeight}`} ref={mapRef}>
       {!mapLoaded && (
         <div className={`bg-primary-light ${mapHeight} flex items-center justify-center`}>
-          <div className="text-center">
-            <MapPin size={36} className="text-primary/40 mx-auto mb-1" />
-            <p className="text-primary/60 text-xs font-medium">Loading Map...</p>
+          <div className="text-center px-6">
+            <MapPin size={36} className="text-primary/40 mx-auto mb-2" />
+            <p className="text-primary font-semibold text-sm mb-1">We are updating our vendor map.</p>
+            <p className="text-text-secondary text-xs">Please check back later.</p>
           </div>
         </div>
       )}
@@ -80,7 +81,7 @@ export default function VendorsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <TopBar title="Water Vendors" showBack={true} />
 
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
