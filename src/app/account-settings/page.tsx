@@ -6,6 +6,7 @@ import { User, Mail, Phone, Smartphone, Save, Building2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
+import DesktopFooter from "@/components/layout/DesktopFooter";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 
@@ -185,12 +186,3 @@ function DesktopNav() {
   );
 }
 
-function DesktopFooter() {
-  return (
-    <footer className="bg-[#1A2A3A] text-white py-12">
-      <div className="max-w-6xl mx-auto px-8 text-center">
-        <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
-      </div>
-    </footer>
-  );
-}

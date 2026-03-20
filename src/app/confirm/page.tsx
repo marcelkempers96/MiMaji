@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
-import { createOrder, updateOrderStatus, formatOrderId } from "@/lib/orders";
+import { createOrder, updateOrderStatus, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
 import { processOrderRewards, initRewards, getRewardsSummary, useFreeLitres, calculateOrderLitres } from "@/lib/rewards";
 
@@ -41,7 +41,7 @@ export default function ConfirmOrderPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "confirmed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
 
   // Scheduled delivery
@@ -73,6 +73,9 @@ export default function ConfirmOrderPage() {
     return acc + (match ? parseInt(match[1]) * item.quantity : 0);
   }, 0);
 
+  // Calculate discount per litre based on average price
+  const pricePerLitre = orderLitres > 0 ? (total - 100) / orderLitres : 0; // subtract delivery fee for per-litre calc
+
   const handleClaimRewards = (claim: boolean) => {
     setClaimRewards(claim);
     if (claim && freeLitres > 0) {
@@ -83,6 +86,10 @@ export default function ConfirmOrderPage() {
     }
   };
 
+  // Rewards discount amount
+  const rewardsDiscount = claimRewards && rewardsApplied > 0 ? Math.round(rewardsApplied * pricePerLitre) : 0;
+  const finalTotal = Math.max(total - rewardsDiscount, 0);
+
   // Store confirmed order details so they persist after cart is cleared
   const confirmedOrderRef = useRef<{
     orderId: string;
@@ -91,6 +98,7 @@ export default function ConfirmOrderPage() {
     total: number;
     address: string;
     paymentMethod: PaymentMethod;
+    deliveryCode: string;
   } | null>(null);
 
   const handleConfirm = async () => {
@@ -115,7 +123,7 @@ export default function ConfirmOrderPage() {
         customerId: user.id,
         deliveryAddress: selectedLocation?.address || "Not set",
         quantity: Math.min(totalItems, 10),
-        priceTotal: total,
+        priceTotal: finalTotal,
         productName,
         orderItems,
         scheduledDate: scheduledDelivery?.date,
@@ -142,7 +150,7 @@ export default function ConfirmOrderPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               phone: user.phone,
-              amount: total,
+              amount: finalTotal,
               orderId,
             }),
           });
@@ -195,9 +203,10 @@ export default function ConfirmOrderPage() {
         orderId,
         mpesaRef,
         items: [...items],
-        total,
+        total: finalTotal,
         address: selectedLocation?.address || "Not set",
         paymentMethod,
+        deliveryCode: generateDeliveryCode(orderId),
       };
 
       clearCart();
@@ -209,9 +218,9 @@ export default function ConfirmOrderPage() {
     }
   };
 
-  const handleCopyPaybill = () => {
-    navigator.clipboard.writeText("123456").then(() => {
-      setCopied(true);
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(label);
       setTimeout(() => setCopied(false), 2000);
     });
   };
@@ -281,11 +290,35 @@ export default function ConfirmOrderPage() {
             </div>
 
             <div className="bg-[#FFF5EC] rounded-xl p-4 mb-6">
-              <p className="text-[#F5A623] text-xs font-bold mb-1">Payment Details Reminder</p>
-              <div className="text-text-secondary text-xs space-y-1">
-                <p>Business Number: <span className="font-bold text-text-primary">123456</span></p>
-                <p>Account Number: <span className="font-bold text-text-primary">{user?.phone || "Your phone"}</span></p>
-                <p>Amount: <span className="font-bold text-text-primary">KES {order.total.toLocaleString()}</span></p>
+              <p className="text-[#F5A623] text-xs font-bold mb-2">Payment Details</p>
+              <p className="text-text-secondary text-[10px] mb-2">If you haven&apos;t paid yet, use these details in M-PESA → Lipa na M-PESA → Pay Bill:</p>
+              <div className="bg-white rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Business Number</p>
+                    <p className="text-sm font-bold text-text-primary font-mono">123456</p>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText("123456"); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                    <Copy size={12} /> Copy
+                  </button>
+                </div>
+                <div className="h-px bg-gray-100" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Account Number</p>
+                    <p className="text-sm font-bold text-text-primary font-mono">{user?.phone || "Your phone"}</p>
+                  </div>
+                  {user?.phone && (
+                    <button onClick={() => { navigator.clipboard.writeText(user.phone); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                      <Copy size={12} /> Copy
+                    </button>
+                  )}
+                </div>
+                <div className="h-px bg-gray-100" />
+                <div>
+                  <p className="text-[10px] text-text-secondary">Amount</p>
+                  <p className="text-sm font-bold text-[#2ECC71] font-mono">KES {order.total.toLocaleString()}</p>
+                </div>
               </div>
             </div>
 
@@ -396,6 +429,21 @@ export default function ConfirmOrderPage() {
               <p className="font-bold text-sm text-text-primary">{order.mpesaRef}</p>
             </div>
           )}
+
+          {/* Delivery Confirmation Code */}
+          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-4 mb-4">
+            <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 text-center">Your Delivery Code</p>
+            <div className="flex justify-center gap-2 mb-2">
+              {order.deliveryCode.split("").map((digit, i) => (
+                <div key={i} className="w-12 h-14 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                  <span className="text-2xl font-extrabold text-primary">{digit}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-text-secondary text-[11px] text-center">
+              Share this code with the delivery driver to confirm your delivery.
+            </p>
+          </div>
 
           {/* Track Order Button */}
           <Link href={`/track?orderId=${order.orderId}`}>
@@ -554,7 +602,7 @@ export default function ConfirmOrderPage() {
               </button>
               {claimRewards && rewardsApplied > 0 && (
                 <p className="text-[#2ECC71] text-xs font-semibold mt-2 text-center">
-                  {rewardsApplied}L of free water will be applied to this order!
+                  {rewardsApplied}L free water applied — you save KES {rewardsDiscount.toLocaleString()}!
                 </p>
               )}
             </div>
@@ -645,7 +693,7 @@ export default function ConfirmOrderPage() {
             <div className="bg-primary-light rounded-xl p-4 mb-4">
               <p className="font-bold text-sm text-text-primary mb-1">Cash on Delivery</p>
               <p className="text-text-secondary text-xs">
-                Have <span className="font-bold text-text-primary">KES {total.toLocaleString()}</span> ready in cash.
+                Have <span className="font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span> ready in cash.
                 The delivery driver will collect payment when your water arrives. Please have the exact amount if possible.
               </p>
               <div className="mt-2 bg-[#FFF5EC] rounded-lg p-3">
@@ -660,35 +708,83 @@ export default function ConfirmOrderPage() {
           {/* M-PESA App Instructions */}
           {paymentMethod === "mpesa-app" && (
             <div className="bg-[#FFF5EC] rounded-xl p-4 mb-4">
-              <p className="font-bold text-sm text-text-primary mb-2">Payment Instructions</p>
-              <ol className="text-text-secondary text-xs space-y-2 list-decimal list-inside">
-                <li>Open M-PESA on your phone</li>
-                <li>Select <span className="font-semibold text-text-primary">Lipa na M-PESA</span></li>
-                <li>Select <span className="font-semibold text-text-primary">Pay Bill</span></li>
-                <li>
-                  Enter Business Number: <span className="font-bold text-text-primary">123456</span>
-                  <button onClick={handleCopyPaybill} className="ml-2 inline-flex items-center gap-1 text-primary">
-                    {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
-                    <span className="text-[10px]">{copied ? "Copied!" : "Copy"}</span>
+              <p className="font-bold text-sm text-text-primary mb-3">How to Pay via M-PESA</p>
+
+              {/* Payment Details - Copyable */}
+              <div className="bg-white rounded-xl p-4 mb-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary uppercase tracking-wide font-semibold">Business Number (Paybill)</p>
+                    <p className="text-lg font-bold text-text-primary font-mono">123456</p>
+                  </div>
+                  <button onClick={() => handleCopy("123456", "business")} className="flex items-center gap-1 bg-primary-light text-primary px-3 py-1.5 rounded-lg text-xs font-semibold">
+                    {copied === "business" ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                    {copied === "business" ? "Copied!" : "Copy"}
                   </button>
-                </li>
-                <li>Enter Account Number: <span className="font-bold text-text-primary">{user?.phone || "Your phone"}</span></li>
-                <li>Enter Amount: <span className="font-bold text-text-primary">KES {total.toLocaleString()}</span></li>
-                <li>Enter your M-PESA PIN and confirm</li>
+                </div>
+                <div className="h-px bg-gray-100" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary uppercase tracking-wide font-semibold">Account Number</p>
+                    <p className="text-lg font-bold text-text-primary font-mono">{user?.phone || "Your phone"}</p>
+                  </div>
+                  {user?.phone && (
+                    <button onClick={() => handleCopy(user.phone, "account")} className="flex items-center gap-1 bg-primary-light text-primary px-3 py-1.5 rounded-lg text-xs font-semibold">
+                      {copied === "account" ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                      {copied === "account" ? "Copied!" : "Copy"}
+                    </button>
+                  )}
+                </div>
+                <div className="h-px bg-gray-100" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary uppercase tracking-wide font-semibold">Amount to Pay</p>
+                    <p className="text-lg font-bold text-[#2ECC71] font-mono">KES {finalTotal.toLocaleString()}</p>
+                  </div>
+                  <button onClick={() => handleCopy(finalTotal.toString(), "amount")} className="flex items-center gap-1 bg-primary-light text-primary px-3 py-1.5 rounded-lg text-xs font-semibold">
+                    {copied === "amount" ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                    {copied === "amount" ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Step by step */}
+              <p className="text-xs font-bold text-text-primary mb-2">Steps:</p>
+              <ol className="text-text-secondary text-xs space-y-1.5 list-decimal list-inside mb-3">
+                <li>Open <span className="font-semibold text-text-primary">M-PESA</span> on your phone</li>
+                <li>Go to <span className="font-semibold text-text-primary">Lipa na M-PESA</span> → <span className="font-semibold text-text-primary">Pay Bill</span></li>
+                <li>Enter Business Number: <span className="font-bold text-text-primary">123456</span></li>
+                <li>Enter Account Number: <span className="font-bold text-text-primary">{user?.phone || "Your phone number"}</span></li>
+                <li>Enter Amount: <span className="font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span></li>
+                <li>Enter your <span className="font-semibold text-text-primary">M-PESA PIN</span> and confirm</li>
+                <li>You will receive an <span className="font-semibold text-text-primary">SMS with a confirmation code</span></li>
               </ol>
-              <div className="mt-3 bg-primary-light rounded-lg p-3">
-                <p className="text-primary text-xs font-bold">Important:</p>
+
+              <div className="bg-primary-light rounded-lg p-3">
+                <p className="text-primary text-xs font-bold">After payment:</p>
                 <p className="text-text-primary text-xs mt-1">
-                  After completing payment, you will need to enter the M-PESA payment code on the next page to confirm your payment.
+                  Enter the M-PESA confirmation code (e.g. SJ12ABCDEF) on the next screen so we can verify your payment and process your order.
                 </p>
               </div>
             </div>
           )}
 
           {/* Total */}
+          {rewardsDiscount > 0 && (
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm text-text-secondary">Subtotal</span>
+              <span className="text-sm text-text-secondary line-through">KES {total.toLocaleString()}</span>
+            </div>
+          )}
+          {rewardsDiscount > 0 && (
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm text-[#2ECC71] font-semibold">Rewards Discount ({rewardsApplied}L)</span>
+              <span className="text-sm text-[#2ECC71] font-semibold">-KES {rewardsDiscount.toLocaleString()}</span>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-xl font-bold text-text-primary">Total</span>
-            <span className="text-xl font-bold text-text-primary">KES {total.toLocaleString()}</span>
+            <span className="text-xl font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span>
           </div>
 
           {/* Error Message */}

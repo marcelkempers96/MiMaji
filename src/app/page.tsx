@@ -1,10 +1,11 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, webicon } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2 } from "lucide-react";
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
+import DesktopFooter from "@/components/layout/DesktopFooter";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -45,7 +46,7 @@ export default function HomePage() {
 
         {/* Hero */}
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5 relative overflow-hidden">
-          <img src={webicon.src} alt="" className="absolute top-4 right-4 w-20 h-20 opacity-15 object-contain" />
+          <img src={watermany.src} alt="" className="absolute top-4 right-4 w-20 h-20 opacity-15 object-contain" />
           <h1 className="text-2xl font-extrabold leading-tight">
             Order Water Online
           </h1>
@@ -177,6 +178,9 @@ export default function HomePage() {
           </div>
         </Link>
 
+        {/* Services */}
+        <h2 className="text-base font-bold text-text-primary mb-3">Services</h2>
+
         {/* Corporate / Office Water */}
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-xl p-4 mb-3">
           <div className="flex items-center gap-3">
@@ -195,9 +199,9 @@ export default function HomePage() {
             </Link>
             <Link
               href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
-              className="bg-white/20 text-white text-center rounded-full px-4 py-2 text-xs font-bold hover:bg-white/30 transition-colors whitespace-nowrap"
+              className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
             >
-              Set Up Corporate Account
+              Set Up Corporate Account →
             </Link>
           </div>
         </div>
@@ -222,17 +226,16 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* Impact - Water is Life */}
+        {/* Impact */}
+        <h2 className="text-base font-bold text-text-primary mb-3">Impact</h2>
         <Link href="/impact">
-          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-5 hover:shadow-card transition-shadow">
-            <div className="flex items-center gap-3">
-              <Heart size={20} className="text-[#2ECC71]" />
-              <div>
-                <p className="font-bold text-sm text-text-primary">Water is Life</p>
-                <p className="text-text-secondary text-xs">For every 100L, we supply 10L to rural communities</p>
-                <p className="text-[#2ECC71] text-xs font-semibold mt-1">Learn about our impact →</p>
-              </div>
+          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-5 mb-5 hover:shadow-card transition-shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <Heart size={22} className="text-[#2ECC71]" />
+              <p className="font-bold text-sm text-text-primary">Water is Life</p>
             </div>
+            <p className="text-text-secondary text-xs mb-2">For every 100L delivered, we supply 10L to rural communities in need across Kenya.</p>
+            <p className="text-[#2ECC71] text-xs font-semibold">Learn about our impact →</p>
           </div>
         </Link>
 
@@ -381,7 +384,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white relative overflow-hidden">
-        <img src={webicon.src} alt="" className="absolute top-8 right-8 w-40 h-40 opacity-10 object-contain" />
+        <img src={watermany.src} alt="" className="absolute top-8 right-8 w-40 h-40 opacity-10 object-contain" />
         <div className="max-w-6xl mx-auto px-8 py-20 flex items-center gap-12 relative">
           <div className="flex-1">
             <h1 className="text-5xl font-extrabold leading-tight">
@@ -551,20 +554,19 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <p className="text-white/80 text-lg mt-2 max-w-md">
               Keep your team hydrated with scheduled water deliveries. Corporate accounts available with volume discounts and monthly invoicing.
             </p>
-            <div className="flex gap-4 mt-6">
+            <div className="flex items-center gap-6 mt-6">
               <Link
                 href="/buy"
-                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors whitespace-nowrap"
               >
                 <ShoppingCart size={20} />
                 Order for Office
               </Link>
               <Link
                 href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
-                className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+                className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap"
               >
-                <Building2 size={20} />
-                Set Up Corporate Account
+                Set Up Corporate Account →
               </Link>
             </div>
           </div>
@@ -621,77 +623,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
         </div>
       </section>
 
-      {/* Desktop Footer */}
-      <footer className="bg-[#1A2A3A] text-white py-16">
-        <div className="max-w-6xl mx-auto px-8">
-          <div className="grid grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center mb-4">
-                <img src={logo1.src} alt="MiMaji" className="h-[50px] w-auto brightness-0 invert" />
-              </div>
-              <p className="text-white/60 text-sm mb-4">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
-              <p className="text-white/40 text-xs">For every 100L delivered, 10L goes to rural communities.</p>
-            </div>
-            <div>
-              <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Quick Links</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/buy" className="text-white/60 text-sm hover:text-white transition-colors">Order Water</Link>
-                <AuthLink href="/orders" className="text-white/60 text-sm hover:text-white transition-colors">My Orders</AuthLink>
-                <Link href="/subscriptions" className="text-white/60 text-sm hover:text-white transition-colors">Subscriptions</Link>
-                <Link href="/rewards" className="text-white/60 text-sm hover:text-white transition-colors">Water Warriors Rewards</Link>
-                <Link href="/schedule" className="text-white/60 text-sm hover:text-white transition-colors">Schedule Delivery</Link>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Company</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
-                <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
-                <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
-                <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
-                <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
-                <Link href="/vendor-login" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Login</Link>
-                <Link href="/vendor-signup" className="text-[#2ECC71] text-sm font-semibold hover:text-[#27ae60] transition-colors">Sign Up as Vendor</Link>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Contact Us</h4>
-              <div className="flex flex-col gap-2">
-                <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="text-[#25D366] text-sm font-semibold hover:text-[#1fb855] transition-colors flex items-center gap-2">
-                  <MessageCircle size={14} />
-                  WhatsApp (24/7)
-                </a>
-                <a href="tel:+254758434076" className="text-white/60 text-sm hover:text-white transition-colors flex items-center gap-2">
-                  <Phone size={14} />
-                  +254 758 434 076
-                </a>
-                <a href="mailto:support@mimaji.co.ke" className="text-white/60 text-sm hover:text-white transition-colors flex items-center gap-2">
-                  <Mail size={14} />
-                  support@mimaji.co.ke
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-white/20 pt-6 mb-6">
-            <div className="flex items-center gap-6 mb-4">
-              <div>
-                <p className="text-white/50 text-xs uppercase tracking-wide font-semibold mb-1">M-PESA Payment</p>
-                <p className="text-white/80 text-sm">Till Number: <span className="font-bold text-white">123456</span></p>
-                <p className="text-white/80 text-sm">Account No: <span className="font-bold text-white">Your Phone Number</span></p>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-white/20 pt-6 flex items-center justify-between">
-            <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
-            <div className="flex items-center gap-4">
-              <Link href="/terms" className="text-white/40 text-xs hover:text-white/70 transition-colors">Terms</Link>
-              <Link href="/privacy" className="text-white/40 text-xs hover:text-white/70 transition-colors">Privacy</Link>
-              <Link href="/cancellation" className="text-white/40 text-xs hover:text-white/70 transition-colors">Refunds</Link>
-              <Link href="/cookies" className="text-white/40 text-xs hover:text-white/70 transition-colors">Cookies</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <DesktopFooter />
     </>
   );
 }

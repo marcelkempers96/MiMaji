@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { useSearchParams } from "next/navigation";
-import { fetchOrderById, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId } from "@/lib/orders";
+import { fetchOrderById, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { supabase } from "@/lib/supabase";
 
 const statusSteps = [
@@ -124,6 +124,25 @@ function TrackPage() {
               </div>
             </div>
           </div>
+
+          {/* Delivery Confirmation Code - show when order is confirmed or in transit */}
+          {currentStep >= 1 && currentStep < 3 && (
+            <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-4 mb-4">
+              <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1">Your Delivery Code</p>
+              <div className="flex items-center justify-center gap-3">
+                <div className="flex gap-2">
+                  {(order.delivery_code || generateDeliveryCode(order.id)).split("").map((digit, i) => (
+                    <div key={i} className="w-12 h-14 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                      <span className="text-2xl font-extrabold text-primary">{digit}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="text-text-secondary text-[11px] text-center mt-2">
+                Share this code with your delivery driver to confirm delivery.
+              </p>
+            </div>
+          )}
 
           {/* ETA - only show if vendor has set estimated_delivery_minutes and order is confirmed or in transit */}
           {currentStep >= 1 && currentStep < 3 && estimatedMinutes && (

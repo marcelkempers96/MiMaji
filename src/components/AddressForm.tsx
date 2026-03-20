@@ -22,6 +22,17 @@ const LOCATION_TYPES: { value: LocationType; label: string; icon: typeof Home }[
   { value: "other", label: "Other", icon: MapPin },
 ];
 
+const NAIROBI_NEIGHBOURHOODS = [
+  "Kilimani", "Lavington", "Westlands", "Karen", "Kileleshwa",
+  "South B", "South C", "Langata", "Hurlingham", "Upper Hill",
+  "Parklands", "Riverside", "Runda", "Muthaiga", "Spring Valley",
+  "Ngong Road", "Dagoretti", "Embakasi", "Kasarani", "Roysambu",
+  "Ruaka", "Kitisuru", "Gigiri", "Loresho", "Mountain View",
+  "Nairobi CBD", "Ngara", "Eastleigh", "Buruburu", "Donholm",
+  "Umoja", "Kahawa", "Thika Road", "Rongai", "Syokimau",
+  "Athi River", "Kitengela", "Kiambu", "Ruiru",
+];
+
 interface AddressFormProps {
   /** Called when user submits the form */
   onSubmit: (location: SavedLocation) => void;
@@ -57,6 +68,10 @@ export default function AddressForm({
   const [postalCode, setPostalCode] = useState(initial?.postalCode || "");
   const [additionalDirections, setAdditionalDirections] = useState(initial?.additionalDirections || "");
   const [neighbourhood, setNeighbourhood] = useState(initial?.neighbourhood || "");
+  const [customNeighbourhood, setCustomNeighbourhood] = useState("");
+  const [isCustomNeighbourhood, setIsCustomNeighbourhood] = useState(
+    initial?.neighbourhood ? !NAIROBI_NEIGHBOURHOODS.includes(initial.neighbourhood) : false
+  );
   const [addressType, setAddressType] = useState<"home" | "office">(initial?.type || "home");
   const [saveForFuture, setSaveForFuture] = useState(defaultSave);
   const [lat, setLat] = useState<number | undefined>(initial?.lat);
@@ -361,40 +376,40 @@ export default function AddressForm({
       {/* Divider between search and address details */}
       <div className="border-t border-gray-100 my-4" />
 
-      {/* Address Type (home/office) */}
+      {/* Address Label */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
-        Save As
+        Address Label
       </label>
       <div className="flex gap-2 mb-3">
         <button
-          onClick={() => setAddressType("home")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-            addressType === "home" ? "bg-primary text-white" : "bg-gray-100 text-text-secondary"
+          onClick={() => { setAddressType("home"); setLabel("Home"); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
+            label === "Home" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
           }`}
         >
-          <Home size={16} /> Home
+          <Home size={14} /> Home
         </button>
         <button
-          onClick={() => setAddressType("office")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-            addressType === "office" ? "bg-primary text-white" : "bg-gray-100 text-text-secondary"
+          onClick={() => { setAddressType("office"); setLabel("Office"); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
+            label === "Office" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
           }`}
         >
-          <Briefcase size={16} /> Office
+          <Briefcase size={14} /> Office
         </button>
+        <input
+          type="text"
+          value={label !== "Home" && label !== "Office" ? label : ""}
+          onChange={(e) => { setLabel(e.target.value); setAddressType("home"); }}
+          onFocus={() => { if (label === "Home" || label === "Office") setLabel(""); }}
+          placeholder="Custom label..."
+          className={`flex-1 rounded-full border px-4 py-2 text-xs font-semibold outline-none transition-colors ${
+            label !== "Home" && label !== "Office" && label
+              ? "border-primary text-primary bg-primary-light"
+              : "border-gray-200 text-text-secondary bg-gray-50"
+          }`}
+        />
       </div>
-
-      {/* Label */}
-      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
-        Label
-      </label>
-      <input
-        type="text"
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        placeholder="Label"
-        className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
-      />
 
       {/* Location Type */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
@@ -424,13 +439,44 @@ export default function AddressForm({
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
         Neighbourhood / Area *
       </label>
-      <input
-        type="text"
-        value={neighbourhood}
-        onChange={(e) => setNeighbourhood(e.target.value)}
-        placeholder="Neighbourhood / Area"
-        className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
-      />
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {NAIROBI_NEIGHBOURHOODS.map((area) => (
+          <button
+            key={area}
+            type="button"
+            onClick={() => { setNeighbourhood(area); setIsCustomNeighbourhood(false); setCustomNeighbourhood(""); }}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              neighbourhood === area && !isCustomNeighbourhood
+                ? "bg-primary text-white"
+                : "bg-gray-50 text-text-secondary border border-gray-200 hover:border-primary hover:text-primary"
+            }`}
+          >
+            {area}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => { setIsCustomNeighbourhood(true); setNeighbourhood(customNeighbourhood); }}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            isCustomNeighbourhood
+              ? "bg-primary text-white"
+              : "bg-gray-50 text-text-secondary border border-gray-200 hover:border-primary hover:text-primary"
+          }`}
+        >
+          Other
+        </button>
+      </div>
+      {isCustomNeighbourhood && (
+        <input
+          type="text"
+          value={customNeighbourhood}
+          onChange={(e) => { setCustomNeighbourhood(e.target.value); setNeighbourhood(e.target.value); }}
+          placeholder="Type your neighbourhood..."
+          className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
+          autoFocus
+        />
+      )}
+      {!isCustomNeighbourhood && <div className="mb-3" />}
 
       {/* Street Name */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">

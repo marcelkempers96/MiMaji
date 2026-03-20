@@ -8,6 +8,7 @@ import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { useLocation, SavedLocation } from "@/context/LocationContext";
 import AddressForm, { AddressDisplay } from "@/components/AddressForm";
+import DesktopFooter from "@/components/layout/DesktopFooter";
 
 export default function SavedAddressesPage() {
   const { savedLocations, addSavedLocation, removeSavedLocation, updateSavedLocation } = useLocation();
@@ -144,12 +145,3 @@ function DesktopNav() {
   );
 }
 
-function DesktopFooter() {
-  return (
-    <footer className="bg-[#1A2A3A] text-white py-12">
-      <div className="max-w-6xl mx-auto px-8 text-center">
-        <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
-      </div>
-    </footer>
-  );
-}

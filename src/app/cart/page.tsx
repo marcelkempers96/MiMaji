@@ -10,6 +10,7 @@ import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { products } from "@/data/products";
+import DesktopFooter from "@/components/layout/DesktopFooter";
 
 const DISCOUNT_TIERS = [
   { minQty: 1, maxQty: 2, discount: 0, label: "Standard" },
@@ -225,12 +226,3 @@ function DesktopNav() {
   );
 }
 
-function DesktopFooter() {
-  return (
-    <footer className="bg-[#1A2A3A] text-white py-12">
-      <div className="max-w-6xl mx-auto px-8 text-center">
-        <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
-      </div>
-    </footer>
-  );
-}
