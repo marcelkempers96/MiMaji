@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { OrderRecord, formatOrderId, formatOrderDate, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
+import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
 
@@ -222,6 +222,7 @@ function AdminDashboardInner() {
   const [kenyaTime, setKenyaTime] = useState(getKenyaTime());
   const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
   const [vendorDropdown, setVendorDropdown] = useState<string | null>(null);
+  const [itemsPopup, setItemsPopup] = useState<{ orderId: string; items: Array<{ name: string; quantity: number; price: number }>; total: number } | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [cancelConfirm, setCancelConfirm] = useState<{ orderId: string; amount: number } | null>(null);
 
@@ -852,8 +853,8 @@ function AdminDashboardInner() {
                           <td className="px-4 py-3 font-mono text-xs font-semibold text-primary">
                             {formatOrderId(order.id)}
                           </td>
-                          <td className="px-4 py-3 text-text-secondary whitespace-nowrap">
-                            {formatOrderDate(order.created_at)}
+                          <td className="px-4 py-3 text-text-secondary whitespace-nowrap text-xs">
+                            {formatOrderDateTime(order.created_at)}
                           </td>
                           <td className="px-4 py-3 text-xs">
                             {(() => {
@@ -866,11 +867,16 @@ function AdminDashboardInner() {
                             })()}
                           </td>
                           <td className="px-4 py-3">
-                            {order.order_items && order.order_items.length > 0
-                              ? order.order_items
-                                  .map((i: { name: string; quantity: number; price: number }) => `${i.quantity}x ${i.name}`)
-                                  .join(", ")
-                              : order.product_name || "—"}
+                            {order.order_items && order.order_items.length > 0 ? (
+                              <button
+                                onClick={() => setItemsPopup({ orderId: order.id, items: order.order_items, total: order.price_total })}
+                                className="text-primary text-xs font-medium hover:underline cursor-pointer text-left"
+                              >
+                                {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View
+                              </button>
+                            ) : (
+                              <span className="text-xs text-text-secondary">{order.product_name || "—"}</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-text-secondary max-w-[200px]">
                             <span title={order.delivery_address}>
@@ -2218,6 +2224,34 @@ function AdminDashboardInner() {
                 >
                   Cancel & Refund
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Items Detail Popup */}
+        {itemsPopup && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setItemsPopup(null)}>
+            <div className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text-primary">Order Items</h3>
+                <button onClick={() => setItemsPopup(null)} className="text-text-secondary hover:text-text-primary"><XCircle size={18} /></button>
+              </div>
+              <p className="text-xs text-text-secondary mb-3">{formatOrderId(itemsPopup.orderId)}</p>
+              <div className="space-y-2">
+                {itemsPopup.items.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">{item.name}</p>
+                      <p className="text-xs text-text-secondary">Qty: {item.quantity}</p>
+                    </div>
+                    <p className="text-sm font-bold text-text-primary">{formatKES(item.price * item.quantity)}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between">
+                <span className="text-sm font-semibold text-text-secondary">Total</span>
+                <span className="text-sm font-bold text-text-primary">{formatKES(itemsPopup.total)}</span>
               </div>
             </div>
           </div>

@@ -9,7 +9,7 @@ import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { OrderRecord, formatOrderDate, formatOrderId, generateDeliveryCode } from "@/lib/orders";
+import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
 
@@ -29,6 +29,8 @@ export default function VendorPortalPage() {
 
   // Delivery code confirmation modal
   const [deliveryCodeModalOrder, setDeliveryCodeModalOrder] = useState<OrderRecord | null>(null);
+  // Items popup
+  const [itemsPopup, setItemsPopup] = useState<{ orderId: string; items: Array<{ name: string; quantity: number; price: number }>; total: number } | null>(null);
   const [deliveryCodeInput, setDeliveryCodeInput] = useState("");
   const [deliveryCodeError, setDeliveryCodeError] = useState("");
 
@@ -578,6 +580,34 @@ export default function VendorPortalPage() {
         </div>
       )}
 
+      {/* Items Detail Popup */}
+      {itemsPopup && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setItemsPopup(null)}>
+          <div className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-text-primary">Order Items</h3>
+              <button onClick={() => setItemsPopup(null)} className="text-text-secondary hover:text-text-primary"><X size={18} /></button>
+            </div>
+            <p className="text-xs text-text-secondary mb-3">{formatOrderId(itemsPopup.orderId)}</p>
+            <div className="space-y-2">
+              {itemsPopup.items.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">{item.name}</p>
+                    <p className="text-xs text-text-secondary">Qty: {item.quantity}</p>
+                  </div>
+                  <p className="text-sm font-bold text-text-primary">KES {(item.price * item.quantity).toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between">
+              <span className="text-sm font-semibold text-text-secondary">Total</span>
+              <span className="text-sm font-bold text-text-primary">KES {itemsPopup.total.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile */}
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-5 text-white mb-4">
@@ -625,7 +655,16 @@ export default function VendorPortalPage() {
                     <OrderStatusBadge status={order.status} />
                   </div>
                   <p className="text-sm text-text-primary font-medium">{order.product_name || "Water Order"}</p>
-                  <p className="text-xs text-text-secondary">{order.order_items?.map((i) => `${i.quantity}x ${i.name}`).join(", ") || "\u2014"}</p>
+                  {order.order_items && order.order_items.length > 0 ? (
+                    <button
+                      onClick={() => setItemsPopup({ orderId: order.id, items: order.order_items, total: order.price_total })}
+                      className="text-primary text-xs font-medium hover:underline text-left"
+                    >
+                      {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View details
+                    </button>
+                  ) : (
+                    <p className="text-xs text-text-secondary">{"\u2014"}</p>
+                  )}
                   <div className="bg-primary-light rounded-lg p-2.5 mt-2">
                     <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline font-medium"><MapPin size={12} /> {order.delivery_address}</a>
                     {order.delivery_address_details?.additionalDirections && (
@@ -654,7 +693,7 @@ export default function VendorPortalPage() {
                   )}
                   <div className="flex items-center justify-between mt-3">
                     <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
-                    <span className="text-text-secondary text-xs">{formatOrderDate(order.created_at)}</span>
+                    <span className="text-text-secondary text-[10px]">{formatOrderDateTime(order.created_at)}</span>
                   </div>
                   {order.estimated_delivery_minutes && (order.status === "confirmed" || order.status === "out_for_delivery") && (
                     <div className="flex items-center gap-1 mt-2 text-xs text-primary"><Timer size={12} /><span className="font-semibold">ETA: {order.estimated_delivery_minutes} min</span></div>
@@ -865,8 +904,22 @@ export default function VendorPortalPage() {
                     <tbody>
                       {(activeDesktopTab === "orders" ? orders : orders.slice(0, 10)).map((order) => (
                         <tr key={order.id} className="border-b border-[#F0F0F0] last:border-0 hover:bg-background transition-colors">
-                          <td className="px-6 py-4 text-sm font-bold text-text-primary">{formatOrderId(order.id)}</td>
-                          <td className="px-6 py-4 text-sm text-text-secondary">{order.product_name || "Water Order"}</td>
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-bold text-text-primary">{formatOrderId(order.id)}</p>
+                            <p className="text-[10px] text-text-secondary">{formatOrderDateTime(order.created_at)}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            {order.order_items && order.order_items.length > 0 ? (
+                              <button
+                                onClick={() => setItemsPopup({ orderId: order.id, items: order.order_items, total: order.price_total })}
+                                className="text-primary text-xs font-medium hover:underline text-left"
+                              >
+                                {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View
+                              </button>
+                            ) : (
+                              <span className="text-sm text-text-secondary">{order.product_name || "Water Order"}</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-sm">
                             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{order.delivery_address}</a>
                             {order.delivery_address_details?.additionalDirections && (

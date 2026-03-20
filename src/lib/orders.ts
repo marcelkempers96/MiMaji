@@ -322,6 +322,16 @@ export function formatOrderDate(isoDate: string): string {
   return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** Format order date with time, e.g. "21 Mar 2026, 14:32" */
+export function formatOrderDateTime(isoDate: string): string {
+  const d = new Date(isoDate);
+  const day = d.getDate();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const hrs = d.getHours().toString().padStart(2, "0");
+  const mins = d.getMinutes().toString().padStart(2, "0");
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}, ${hrs}:${mins}`;
+}
+
 export function formatOrderId(uuid: string): string {
   return `ORD-${uuid.slice(0, 6).toUpperCase()}`;
 }

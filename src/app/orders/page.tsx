@@ -11,7 +11,7 @@ import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
-import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
+import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
 import { getRewardsSummary, initRewards } from "@/lib/rewards";
 
 const statusSteps = [
@@ -138,7 +138,7 @@ export default function OrdersPage() {
                 const displayStatus = mapOrderStatus(order.status);
                 const currentStep = getStepIndex(displayStatus);
                 const displayId = formatOrderId(order.id);
-                const displayDate = formatOrderDate(order.created_at);
+                const displayDate = formatOrderDateTime(order.created_at);
                 const itemsList = order.order_items && order.order_items.length > 0
                   ? order.order_items
                   : order.product_name
@@ -291,7 +291,7 @@ export default function OrdersPage() {
               <h2 className="font-bold text-sm text-text-primary mb-3">Cancelled Orders</h2>
               {cancelledOrders.map((order) => {
                 const displayId = formatOrderId(order.id);
-                const displayDate = formatOrderDate(order.created_at);
+                const displayDate = formatOrderDateTime(order.created_at);
                 const itemsList = order.order_items && order.order_items.length > 0
                   ? order.order_items
                   : order.product_name
@@ -399,7 +399,7 @@ export default function OrdersPage() {
               <h2 className="font-bold text-sm text-text-primary mb-3">Order History</h2>
               {pastOrders.map((order) => {
                 const displayId = formatOrderId(order.id);
-                const displayDate = formatOrderDate(order.created_at);
+                const displayDate = formatOrderDateTime(order.created_at);
                 const itemsList = order.order_items && order.order_items.length > 0
                   ? order.order_items
                   : order.product_name
