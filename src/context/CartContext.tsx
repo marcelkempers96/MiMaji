@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 interface CartItem {
   id: string;
@@ -22,6 +22,26 @@ interface CartContextType {
 }
 
 const DELIVERY_FEE = 100;
+const CART_STORAGE_KEY = "mimaji_cart";
+
+function loadCartFromStorage(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+function saveCartToStorage(items: CartItem[]) {
+  try {
+    if (items.length === 0) {
+      localStorage.removeItem(CART_STORAGE_KEY);
+    } else {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    }
+  } catch {}
+}
 
 const CartContext = createContext<CartContextType>({
   items: [],
@@ -36,7 +56,12 @@ const CartContext = createContext<CartContextType>({
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(loadCartFromStorage);
+
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    saveCartToStorage(items);
+  }, [items]);
 
   const addItem = useCallback((item: CartItem) => {
     setItems((prev) => {

@@ -178,6 +178,9 @@ export default function HomePage() {
           </div>
         </Link>
 
+        {/* Services */}
+        <h2 className="text-base font-bold text-text-primary mb-3">Services</h2>
+
         {/* Corporate / Office Water */}
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-xl p-4 mb-3">
           <div className="flex items-center gap-3">
@@ -196,9 +199,9 @@ export default function HomePage() {
             </Link>
             <Link
               href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
-              className="bg-white/20 text-white text-center rounded-full px-4 py-2 text-xs font-bold hover:bg-white/30 transition-colors whitespace-nowrap"
+              className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
             >
-              Set Up Corporate Account
+              Set Up Corporate Account →
             </Link>
           </div>
         </div>
@@ -223,17 +226,16 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* Impact - Water is Life */}
+        {/* Impact */}
+        <h2 className="text-base font-bold text-text-primary mb-3">Impact</h2>
         <Link href="/impact">
-          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-5 hover:shadow-card transition-shadow">
-            <div className="flex items-center gap-3">
-              <Heart size={20} className="text-[#2ECC71]" />
-              <div>
-                <p className="font-bold text-sm text-text-primary">Water is Life</p>
-                <p className="text-text-secondary text-xs">For every 100L, we supply 10L to rural communities</p>
-                <p className="text-[#2ECC71] text-xs font-semibold mt-1">Learn about our impact →</p>
-              </div>
+          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-5 mb-5 hover:shadow-card transition-shadow">
+            <div className="flex items-center gap-3 mb-2">
+              <Heart size={22} className="text-[#2ECC71]" />
+              <p className="font-bold text-sm text-text-primary">Water is Life</p>
             </div>
+            <p className="text-text-secondary text-xs mb-2">For every 100L delivered, we supply 10L to rural communities in need across Kenya.</p>
+            <p className="text-[#2ECC71] text-xs font-semibold">Learn about our impact →</p>
           </div>
         </Link>
 
@@ -552,20 +554,19 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <p className="text-white/80 text-lg mt-2 max-w-md">
               Keep your team hydrated with scheduled water deliveries. Corporate accounts available with volume discounts and monthly invoicing.
             </p>
-            <div className="flex gap-4 mt-6">
+            <div className="flex items-center gap-6 mt-6">
               <Link
                 href="/buy"
-                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors whitespace-nowrap"
               >
                 <ShoppingCart size={20} />
                 Order for Office
               </Link>
               <Link
                 href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
-                className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+                className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap"
               >
-                <Building2 size={20} />
-                Set Up Corporate Account
+                Set Up Corporate Account →
               </Link>
             </div>
           </div>
