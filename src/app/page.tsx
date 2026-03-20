@@ -5,6 +5,7 @@ import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phon
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
+import DesktopFooter from "@/components/layout/DesktopFooter";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -621,77 +622,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
         </div>
       </section>
 
-      {/* Desktop Footer */}
-      <footer className="bg-[#1A2A3A] text-white py-16">
-        <div className="max-w-6xl mx-auto px-8">
-          <div className="grid grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center mb-4">
-                <img src={logo1.src} alt="MiMaji" className="h-[50px] w-auto brightness-0 invert" />
-              </div>
-              <p className="text-white/60 text-sm mb-4">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
-              <p className="text-white/40 text-xs">For every 100L delivered, 10L goes to rural communities.</p>
-            </div>
-            <div>
-              <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Quick Links</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/buy" className="text-white/60 text-sm hover:text-white transition-colors">Order Water</Link>
-                <AuthLink href="/orders" className="text-white/60 text-sm hover:text-white transition-colors">My Orders</AuthLink>
-                <Link href="/subscriptions" className="text-white/60 text-sm hover:text-white transition-colors">Subscriptions</Link>
-                <Link href="/rewards" className="text-white/60 text-sm hover:text-white transition-colors">Water Warriors Rewards</Link>
-                <Link href="/schedule" className="text-white/60 text-sm hover:text-white transition-colors">Schedule Delivery</Link>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Company</h4>
-              <div className="flex flex-col gap-2">
-                <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
-                <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
-                <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
-                <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
-                <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
-                <Link href="/vendor-login" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Login</Link>
-                <Link href="/vendor-signup" className="text-[#2ECC71] text-sm font-semibold hover:text-[#27ae60] transition-colors">Sign Up as Vendor</Link>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Contact Us</h4>
-              <div className="flex flex-col gap-2">
-                <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="text-[#25D366] text-sm font-semibold hover:text-[#1fb855] transition-colors flex items-center gap-2">
-                  <MessageCircle size={14} />
-                  WhatsApp (24/7)
-                </a>
-                <a href="tel:+254758434076" className="text-white/60 text-sm hover:text-white transition-colors flex items-center gap-2">
-                  <Phone size={14} />
-                  +254 758 434 076
-                </a>
-                <a href="mailto:support@mimaji.co.ke" className="text-white/60 text-sm hover:text-white transition-colors flex items-center gap-2">
-                  <Mail size={14} />
-                  support@mimaji.co.ke
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-white/20 pt-6 mb-6">
-            <div className="flex items-center gap-6 mb-4">
-              <div>
-                <p className="text-white/50 text-xs uppercase tracking-wide font-semibold mb-1">M-PESA Payment</p>
-                <p className="text-white/80 text-sm">Till Number: <span className="font-bold text-white">123456</span></p>
-                <p className="text-white/80 text-sm">Account No: <span className="font-bold text-white">Your Phone Number</span></p>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-white/20 pt-6 flex items-center justify-between">
-            <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
-            <div className="flex items-center gap-4">
-              <Link href="/terms" className="text-white/40 text-xs hover:text-white/70 transition-colors">Terms</Link>
-              <Link href="/privacy" className="text-white/40 text-xs hover:text-white/70 transition-colors">Privacy</Link>
-              <Link href="/cancellation" className="text-white/40 text-xs hover:text-white/70 transition-colors">Refunds</Link>
-              <Link href="/cookies" className="text-white/40 text-xs hover:text-white/70 transition-colors">Cookies</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <DesktopFooter />
     </>
   );
 }

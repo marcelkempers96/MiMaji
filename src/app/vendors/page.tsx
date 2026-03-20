@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { MapPin, Star, Clock, Droplets, Search } from "lucide-react";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
+import DesktopFooter from "@/components/layout/DesktopFooter";
 
 const vendors = [
   { id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, hours: "6AM - 9PM", products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"], lat: -1.2921, lng: 36.7877 },
@@ -91,13 +92,9 @@ export default function VendorsPage() {
         <div className="max-w-6xl mx-auto px-8 py-12">
           <h1 className="text-3xl font-extrabold text-text-primary mb-2">Water Vendors Near You</h1>
           <p className="text-text-secondary mb-8">Find trusted water vendors in Nairobi</p>
-          <div className="grid grid-cols-3 gap-8">
-            <div className="col-span-2">
-              <VendorContent vendors={filteredVendors} searchQuery={searchQuery} setSearchQuery={setSearchQuery} desktop />
-            </div>
-            <div className="sticky top-8">
-              <VendorMap mapHeight="h-80" />
-            </div>
+          <div className="mb-8"><VendorMap mapHeight="h-[500px]" /></div>
+          <div className="max-w-4xl mx-auto">
+            <VendorContent vendors={filteredVendors} searchQuery={searchQuery} setSearchQuery={setSearchQuery} desktop />
           </div>
         </div>
         <DesktopFooter />
@@ -109,7 +106,7 @@ export default function VendorsPage() {
 function VendorContent({ vendors: filteredVendors, searchQuery, setSearchQuery, desktop }: { vendors: typeof vendors; searchQuery: string; setSearchQuery: (q: string) => void; desktop?: boolean }) {
   return (
     <>
-      {!desktop && <div className="mb-4"><VendorMap mapHeight="h-40" /></div>}
+      {!desktop && <div className="mb-4"><VendorMap mapHeight="h-64" /></div>}
 
       <div className="flex items-center bg-white rounded-full shadow-card h-11 px-4 gap-3 mb-4">
         <Search size={18} className="text-text-secondary shrink-0" />
@@ -167,12 +164,3 @@ function DesktopNav() {
   );
 }
 
-function DesktopFooter() {
-  return (
-    <footer className="bg-[#1A2A3A] text-white py-12">
-      <div className="max-w-6xl mx-auto px-8 text-center">
-        <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
-      </div>
-    </footer>
-  );
-}
