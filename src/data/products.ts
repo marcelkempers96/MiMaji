@@ -22,3 +22,27 @@ export const products: Product[] = [
   { id: "h5",  name: "Hard Bottle", size: "5L", priceNew: 150,  priceRefill: 100, image: soft5L,  category: "hard" },
   { id: "s5",  name: "Soft Bottle", size: "5L", priceNew: 120,  priceRefill: 80,  image: soft5L,  category: "soft" },
 ];
+
+/** Get product image from a cart item ID (e.g. "h20-new") or item name (e.g. "Hard Jug 20L — New") */
+export function getProductImage(cartIdOrName: string): StaticImageData | null {
+  // Try matching by cart ID prefix (e.g. "h20-new" → "h20")
+  const idMatch = cartIdOrName.match(/^([hs]\d+)/);
+  if (idMatch) {
+    const product = products.find((p) => p.id === idMatch[1]);
+    if (product) return product.image;
+  }
+  // Try matching by name keywords
+  const lower = cartIdOrName.toLowerCase();
+  for (const p of products) {
+    if (lower.includes(p.size.toLowerCase()) && lower.includes(p.category)) {
+      return p.image;
+    }
+  }
+  // Match by size alone as last resort
+  for (const p of products) {
+    if (lower.includes(p.size.toLowerCase())) {
+      return p.image;
+    }
+  }
+  return null;
+}

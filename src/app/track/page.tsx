@@ -3,6 +3,7 @@
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, Suspense } from "react";
 import { MapPin, Droplets, Package, Truck, CheckCircle2, Clock, ChevronLeft } from "lucide-react";
+import { getProductImage } from "@/data/products";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -110,18 +111,25 @@ function TrackPage() {
               <span className="text-xs font-medium text-primary bg-primary-light px-2 py-0.5 rounded-full">{displayId}</span>
               <span className="text-xs text-text-secondary">{displayDate}</span>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Droplets size={18} className="text-primary" />
-              </div>
-              <div className="flex-1">
-                {orderItemsList.map((item, idx) => (
-                  <p key={idx} className="text-sm text-text-primary">
-                    <span className="font-bold">{item.quantity}x</span> {item.name}
-                  </p>
-                ))}
-                <p className="text-text-secondary text-sm mt-1">KES {order.price_total.toLocaleString()}</p>
-              </div>
+            <div className="space-y-2">
+              {orderItemsList.map((item, idx) => {
+                const img = getProductImage(item.name);
+                return (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                      {img ? (
+                        <img src={img.src} alt={item.name} className="h-8 w-auto object-contain" />
+                      ) : (
+                        <Droplets size={16} className="text-primary" />
+                      )}
+                    </div>
+                    <p className="text-sm text-text-primary flex-1">
+                      <span className="font-bold">{item.quantity}x</span> {item.name}
+                    </p>
+                  </div>
+                );
+              })}
+              <p className="text-text-secondary text-sm pt-1">KES {order.price_total.toLocaleString()}</p>
             </div>
           </div>
 

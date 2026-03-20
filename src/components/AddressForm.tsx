@@ -171,6 +171,33 @@ export default function AddressForm({
     }
   }, [searchNominatim]);
 
+  /** Try to match a neighbourhood string from the API to one of our predefined areas */
+  const autoMatchNeighbourhood = (apiNeighbourhood: string) => {
+    if (!apiNeighbourhood) return;
+    // Exact match first
+    const exact = NAIROBI_NEIGHBOURHOODS.find((n) => n.toLowerCase() === apiNeighbourhood.toLowerCase());
+    if (exact) {
+      setNeighbourhood(exact);
+      setIsCustomNeighbourhood(false);
+      setCustomNeighbourhood("");
+      return;
+    }
+    // Partial match (API value contains or is contained in our list)
+    const partial = NAIROBI_NEIGHBOURHOODS.find(
+      (n) => apiNeighbourhood.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(apiNeighbourhood.toLowerCase())
+    );
+    if (partial) {
+      setNeighbourhood(partial);
+      setIsCustomNeighbourhood(false);
+      setCustomNeighbourhood("");
+      return;
+    }
+    // No match — set as custom neighbourhood
+    setNeighbourhood(apiNeighbourhood);
+    setIsCustomNeighbourhood(true);
+    setCustomNeighbourhood(apiNeighbourhood);
+  };
+
   const handleSelectPrediction = (prediction: google.maps.places.AutocompletePrediction) => {
     setSearchQuery(prediction.description);
     setShowPredictions(false);
@@ -187,10 +214,22 @@ export default function AddressForm({
             }
             // Parse address components
             const components = place.address_components || [];
+            let foundNeighbourhood = "";
             for (const comp of components) {
               if (comp.types.includes("route")) setStreetName(comp.long_name);
-              if (comp.types.includes("sublocality") || comp.types.includes("neighborhood")) setNeighbourhood(comp.long_name);
+              if (comp.types.includes("sublocality") || comp.types.includes("neighborhood")) {
+                foundNeighbourhood = comp.long_name;
+              }
               if (comp.types.includes("postal_code")) setPostalCode(comp.long_name);
+            }
+            // Auto-match neighbourhood/area from API result
+            if (foundNeighbourhood) {
+              autoMatchNeighbourhood(foundNeighbourhood);
+            } else {
+              // Try secondary text from prediction as fallback for area
+              const secondary = prediction.structured_formatting.secondary_text || "";
+              const areaPart = secondary.split(",")[0]?.trim();
+              if (areaPart) autoMatchNeighbourhood(areaPart);
             }
             // If no route was found in address components, use formatted address
             const hasRoute = components.some((c) => c.types.includes("route"));
@@ -204,7 +243,10 @@ export default function AddressForm({
       // No Places API — just use the text
       setStreetName(prediction.structured_formatting.main_text);
       const secondary = prediction.structured_formatting.secondary_text || "";
-      if (secondary) setNeighbourhood(secondary.split(",")[0] || "");
+      if (secondary) {
+        const areaPart = secondary.split(",")[0]?.trim() || "";
+        autoMatchNeighbourhood(areaPart);
+      }
     }
   };
 
@@ -216,7 +258,7 @@ export default function AddressForm({
     setLng(parseFloat(result.lon));
     const parts = result.display_name.split(",").map((s: string) => s.trim());
     if (parts.length > 0) setStreetName(parts[0]);
-    if (parts.length > 1) setNeighbourhood(parts[1]);
+    if (parts.length > 1) autoMatchNeighbourhood(parts[1]);
   };
 
   const handleGetCurrentLocation = () => {
@@ -235,7 +277,9 @@ export default function AddressForm({
                 const components = results[0].address_components || [];
                 for (const comp of components) {
                   if (comp.types.includes("route")) setStreetName(comp.long_name);
-                  if (comp.types.includes("sublocality") || comp.types.includes("neighborhood")) setNeighbourhood(comp.long_name);
+                  if (comp.types.includes("sublocality") || comp.types.includes("neighborhood")) {
+                    autoMatchNeighbourhood(comp.long_name);
+                  }
                   if (comp.types.includes("postal_code")) setPostalCode(comp.long_name);
                 }
                 setSearchQuery(results[0].formatted_address || "");

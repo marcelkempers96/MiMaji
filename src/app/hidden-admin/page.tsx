@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
-import { VendorInfo, MOCK_VENDORS } from "@/lib/vendor";
+import { VendorInfo, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
 import {
   RefreshCw,
   Package,
@@ -23,7 +23,29 @@ import {
   Edit3,
   Ban,
   CheckCircle2,
+  Plus,
+  MapPin,
 } from "lucide-react";
+
+// ── Vendor storage (localStorage) ──
+const CUSTOM_VENDORS_KEY = "mimaji_custom_vendors";
+
+function loadCustomVendors(): VendorInfo[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_VENDORS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveCustomVendors(vendors: VendorInfo[]) {
+  try { localStorage.setItem(CUSTOM_VENDORS_KEY, JSON.stringify(vendors)); } catch {}
+}
+
+function deleteCustomVendor(vendorId: string) {
+  const vendors = loadCustomVendors().filter((v) => v.id !== vendorId);
+  saveCustomVendors(vendors);
+  return vendors;
+}
 
 // ── Types ──
 type Tab = "overview" | "orders" | "vendors" | "analytics" | "users";
@@ -133,6 +155,60 @@ export default function AdminDashboard() {
   // Vendor management
   const [editingVendor, setEditingVendor] = useState<string | null>(null);
   const [vendorEdits, setVendorEdits] = useState<Partial<VendorInfo>>({});
+  const [customVendors, setCustomVendors] = useState<VendorInfo[]>([]);
+  const [showAddVendor, setShowAddVendor] = useState(false);
+  const [deleteVendorConfirm, setDeleteVendorConfirm] = useState<string | null>(null);
+  const [newVendor, setNewVendor] = useState({
+    name: "", area: "", rating: "4.5", reviews: "0", hours: "7AM - 8PM",
+    products: [] as string[], businessRegNo: "", mpesaNumber: "",
+    phoneNumbers: "", // comma-separated
+    locationName: "", locationArea: "", locationLat: "", locationLng: "",
+  });
+  const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
+
+  function loadVendors() {
+    setCustomVendors(loadCustomVendors());
+  }
+
+  function handleAddVendor() {
+    const id = `cv-${Date.now()}`;
+    const vendor: VendorInfo = {
+      id,
+      name: newVendor.name,
+      area: newVendor.area,
+      distance: "",
+      rating: parseFloat(newVendor.rating) || 4.5,
+      reviews: parseInt(newVendor.reviews) || 0,
+      hours: newVendor.hours,
+      products: newVendor.products,
+      businessRegNo: newVendor.businessRegNo,
+      mpesaNumber: newVendor.mpesaNumber,
+      phoneNumbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
+      locations: newVendor.locationName ? [{
+        id: `${id}-loc1`,
+        name: newVendor.locationName,
+        area: newVendor.locationArea || newVendor.area,
+        lat: parseFloat(newVendor.locationLat) || -1.2864,
+        lng: parseFloat(newVendor.locationLng) || 36.8172,
+      }] : [],
+    };
+    const vendors = loadCustomVendors();
+    vendors.push(vendor);
+    saveCustomVendors(vendors);
+    setCustomVendors(vendors);
+    setNewVendor({
+      name: "", area: "", rating: "4.5", reviews: "0", hours: "7AM - 8PM",
+      products: [], businessRegNo: "", mpesaNumber: "",
+      phoneNumbers: "", locationName: "", locationArea: "", locationLat: "", locationLng: "",
+    });
+    setShowAddVendor(false);
+  }
+
+  function handleDeleteCustomVendor(vendorId: string) {
+    const remaining = deleteCustomVendor(vendorId);
+    setCustomVendors(remaining);
+    setDeleteVendorConfirm(null);
+  }
 
   // Demo account IDs (used to identify built-in accounts)
   const DEMO_IDS = ["d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d"];
@@ -199,6 +275,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadOrders();
     loadUsers();
+    loadVendors();
     const orderInterval = setInterval(loadOrders, 10_000);
     const clockInterval = setInterval(() => setKenyaTime(getKenyaTime()), 1_000);
     return () => {
@@ -222,7 +299,8 @@ export default function AdminDashboard() {
   const activeOrders = orders.filter(
     (o: OrderRecord) => o.status !== "delivered" && o.status !== "cancelled"
   ).length;
-  const totalVendors = MOCK_VENDORS.length;
+  const allVendors = [...MOCK_VENDORS, ...customVendors];
+  const totalVendors = allVendors.length;
 
   const statusCounts: Record<string, number> = {};
   for (const o of orders) {
@@ -445,10 +523,15 @@ export default function AdminDashboard() {
                                   .join(", ")
                               : order.product_name || "—"}
                           </td>
-                          <td className="px-4 py-3 text-text-secondary max-w-[160px]">
+                          <td className="px-4 py-3 text-text-secondary max-w-[200px]">
                             <span title={order.delivery_address}>
                               {truncate(order.delivery_address, 25)}
                             </span>
+                            {order.delivery_address_details?.additionalDirections && (
+                              <p className="text-[11px] italic truncate" title={order.delivery_address_details.additionalDirections}>
+                                {truncate(order.delivery_address_details.additionalDirections, 30)}
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-3 font-semibold whitespace-nowrap">
                             {formatKES(order.price_total)}
@@ -543,9 +626,217 @@ export default function AdminDashboard() {
         {/* ═══ VENDORS TAB ═══ */}
         {activeTab === "vendors" && (
           <section>
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Registered Vendors ({MOCK_VENDORS.length})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-text-primary">
+                Registered Vendors ({allVendors.length})
+              </h2>
+              <button
+                onClick={() => setShowAddVendor(!showAddVendor)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Plus size={14} />
+                Add Vendor
+              </button>
+            </div>
+
+            {/* ── Add Vendor Form ── */}
+            {showAddVendor && (
+              <div className="bg-surface shadow-card rounded-2xl p-6 mb-6">
+                <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
+                  <Store size={18} className="text-primary" />
+                  Add New Vendor
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Vendor Name *</label>
+                    <input type="text" value={newVendor.name} onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
+                      placeholder="e.g. AquaPure Kilimani" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Area *</label>
+                    <input type="text" value={newVendor.area} onChange={(e) => setNewVendor({ ...newVendor, area: e.target.value })}
+                      placeholder="e.g. Kilimani, Nairobi" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Business Registration No</label>
+                    <input type="text" value={newVendor.businessRegNo} onChange={(e) => setNewVendor({ ...newVendor, businessRegNo: e.target.value })}
+                      placeholder="e.g. BN-2024-001234" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">M-Pesa Number</label>
+                    <input type="text" value={newVendor.mpesaNumber} onChange={(e) => setNewVendor({ ...newVendor, mpesaNumber: e.target.value })}
+                      placeholder="e.g. 254700111222" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Phone Numbers (comma-separated)</label>
+                    <input type="text" value={newVendor.phoneNumbers} onChange={(e) => setNewVendor({ ...newVendor, phoneNumbers: e.target.value })}
+                      placeholder="e.g. +254700111222, +254700111223" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Operating Hours</label>
+                    <input type="text" value={newVendor.hours} onChange={(e) => setNewVendor({ ...newVendor, hours: e.target.value })}
+                      placeholder="e.g. 7AM - 8PM" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Rating (1-5)</label>
+                    <input type="number" step="0.1" min="1" max="5" value={newVendor.rating} onChange={(e) => setNewVendor({ ...newVendor, rating: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Reviews Count</label>
+                    <input type="number" min="0" value={newVendor.reviews} onChange={(e) => setNewVendor({ ...newVendor, reviews: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                </div>
+
+                {/* Products */}
+                <div className="mt-4">
+                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">Products Available</label>
+                  <div className="flex flex-wrap gap-2">
+                    {allProductOptions.map((product) => (
+                      <button key={product}
+                        onClick={() => {
+                          const prods = newVendor.products.includes(product)
+                            ? newVendor.products.filter((p) => p !== product)
+                            : [...newVendor.products, product];
+                          setNewVendor({ ...newVendor, products: prods });
+                        }}
+                        className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                          newVendor.products.includes(product)
+                            ? "bg-primary text-white"
+                            : "bg-gray-100 text-text-secondary hover:bg-gray-200"
+                        }`}
+                      >
+                        {product}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Primary Location */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block flex items-center gap-1">
+                    <MapPin size={12} /> Primary Store Location
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <input type="text" value={newVendor.locationName} onChange={(e) => setNewVendor({ ...newVendor, locationName: e.target.value })}
+                        placeholder="Location name" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <input type="text" value={newVendor.locationArea} onChange={(e) => setNewVendor({ ...newVendor, locationArea: e.target.value })}
+                        placeholder="Location area" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <input type="text" value={newVendor.locationLat} onChange={(e) => setNewVendor({ ...newVendor, locationLat: e.target.value })}
+                        placeholder="Latitude (e.g. -1.2864)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <input type="text" value={newVendor.locationLng} onChange={(e) => setNewVendor({ ...newVendor, locationLng: e.target.value })}
+                        placeholder="Longitude (e.g. 36.8172)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={handleAddVendor}
+                    disabled={!newVendor.name || !newVendor.area}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+                      newVendor.name && newVendor.area
+                        ? "bg-primary text-white hover:bg-[#1a5a9a]"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    Add Vendor
+                  </button>
+                  <button
+                    onClick={() => setShowAddVendor(false)}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-text-primary hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Custom Vendors (added via admin) */}
+            {customVendors.length > 0 && (
+              <>
+                <h3 className="text-sm font-semibold text-primary mb-3 mt-2">Your Added Vendors ({customVendors.length})</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+                  {customVendors.map((vendor) => (
+                    <div key={vendor.id} className="bg-surface shadow-card rounded-2xl p-5 space-y-3 border-2 border-primary/20">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
+                          <p className="text-sm text-text-secondary">{vendor.area}</p>
+                        </div>
+                        <div className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-lg">
+                          <span className="text-rating text-sm">&#9733;</span>
+                          <span className="text-xs font-semibold text-text-primary">{vendor.rating}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1">
+                        {vendor.products.map((p) => (
+                          <span key={p} className="bg-primary-light text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">{p}</span>
+                        ))}
+                      </div>
+
+                      <div className="text-xs space-y-1.5 pt-1 border-t border-gray-100">
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Biz Reg No</span>
+                          <span className="font-mono text-text-primary">{vendor.businessRegNo || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">M-Pesa</span>
+                          <span className="font-mono text-text-primary">{vendor.mpesaNumber || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Hours</span>
+                          <span className="text-text-primary">{vendor.hours}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-text-secondary">Phone(s)</span>
+                          <span className="text-text-primary">{vendor.phoneNumbers.join(", ") || "N/A"}</span>
+                        </div>
+                        {vendor.locations.length > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-text-secondary">Location</span>
+                            <span className="text-text-primary">{vendor.locations[0].name}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-100">
+                        {deleteVendorConfirm === vendor.id ? (
+                          <div className="flex gap-2">
+                            <button onClick={() => handleDeleteCustomVendor(vendor.id)}
+                              className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-red-500 text-white rounded-lg font-medium">
+                              Confirm Delete
+                            </button>
+                            <button onClick={() => setDeleteVendorConfirm(null)}
+                              className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-gray-100 rounded-lg font-medium">
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeleteVendorConfirm(vendor.id)}
+                            className="w-full flex items-center justify-center gap-1 text-xs py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors">
+                            <Trash2 size={12} /> Remove Vendor
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Default/Mock Vendors */}
+            <h3 className="text-sm font-semibold text-text-secondary mb-3">Default Vendors ({MOCK_VENDORS.length})</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {MOCK_VENDORS.map((vendor) => (
                 <div key={vendor.id} className="bg-surface shadow-card rounded-2xl p-5 space-y-3">

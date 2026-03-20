@@ -69,13 +69,13 @@ function WaterGuideContent() {
           <h1 className="text-xl md:text-3xl font-extrabold">Your Guide to Safe Drinking Water in Kenya</h1>
         </div>
         <p className="text-white/80 text-sm md:text-base">
-          Written by Marcel Kempers &mdash; Founder, MiMaji
+          By the MiMaji Team
         </p>
         <p className="text-white/70 text-sm mt-3 md:text-base leading-relaxed">
           Water is life. It&apos;s the first thing a newborn needs, the foundation of every meal we cook, the quiet backbone of every healthy family. Yet for millions of Kenyans, the simple act of turning on a tap and trusting what comes out is still not a reality.
         </p>
         <p className="text-white/70 text-sm mt-2 md:text-base leading-relaxed">
-          I started MiMaji because I believe that no one should have to wonder whether the water they&apos;re drinking is safe. Not a mother in Kibera, not a student in Westlands, not a family in Kitengela. This guide is my way of putting that knowledge in your hands &mdash; because when you understand your water, you can protect the people you love.
+          We started MiMaji because we believe that no one should have to wonder whether the water they&apos;re drinking is safe. Not a mother in Kibera, not a student in Westlands, not a family in Kitengela. This guide is our way of putting that knowledge in your hands, because when you understand your water, you can protect the people you love.
         </p>
       </div>
 
@@ -86,7 +86,7 @@ function WaterGuideContent() {
           <h2 className="font-bold text-text-primary text-lg">Why Water Quality Matters in Nairobi</h2>
         </div>
         <p className="text-text-secondary text-sm md:text-base leading-relaxed">
-          Nairobi faces a chronic gap between water demand and supply. When piped water runs dry, many households turn to vendors, boreholes, kiosks, or tankers &mdash; sources whose quality can vary widely. Contaminated water remains one of the leading causes of preventable illness in the city, particularly typhoid, cholera, and dysentery. Knowing how to assess water quality puts the power back in your hands.
+          Nairobi faces a chronic gap between water demand and supply. When piped water runs dry, many households turn to vendors, boreholes, kiosks, or tankers, sources whose quality can vary widely. Contaminated water remains one of the leading causes of preventable illness in the city, particularly typhoid, cholera, and dysentery. Knowing how to assess water quality puts the power back in your hands.
         </p>
       </div>
 
@@ -104,7 +104,7 @@ function WaterGuideContent() {
         <div className="space-y-3 text-sm text-text-secondary leading-relaxed">
           <div>
             <p className="font-semibold text-text-primary mb-1">What it is</p>
-            <p>Escherichia coli (E. coli) is a group of bacteria that naturally live in the intestines of humans and animals. Most strains are harmless, but certain types can cause severe gastrointestinal illness. When E. coli is detected in water, it signals that the water has come into contact with faecal matter &mdash; a warning sign that other dangerous pathogens (such as Salmonella or Vibrio cholerae) may also be present.</p>
+            <p>Escherichia coli (E. coli) is a group of bacteria that naturally live in the intestines of humans and animals. Most strains are harmless, but certain types can cause severe gastrointestinal illness. When E. coli is detected in water, it signals that the water has come into contact with faecal matter, a warning sign that other dangerous pathogens (such as Salmonella or Vibrio cholerae) may also be present.</p>
           </div>
           <div className="bg-red-50 rounded-xl p-3">
             <p className="font-semibold text-red-700 mb-1">Safe level: Zero</p>
@@ -137,11 +137,11 @@ function WaterGuideContent() {
           </div>
           <div>
             <p className="font-semibold text-text-primary mb-1">What you&apos;ll notice</p>
-            <p>High TDS can make water taste salty, metallic, or bitter. Very low TDS (below 50 mg/L) can taste flat or &ldquo;empty.&rdquo; The ideal range for pleasant-tasting water is typically 100&ndash;400 mg/L.</p>
+            <p>High TDS can make water taste salty, metallic, or bitter. Very low TDS (below 50 mg/L) can taste flat or &ldquo;empty.&rdquo; The ideal range for pleasant-tasting water is typically 100 to 400 mg/L.</p>
           </div>
           <div>
             <p className="font-semibold text-text-primary mb-1">How to check</p>
-            <p>Inexpensive TDS meters are available in Nairobi for KSh 500&ndash;1,500. Dip the probe into a glass of water and it gives a reading in seconds. It&apos;s a good first-pass indicator, though it does not detect bacteria.</p>
+            <p>Inexpensive TDS meters are available in Nairobi for KSh 500 to 1,500. Dip the probe into a glass of water and it gives a reading in seconds. It&apos;s a good first-pass indicator, though it does not detect bacteria.</p>
           </div>
         </div>
       </CollapsibleSection>
@@ -157,7 +157,7 @@ function WaterGuideContent() {
             <p>pH measures how acidic or alkaline water is on a scale from 0 (extremely acidic) to 14 (extremely alkaline), with 7.0 being perfectly neutral. The measurement reflects the concentration of hydrogen ions in the water.</p>
           </div>
           <div className="bg-green-50 rounded-xl p-3">
-            <p className="font-semibold text-green-700 mb-1">Safe level: pH 6.5 &ndash; 8.5</p>
+            <p className="font-semibold text-green-700 mb-1">Safe level: pH 6.5 to 8.5</p>
             <p className="text-green-600 text-xs">Both KEBS and the WHO recommend this range. Most Nairobi piped water falls between 6.8 and 7.5.</p>
           </div>
           <div>
@@ -175,7 +175,7 @@ function WaterGuideContent() {
         <div className="space-y-3 text-sm text-text-secondary leading-relaxed">
           <div>
             <p className="font-semibold text-text-primary mb-1">What it is</p>
-            <p>Turbidity is a measure of water&apos;s cloudiness or haziness. It is caused by tiny suspended particles &mdash; silt, clay, organic matter, algae, or microscopic organisms &mdash; that scatter light passing through the water. Turbidity is measured in Nephelometric Turbidity Units (NTU).</p>
+            <p>Turbidity is a measure of water&apos;s cloudiness or haziness. It is caused by tiny suspended particles (silt, clay, organic matter, algae, or microscopic organisms) that scatter light passing through the water. Turbidity is measured in Nephelometric Turbidity Units (NTU).</p>
           </div>
           <div className="bg-amber-50 rounded-xl p-3">
             <p className="font-semibold text-amber-700 mb-1">Safe level: Below 1 NTU</p>
@@ -204,7 +204,7 @@ function WaterGuideContent() {
           </div>
           <div className="bg-purple-50 rounded-xl p-3">
             <p className="font-semibold text-purple-700 mb-1">Safe level: &le; 1.5 mg/L (WHO)</p>
-            <p className="text-purple-600 text-xs">Kenya&apos;s WASREB guidelines allow up to 1.5&ndash;3.0 mg/L, which is notably higher than the international standard. Some borehole water in the Nairobi region and the Rift Valley has been found to contain fluoride levels well above 3 mg/L.</p>
+            <p className="text-purple-600 text-xs">Kenya&apos;s WASREB guidelines allow up to 1.5 to 3.0 mg/L, which is notably higher than the international standard. Some borehole water in the Nairobi region and the Rift Valley has been found to contain fluoride levels well above 3 mg/L.</p>
           </div>
           <div>
             <p className="font-semibold text-text-primary mb-1">What this means for you</p>
@@ -221,15 +221,15 @@ function WaterGuideContent() {
         <div className="space-y-3 text-sm text-text-secondary leading-relaxed">
           <div>
             <p className="font-semibold text-text-primary mb-1">What it is</p>
-            <p>When water is treated at a plant, chlorine is added to kill bacteria and viruses. A small amount of chlorine remains in the water as it travels through the pipe network &mdash; this is the &ldquo;residual&rdquo; that continues to protect the water from recontamination during distribution.</p>
+            <p>When water is treated at a plant, chlorine is added to kill bacteria and viruses. A small amount of chlorine remains in the water as it travels through the pipe network. This is the &ldquo;residual&rdquo; that continues to protect the water from recontamination during distribution.</p>
           </div>
           <div className="bg-teal-50 rounded-xl p-3">
-            <p className="font-semibold text-teal-700 mb-1">Safe level: 0.2 &ndash; 0.5 mg/L</p>
+            <p className="font-semibold text-teal-700 mb-1">Safe level: 0.2 to 0.5 mg/L</p>
             <p className="text-teal-600 text-xs">Water with a strong chlorine smell or taste (above 0.5 mg/L) is still safe but may be unpleasant. Allowing the water to stand in an open container for 30 minutes will dissipate excess chlorine.</p>
           </div>
           <div>
             <p className="font-semibold text-text-primary mb-1">Why it matters</p>
-            <p>If your piped water has zero chlorine residual, it means the protective disinfection has worn off &mdash; and the water may have been recontaminated during its journey through old or broken pipes. This is common in estates far from treatment plants or served by aged infrastructure.</p>
+            <p>If your piped water has zero chlorine residual, it means the protective disinfection has worn off, and the water may have been recontaminated during its journey through old or broken pipes. This is common in estates far from treatment plants or served by aged infrastructure.</p>
           </div>
         </div>
       </CollapsibleSection>
@@ -262,14 +262,14 @@ function WaterGuideContent() {
             <CheckCircle size={16} className="text-[#2ECC71] flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-text-primary">Consider a filter</p>
-              <p>Ceramic filters (KSh 2,000&ndash;5,000), activated carbon filters, and reverse osmosis systems (KSh 15,000&ndash;50,000+) each offer different levels of protection. Reverse osmosis is the most comprehensive, removing bacteria, dissolved minerals, fluoride, and heavy metals.</p>
+              <p>Ceramic filters (KSh 2,000 to 5,000), activated carbon filters, and reverse osmosis systems (KSh 15,000 to 50,000+) each offer different levels of protection. Reverse osmosis is the most comprehensive, removing bacteria, dissolved minerals, fluoride, and heavy metals.</p>
             </div>
           </div>
           <div className="flex gap-3">
             <CheckCircle size={16} className="text-[#2ECC71] flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-text-primary">Clean your tank</p>
-              <p>If you have a water storage tank, have it professionally cleaned at least twice a year. Bacteria multiply rapidly in stagnant, warm water &mdash; a dirty tank can recontaminate even high-quality water.</p>
+              <p>If you have a water storage tank, have it professionally cleaned at least twice a year. Bacteria multiply rapidly in stagnant, warm water. A dirty tank can recontaminate even high-quality water.</p>
             </div>
           </div>
         </div>
@@ -348,8 +348,8 @@ function WaterGuideContent() {
               </tr>
               <tr className="border-t border-[#E0E0E0] bg-[#FAFAFA]">
                 <td className="p-3 font-medium text-text-primary">pH</td>
-                <td className="p-3">6.5 &ndash; 8.5</td>
-                <td className="p-3">6.5 &ndash; 8.5</td>
+                <td className="p-3">6.5 to 8.5</td>
+                <td className="p-3">6.5 to 8.5</td>
                 <td className="p-3">&lt; 6.5 corrosive</td>
               </tr>
               <tr className="border-t border-[#E0E0E0]">
@@ -361,13 +361,13 @@ function WaterGuideContent() {
               <tr className="border-t border-[#E0E0E0] bg-[#FAFAFA]">
                 <td className="p-3 font-medium text-text-primary">Fluoride</td>
                 <td className="p-3">&le; 1.5 mg/L</td>
-                <td className="p-3">1.5 &ndash; 3.0 mg/L</td>
+                <td className="p-3">1.5 to 3.0 mg/L</td>
                 <td className="p-3">Test boreholes</td>
               </tr>
               <tr className="border-t border-[#E0E0E0]">
                 <td className="p-3 font-medium text-text-primary">Chlorine</td>
-                <td className="p-3">0.2 &ndash; 0.5 mg/L</td>
-                <td className="p-3">0.2 &ndash; 0.5 mg/L</td>
+                <td className="p-3">0.2 to 0.5 mg/L</td>
+                <td className="p-3">0.2 to 0.5 mg/L</td>
                 <td className="p-3">0 = no protection</td>
               </tr>
               <tr className="border-t border-[#E0E0E0] bg-[#FAFAFA]">
@@ -395,11 +395,11 @@ function WaterGuideContent() {
 
       <div className="space-y-3 mb-6">
         {[
-          { name: "KEBS Testing Labs", tests: "Full drinking water analysis (chemical + microbiological)", cost: "KSh 3,000 – 8,000", location: "Popo Road, South C" },
-          { name: "Government Chemist", tests: "Comprehensive chemical and biological analysis", cost: "KSh 2,500 – 6,000", location: "Ngong Road" },
-          { name: "SGS Kenya", tests: "International-standard water testing", cost: "KSh 5,000 – 15,000", location: "Industrial Area" },
-          { name: "University of Nairobi", tests: "Research-grade analysis, may accept public samples", cost: "KSh 2,000 – 5,000", location: "Main Campus" },
-          { name: "Crop Nutrition Labs", tests: "Agricultural and water testing", cost: "KSh 3,000 – 7,000", location: "Limuru Road" },
+          { name: "KEBS Testing Labs", tests: "Full drinking water analysis (chemical + microbiological)", cost: "KSh 3,000 to 8,000", location: "Popo Road, South C" },
+          { name: "Government Chemist", tests: "Comprehensive chemical and biological analysis", cost: "KSh 2,500 to 6,000", location: "Ngong Road" },
+          { name: "SGS Kenya", tests: "International-standard water testing", cost: "KSh 5,000 to 15,000", location: "Industrial Area" },
+          { name: "University of Nairobi", tests: "Research-grade analysis, may accept public samples", cost: "KSh 2,000 to 5,000", location: "Main Campus" },
+          { name: "Crop Nutrition Labs", tests: "Agricultural and water testing", cost: "KSh 3,000 to 7,000", location: "Limuru Road" },
         ].map((lab) => (
           <div key={lab.name} className="bg-surface rounded-2xl shadow-card p-4 md:p-5">
             <h4 className="font-bold text-text-primary text-sm mb-1">{lab.name}</h4>
@@ -436,7 +436,7 @@ function WaterGuideContent() {
             <CheckCircle size={16} className="text-[#2ECC71] flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-text-primary">MiMaji Verified Badge</p>
-              <p>Suppliers who consistently pass quality testing and maintain a 4.5+ star rating earn our &ldquo;MiMaji Verified&rdquo; badge &mdash; displayed prominently on their listing.</p>
+              <p>Suppliers who consistently pass quality testing and maintain a 4.5+ star rating earn our &ldquo;MiMaji Verified&rdquo; badge, displayed prominently on their listing.</p>
             </div>
           </div>
           <div className="flex gap-3">
@@ -459,7 +459,7 @@ function WaterGuideContent() {
       {/* CTA */}
       <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 md:p-8 text-white text-center mb-6">
         <Droplets size={32} className="mx-auto mb-3" />
-        <h2 className="text-xl font-bold mb-2">MiMaji &mdash; Clean Water, One Tap Away</h2>
+        <h2 className="text-xl font-bold mb-2">MiMaji: Clean Water, One Tap Away</h2>
         <p className="text-white/80 text-sm mb-4">Download the app at mimaji.co.ke</p>
         <p className="text-white/60 text-xs">
           Questions? WhatsApp{" "}

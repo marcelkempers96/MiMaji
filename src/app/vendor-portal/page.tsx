@@ -482,7 +482,22 @@ export default function VendorPortalPage() {
                   </div>
                   <p className="text-sm text-text-primary font-medium">{order.product_name || "Water Order"}</p>
                   <p className="text-xs text-text-secondary">{order.order_items?.map((i) => `${i.quantity}x ${i.name}`).join(", ") || "\u2014"}</p>
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 mt-1 hover:underline"><MapPin size={12} /> {order.delivery_address}</a>
+                  <div className="bg-primary-light rounded-lg p-2.5 mt-2">
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline font-medium"><MapPin size={12} /> {order.delivery_address}</a>
+                    {order.delivery_address_details?.additionalDirections && (
+                      <p className="text-xs text-text-secondary italic mt-1 ml-4">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
+                    )}
+                    {order.delivery_address_details?.neighbourhood && (
+                      <p className="text-xs text-text-secondary mt-0.5 ml-4">Area: {order.delivery_address_details.neighbourhood}</p>
+                    )}
+                    {order.delivery_address_details?.buildingName && (
+                      <p className="text-xs text-text-secondary mt-0.5 ml-4">
+                        {order.delivery_address_details.buildingName}
+                        {order.delivery_address_details.floor ? `, Floor ${order.delivery_address_details.floor}` : ""}
+                        {order.delivery_address_details.unitNumber ? `, Unit ${order.delivery_address_details.unitNumber}` : ""}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between mt-3">
                     <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     <span className="text-text-secondary text-xs">{formatOrderDate(order.created_at)}</span>
@@ -593,9 +608,12 @@ export default function VendorPortalPage() {
                   {activeOrders.map((order) => (
                     <div key={order.id} className="flex items-center gap-4 p-3 bg-primary-light rounded-xl">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><Truck size={20} className="text-primary" /></div>
-                      <div className="flex-1">
-                        <p className="font-bold text-sm text-text-primary">{formatOrderId(order.id)} \u2014 {order.status === "confirmed" ? "Ready to dispatch" : "Out for delivery"}</p>
-                        <p className="text-text-secondary text-xs">{order.delivery_address}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-text-primary">{formatOrderId(order.id)} {"\u2014"} {order.status === "confirmed" ? "Ready to dispatch" : "Out for delivery"}</p>
+                        <p className="text-text-secondary text-xs truncate">{order.delivery_address}</p>
+                        {order.delivery_address_details?.additionalDirections && (
+                          <p className="text-text-secondary text-[11px] italic truncate">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -687,7 +705,15 @@ export default function VendorPortalPage() {
                         <tr key={order.id} className="border-b border-[#F0F0F0] last:border-0 hover:bg-background transition-colors">
                           <td className="px-6 py-4 text-sm font-bold text-text-primary">{formatOrderId(order.id)}</td>
                           <td className="px-6 py-4 text-sm text-text-secondary">{order.product_name || "Water Order"}</td>
-                          <td className="px-6 py-4 text-sm"><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{order.delivery_address}</a></td>
+                          <td className="px-6 py-4 text-sm">
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{order.delivery_address}</a>
+                            {order.delivery_address_details?.additionalDirections && (
+                              <p className="text-xs text-text-secondary italic mt-0.5">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
+                            )}
+                            {order.delivery_address_details?.neighbourhood && (
+                              <p className="text-xs text-text-secondary mt-0.5">{order.delivery_address_details.neighbourhood}</p>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-sm font-bold text-text-primary">KES {order.price_total.toLocaleString()}</td>
                           <td className="px-6 py-4"><OrderStatusBadge status={order.status} /></td>
                           <td className="px-6 py-4">

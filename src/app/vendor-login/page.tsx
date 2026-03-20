@@ -96,15 +96,9 @@ export default function VendorLoginPage() {
           </Button>
         </form>
 
-        <div className="mt-6 bg-primary-light rounded-xl p-4">
-          <p className="text-primary text-xs font-semibold mb-1">Demo Vendor Account</p>
-          <p className="text-text-secondary text-xs">Phone: <span className="font-mono font-medium text-text-primary">0711000000</span></p>
-          <p className="text-text-secondary text-xs">Password: <span className="font-mono font-medium text-text-primary">vendor123</span></p>
-        </div>
-
         <p className="text-center text-text-secondary text-xs mt-6">
           Want to become a vendor?{" "}
-          <Link href="/contact" className="text-primary font-semibold">Contact Us</Link>
+          <Link href="/vendor-signup" className="text-primary font-semibold">Apply Here</Link>
         </p>
       </div>
     </div>

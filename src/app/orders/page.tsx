@@ -2,6 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle } from "lucide-react";
+import { getProductImage } from "@/data/products";
 import { useState, useEffect, useCallback } from "react";
 
 import Link from "next/link";
@@ -115,18 +116,26 @@ export default function OrdersPage() {
                         {displayId}
                       </span>
                     </div>
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Droplets size={20} className="text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        {itemsList.map((item, idx) => (
-                          <p key={idx} className="text-sm text-text-primary">
-                            <span className="font-bold">{item.quantity}x</span> {item.name}
-                          </p>
-                        ))}
-                        <p className="text-text-secondary text-sm mt-1">KES {order.price_total.toLocaleString()}</p>
-                        <div className="flex items-center gap-1.5 mt-1">
+                    <div className="space-y-2 mb-4">
+                      {itemsList.map((item, idx) => {
+                        const img = getProductImage(item.name);
+                        return (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                              {img ? (
+                                <img src={img.src} alt={item.name} className="h-8 w-auto object-contain" />
+                              ) : (
+                                <Droplets size={16} className="text-primary" />
+                              )}
+                            </div>
+                            <p className="text-sm text-text-primary flex-1">
+                              <span className="font-bold">{item.quantity}x</span> {item.name}
+                            </p>
+                          </div>
+                        );
+                      })}
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1.5">
                           {order.payment_method === "cash" ? (
                             <Banknote size={12} className="text-text-secondary" />
                           ) : (
@@ -140,6 +149,7 @@ export default function OrdersPage() {
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>
                         </div>
+                        <span className="text-text-primary font-semibold text-sm">KES {order.price_total.toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -201,20 +211,26 @@ export default function OrdersPage() {
                         <span className="text-sm font-medium text-red-500">Cancelled</span>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Droplets size={20} className="text-red-400" />
-                      </div>
-                      <div className="flex-1">
-                        {itemsList.map((item, idx) => (
-                          <p key={idx} className="text-sm text-text-secondary line-through">
-                            <span className="font-bold">{item.quantity}x</span> {item.name}
-                          </p>
-                        ))}
-                        <p className="text-text-secondary text-xs mt-1">
-                          KES {order.price_total.toLocaleString()}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="space-y-2">
+                      {itemsList.map((item, idx) => {
+                        const img = getProductImage(item.name);
+                        return (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                              {img ? (
+                                <img src={img.src} alt={item.name} className="h-8 w-auto object-contain opacity-50" />
+                              ) : (
+                                <Droplets size={16} className="text-red-400" />
+                              )}
+                            </div>
+                            <p className="text-sm text-text-secondary line-through flex-1">
+                              <span className="font-bold">{item.quantity}x</span> {item.name}
+                            </p>
+                          </div>
+                        );
+                      })}
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1.5">
                           {order.payment_method === "cash" ? (
                             <Banknote size={11} className="text-text-secondary" />
                           ) : (
@@ -228,8 +244,8 @@ export default function OrdersPage() {
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>
                         </div>
+                        <span className="font-bold text-text-secondary">KES {order.price_total.toLocaleString()}</span>
                       </div>
-                      <span className="font-bold text-text-secondary">KES {order.price_total.toLocaleString()}</span>
                     </div>
                     <p className="text-red-500 text-xs mt-3 font-medium">
                       This order was cancelled. If you paid, a refund will be processed to your M-PESA.
@@ -303,20 +319,26 @@ export default function OrdersPage() {
                         <span className="text-sm font-medium text-success">Delivered</span>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Droplets size={20} className="text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        {itemsList.map((item, idx) => (
-                          <p key={idx} className="text-sm text-text-primary">
-                            <span className="font-bold">{item.quantity}x</span> {item.name}
-                          </p>
-                        ))}
-                        <p className="text-text-secondary text-xs mt-1">
-                          Paid KES {order.price_total.toLocaleString()}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="space-y-2">
+                      {itemsList.map((item, idx) => {
+                        const img = getProductImage(item.name);
+                        return (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+                              {img ? (
+                                <img src={img.src} alt={item.name} className="h-8 w-auto object-contain" />
+                              ) : (
+                                <Droplets size={16} className="text-primary" />
+                              )}
+                            </div>
+                            <p className="text-sm text-text-primary flex-1">
+                              <span className="font-bold">{item.quantity}x</span> {item.name}
+                            </p>
+                          </div>
+                        );
+                      })}
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1.5">
                           {order.payment_method === "cash" ? (
                             <Banknote size={11} className="text-text-secondary" />
                           ) : (
@@ -330,8 +352,8 @@ export default function OrdersPage() {
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>
                         </div>
+                        <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                       </div>
-                      <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     </div>
                     <Link
                       href={`/invoices?orderId=${order.id}`}
