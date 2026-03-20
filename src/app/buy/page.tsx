@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, RefreshCw, PackagePlus, ShoppingCart } from "lucide-react";
+import { Minus, Plus, RefreshCw, PackagePlus, ShoppingCart, Lock } from "lucide-react";
 
 import Link from "next/link";
 import { logo1 } from "@/assets/images";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
-import { products, Product } from "@/data/products";
+import { products, Product, waterBrands } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 
@@ -208,41 +208,94 @@ function BuyContent({
   setProductSelection: (id: string, qty: number, bottleType: BottleType) => void;
   desktop?: boolean;
 }) {
+  const [showBrandPicker, setShowBrandPicker] = useState(false);
+
   return (
     <>
-      {/* Hard / Soft Tabs */}
-      <div className="flex gap-2 px-4 mt-2 mb-3">
-        <button
-          onClick={() => setActiveCategory("soft")}
-          className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
-            activeCategory === "soft" ? "bg-primary text-white" : "bg-white text-text-secondary"
-          }`}
-        >
-          Soft Bottle
-        </button>
-        <button
-          onClick={() => setActiveCategory("hard")}
-          className={`rounded-full px-6 py-2 text-sm font-semibold transition-colors ${
-            activeCategory === "hard" ? "bg-primary text-white" : "bg-white text-text-secondary"
-          }`}
-        >
-          Hard Jug
-        </button>
-      </div>
-
-      {/* Size Tabs */}
-      <div className="flex gap-2 px-4 mb-5">
-        {sizes.map((size) => (
+      {/* Water Type Selection — prominent cards */}
+      <div className="px-4 mt-2 mb-4">
+        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Water Type</p>
+        <div className="grid grid-cols-2 gap-3">
           <button
-            key={size}
-            onClick={() => setActiveSize(size)}
-            className={`rounded-full px-5 py-1.5 text-xs font-semibold transition-colors ${
-              activeSize === size ? "bg-[#1a5a9a] text-white" : "bg-gray-100 text-text-secondary"
+            onClick={() => setActiveCategory("soft")}
+            className={`rounded-xl p-3 text-left transition-all border-2 ${
+              activeCategory === "soft"
+                ? "border-primary bg-primary-light"
+                : "border-gray-200 bg-white"
             }`}
           >
-            {size}
+            <span className={`text-base font-bold block ${activeCategory === "soft" ? "text-primary" : "text-text-primary"}`}>
+              Soft Bottle
+            </span>
+            <span className="text-[11px] text-text-secondary">Lightweight, flexible plastic</span>
           </button>
-        ))}
+          <button
+            onClick={() => setActiveCategory("hard")}
+            className={`rounded-xl p-3 text-left transition-all border-2 ${
+              activeCategory === "hard"
+                ? "border-primary bg-primary-light"
+                : "border-gray-200 bg-white"
+            }`}
+          >
+            <span className={`text-base font-bold block ${activeCategory === "hard" ? "text-primary" : "text-text-primary"}`}>
+              Hard Jug
+            </span>
+            <span className="text-[11px] text-text-secondary">Sturdy, durable reusable jug</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Size Selection — prominent pills with volume */}
+      <div className="px-4 mb-4">
+        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Size</p>
+        <div className="flex gap-2">
+          {sizes.map((size) => {
+            const litres = parseInt(size);
+            return (
+              <button
+                key={size}
+                onClick={() => setActiveSize(size)}
+                className={`flex-1 rounded-xl py-3 text-center transition-all border-2 ${
+                  activeSize === size
+                    ? "border-[#1a5a9a] bg-[#1a5a9a] text-white"
+                    : "border-gray-200 bg-white text-text-primary"
+                }`}
+              >
+                <span className="text-lg font-extrabold block">{litres}L</span>
+                <span className={`text-[10px] ${activeSize === size ? "text-white/80" : "text-text-secondary"}`}>
+                  {litres === 20 ? "Family" : litres === 10 ? "Medium" : "Personal"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Brand Preference */}
+      <div className="px-4 mb-4">
+        <button
+          onClick={() => setShowBrandPicker(!showBrandPicker)}
+          className="w-full flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-gray-200 text-sm"
+        >
+          <span className="text-text-secondary">Brand Preference</span>
+          <span className="text-primary font-semibold text-xs">MiMaji (Default)</span>
+        </button>
+        {showBrandPicker && (
+          <div className="bg-white rounded-xl border border-gray-200 mt-2 p-3 space-y-2">
+            {waterBrands.map((brand) => (
+              <div key={brand.id} className={`flex items-center justify-between rounded-lg px-3 py-2 ${brand.available ? "bg-primary-light" : "bg-gray-50"}`}>
+                <span className={`text-sm font-medium ${brand.available ? "text-primary" : "text-text-secondary"}`}>{brand.name}</span>
+                {brand.available ? (
+                  <span className="text-[10px] font-semibold text-white bg-primary rounded-full px-2 py-0.5">Selected</span>
+                ) : (
+                  <span className="text-[10px] font-semibold text-text-secondary bg-gray-200 rounded-full px-2 py-0.5 flex items-center gap-1">
+                    <Lock size={8} /> Coming Soon
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Product List */}
@@ -266,7 +319,7 @@ function BuyContent({
       {/* Pricing info */}
       <div className="px-4 mt-4">
         <p className="text-text-secondary text-xs">
-          All prices include delivery. <span className="font-semibold">New</span> = brand new bottle/jug. <span className="font-semibold">Refill</span> = bring your existing bottle for refilling at a lower price. You can order both in the same cart.
+          Delivery fee is separate (KES 100). <span className="font-semibold">New</span> = brand new bottle/jug. <span className="font-semibold">Refill</span> = exchange your existing bottle for a fresh one at a lower price. You can order both in the same cart.
         </p>
       </div>
     </>
@@ -300,9 +353,9 @@ function ProductCard({
           <img src={product.image.src} alt={`${product.name} ${product.size}`} className="object-contain w-full h-full" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-sm text-text-primary">{product.name}</p>
-          <p className="text-text-secondary text-xs">
-            {product.size} — {product.category === "hard" ? "Hard" : "Soft"}
+          <p className="font-bold text-sm text-text-primary">{product.name} — {product.size}</p>
+          <p className="text-text-secondary text-[11px] mt-0.5">
+            {product.description}
           </p>
         </div>
       </div>

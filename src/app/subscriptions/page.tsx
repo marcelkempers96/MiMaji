@@ -17,6 +17,7 @@ interface Plan {
   name: string;
   description: string;
   price: number;
+  pricePerJug: number;
   popular?: boolean;
   deliveries: string;
   benefits: string[];
@@ -27,12 +28,14 @@ const plans: Plan[] = [
     id: "everyday",
     name: "Everyday Plan",
     description: "2–20 Jugs / Month",
-    price: 240,
+    price: 560,
+    pricePerJug: 280,
     deliveries: "Flexible — choose 2 to 20 jugs per month",
     benefits: [
-      "20L purified water jugs",
+      "20L purified water (hard or soft)",
       "Choose your own quantity (2-20 jugs)",
-      "Better price: KES 120/jug (save vs one-off)",
+      "Choose refill (exchange) or new bottles",
+      "KES 280/jug refill — save vs one-off (KES 300)",
       "Free delivery on all orders",
       "Flexible delivery schedule",
       "Cancel or pause anytime",
@@ -43,10 +46,13 @@ const plans: Plan[] = [
     id: "basic",
     name: "Basic Plan",
     description: "20 Jugs / Month",
-    price: 2800,
+    price: 5200,
+    pricePerJug: 260,
     deliveries: "4 deliveries/month (5 jugs each)",
     benefits: [
-      "20L purified water jugs",
+      "20L purified water (hard or soft)",
+      "Refill (exchange) or new bottles",
+      "KES 260/jug — save KES 40 per jug",
       "Weekly delivery schedule",
       "Free delivery on all orders",
       "Basic rewards (1.5x points)",
@@ -57,11 +63,14 @@ const plans: Plan[] = [
     id: "standard",
     name: "Standard Plan",
     description: "40 Jugs / Month",
-    price: 4800,
+    price: 9600,
+    pricePerJug: 240,
     popular: true,
     deliveries: "8 deliveries/month (5 jugs each)",
     benefits: [
-      "20L purified water jugs",
+      "20L purified water (hard or soft)",
+      "Refill (exchange) or new bottles",
+      "KES 240/jug — save KES 60 per jug",
       "Twice-weekly delivery schedule",
       "Free delivery on all orders",
       "Enhanced rewards (2x points)",
@@ -74,10 +83,13 @@ const plans: Plan[] = [
     id: "premium",
     name: "Premium Plan",
     description: "60 Jugs / Month",
-    price: 6500,
+    price: 13200,
+    pricePerJug: 220,
     deliveries: "12 deliveries/month (5 jugs each)",
     benefits: [
-      "20L purified water jugs",
+      "20L purified water (hard or soft)",
+      "Refill (exchange) or new bottles",
+      "KES 220/jug — best price, save KES 80 per jug",
       "3x weekly delivery schedule",
       "Free delivery on all orders",
       "Premium rewards (3x points)",
@@ -113,17 +125,24 @@ export default function SubscriptionsPage() {
     } catch {}
   });
 
+  // Water preference for subscriptions
+  const [waterType, setWaterType] = useState<"soft" | "hard">("soft");
+  const [bottleType, setBottleType] = useState<"refill" | "new">("refill");
+
   const handleSubscribe = () => {
     const plan = plans.find((p) => p.id === selectedPlan);
     if (!plan) return;
 
     const isEveryday = selectedPlan === "everyday";
+    const displayTotal = isEveryday ? jugsCount * plan.pricePerJug : plan.price;
     const planDesc = isEveryday
-      ? `Everyday Plan (${jugsCount} jugs/month at KES 120/jug = KES ${jugsCount * 120}/month)`
+      ? `Everyday Plan (${jugsCount} jugs/month at KES ${plan.pricePerJug}/jug = KES ${displayTotal}/month)`
       : `${plan.name} — ${plan.description} at KES ${plan.price.toLocaleString()}/month`;
 
     const msg = encodeURIComponent(
       `Hi MiMaji! I'd like to subscribe to the ${planDesc}.\n\n` +
+      `Water type: ${waterType === "hard" ? "Hard Jug" : "Soft Bottle"}\n` +
+      `Bottle option: ${bottleType === "new" ? "New bottles" : "Refill (exchange)"}\n\n` +
       (user ? `Name: ${user.name}\nPhone: ${user.phone}\n\n` : "") +
       `Please activate my subscription.`
     );
@@ -138,7 +157,7 @@ export default function SubscriptionsPage() {
       </div>
 
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
-        <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} onSubscribe={handleSubscribe} subscribed={subscribed} jugsCount={jugsCount} setJugsCount={setJugsCount} activeSub={activeSub} />
+        <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} onSubscribe={handleSubscribe} subscribed={subscribed} jugsCount={jugsCount} setJugsCount={setJugsCount} activeSub={activeSub} waterType={waterType} setWaterType={setWaterType} bottleType={bottleType} setBottleType={setBottleType} />
       </div>
 
       {/* Desktop */}
@@ -151,7 +170,7 @@ export default function SubscriptionsPage() {
               Save money with a monthly water plan. Free delivery, bonus rewards points, and never run out of water.
             </p>
           </div>
-          <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} onSubscribe={handleSubscribe} subscribed={subscribed} desktop jugsCount={jugsCount} setJugsCount={setJugsCount} activeSub={activeSub} />
+          <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} onSubscribe={handleSubscribe} subscribed={subscribed} desktop jugsCount={jugsCount} setJugsCount={setJugsCount} activeSub={activeSub} waterType={waterType} setWaterType={setWaterType} bottleType={bottleType} setBottleType={setBottleType} />
         </div>
         <DesktopFooter />
       </div>
@@ -159,7 +178,7 @@ export default function SubscriptionsPage() {
   );
 }
 
-function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subscribed, desktop, jugsCount, setJugsCount, activeSub }: { selectedPlan: string; setSelectedPlan: (id: string) => void; onSubscribe: () => void; subscribed: boolean; desktop?: boolean; jugsCount: number; setJugsCount: (n: number) => void; activeSub: { planName: string; jugs?: number } | null }) {
+function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subscribed, desktop, jugsCount, setJugsCount, activeSub, waterType, setWaterType, bottleType, setBottleType }: { selectedPlan: string; setSelectedPlan: (id: string) => void; onSubscribe: () => void; subscribed: boolean; desktop?: boolean; jugsCount: number; setJugsCount: (n: number) => void; activeSub: { planName: string; jugs?: number } | null; waterType: "soft" | "hard"; setWaterType: (t: "soft" | "hard") => void; bottleType: "refill" | "new"; setBottleType: (t: "refill" | "new") => void }) {
   return (
     <>
       {/* Why Subscribe */}
@@ -169,6 +188,52 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
           <p className="text-text-secondary text-sm mb-4">Never run out of water. Save more with a plan.</p>
         </>
       )}
+
+      {/* Water Preference Selectors */}
+      <div className={`mb-5 ${desktop ? "grid grid-cols-2 gap-4" : "space-y-3"}`}>
+        <div>
+          <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Water Type</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setWaterType("soft")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-center transition-all border-2 ${
+                waterType === "soft" ? "border-primary bg-primary-light text-primary" : "border-gray-200 bg-white text-text-primary"
+              }`}
+            >
+              Soft Bottle
+            </button>
+            <button
+              onClick={() => setWaterType("hard")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-center transition-all border-2 ${
+                waterType === "hard" ? "border-primary bg-primary-light text-primary" : "border-gray-200 bg-white text-text-primary"
+              }`}
+            >
+              Hard Jug
+            </button>
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Bottle Option</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setBottleType("refill")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-center transition-all border-2 ${
+                bottleType === "refill" ? "border-[#2ECC71] bg-[#E8F5E9] text-[#2ECC71]" : "border-gray-200 bg-white text-text-primary"
+              }`}
+            >
+              Refill (Exchange)
+            </button>
+            <button
+              onClick={() => setBottleType("new")}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-center transition-all border-2 ${
+                bottleType === "new" ? "border-primary bg-primary-light text-primary" : "border-gray-200 bg-white text-text-primary"
+              }`}
+            >
+              New Bottles
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Benefits Banner */}
       <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-xl p-4 mb-5 flex items-start gap-3">
@@ -202,7 +267,7 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
       <div className={desktop ? "grid grid-cols-2 lg:grid-cols-4 gap-5" : "flex flex-col gap-3"}>
         {plans.map((plan) => {
           const isEveryday = plan.id === "everyday";
-          const displayPrice = isEveryday ? jugsCount * 120 : plan.price;
+          const displayPrice = isEveryday ? jugsCount * (plans.find(p => p.id === "everyday")?.pricePerJug || 280) : plan.price;
           return (
           <div
             key={plan.id}
@@ -235,7 +300,7 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
                     KES {displayPrice.toLocaleString()}
                   </span>
                   <p className="text-text-secondary text-xs">/month</p>
-                  {isEveryday && <p className="text-[#2ECC71] text-[10px] font-semibold">KES 120/jug</p>}
+                  {isEveryday && <p className="text-[#2ECC71] text-[10px] font-semibold">KES 280/jug</p>}
                 </div>
               )}
             </div>
@@ -246,7 +311,7 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
                   KES {displayPrice.toLocaleString()}
                 </span>
                 <span className="text-text-secondary text-sm">/month</span>
-                {isEveryday && <p className="text-[#2ECC71] text-xs font-semibold mt-0.5">KES 120/jug</p>}
+                {isEveryday && <p className="text-[#2ECC71] text-xs font-semibold mt-0.5">KES 280/jug</p>}
               </div>
             )}
 
@@ -305,7 +370,7 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
           className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1fb855] text-white rounded-xl py-3.5 font-bold text-sm transition-colors"
         >
           <MessageCircle size={18} />
-          Subscribe via WhatsApp — KES {(selectedPlan === "everyday" ? jugsCount * 120 : plans.find((p) => p.id === selectedPlan)?.price || 0).toLocaleString()}/mo
+          Subscribe via WhatsApp — KES {(selectedPlan === "everyday" ? jugsCount * (plans.find(p => p.id === "everyday")?.pricePerJug || 280) : plans.find((p) => p.id === selectedPlan)?.price || 0).toLocaleString()}/mo
         </button>
         <p className="text-text-secondary text-xs text-center mt-3">
           Message us on WhatsApp to activate your subscription. We&apos;ll set it up and confirm within minutes. Cancel or pause anytime.

@@ -357,6 +357,27 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       if (error.message.includes("already registered")) {
         return { error: "This phone number is already registered. Please log in." };
       }
+      // Handle "Database error saving new user" by retrying profile creation
+      if (error.message.includes("Database error")) {
+        // Try signing in — the user may have been created but the profile trigger failed
+        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+        if (!loginErr) {
+          // User was created, just profile failed — create profile manually
+          const session = (await sb.auth.getSession()).data.session;
+          if (session?.user) {
+            const pin = Math.abs([...session.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
+            await sb.from("profiles").upsert({
+              id: session.user.id,
+              phone: cleaned,
+              full_name: name,
+              role: "customer",
+              delivery_pin: pin,
+            }, { onConflict: "id" });
+          }
+          return {};
+        }
+        return { error: "Account creation failed. Please try again." };
+      }
       return { error: error.message };
     }
 

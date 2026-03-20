@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Bell, Package, Truck, CheckCircle2, Droplets, Clock, Smartphone, Trash2, BellOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
@@ -163,8 +164,15 @@ function timeAgo(dateStr: string): string {
 
 export default function NotificationsPage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Redirect unauthenticated users to login
+  if (!authLoading && !user) {
+    router.push("/login?redirect=/notifications");
+    return null;
+  }
 
   const refreshNotifications = useCallback(async () => {
     if (!user?.id) return;
