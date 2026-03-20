@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useCallback } from "react";
-import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones } from "lucide-react";
+import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones, Calendar } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -498,6 +498,16 @@ export default function VendorPortalPage() {
                       </p>
                     )}
                   </div>
+                  {/* Scheduled Delivery Badge */}
+                  {order.scheduled_date && order.scheduled_time && (
+                    <div className="bg-[#FFF5EC] rounded-lg p-2.5 mt-2 flex items-center gap-2">
+                      <Calendar size={14} className="text-[#F5A623] flex-shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Scheduled Delivery</p>
+                        <p className="text-xs font-bold text-[#F5A623]">{order.scheduled_date} at {order.scheduled_time}</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-3">
                     <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     <span className="text-text-secondary text-xs">{formatOrderDate(order.created_at)}</span>
@@ -696,6 +706,7 @@ export default function VendorPortalPage() {
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Items</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Address</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Total</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Delivery</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Status</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Action</th>
                       </tr>
@@ -715,6 +726,19 @@ export default function VendorPortalPage() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-sm font-bold text-text-primary">KES {order.price_total.toLocaleString()}</td>
+                          <td className="px-6 py-4">
+                            {order.scheduled_date && order.scheduled_time ? (
+                              <div className="flex items-center gap-1">
+                                <Calendar size={12} className="text-[#F5A623] flex-shrink-0" />
+                                <div>
+                                  <p className="text-xs font-semibold text-[#F5A623] whitespace-nowrap">{order.scheduled_date}</p>
+                                  <p className="text-[10px] text-text-secondary">{order.scheduled_time}</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-[#2ECC71] font-medium">ASAP</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4"><OrderStatusBadge status={order.status} /></td>
                           <td className="px-6 py-4">
                             {order.status === "paid" && !order.vendor_id && (

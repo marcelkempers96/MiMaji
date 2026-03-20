@@ -704,6 +704,7 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 font-medium">Amount</th>
                       <th className="px-4 py-3 font-medium">Pay Method</th>
                       <th className="px-4 py-3 font-medium">MPESA Code</th>
+                      <th className="px-4 py-3 font-medium">Delivery</th>
                       <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 font-medium">Vendor</th>
                       <th className="px-4 py-3 font-medium">Actions</th>
@@ -787,6 +788,19 @@ export default function AdminDashboard() {
                               <span className="text-xs text-text-secondary">
                                 —
                               </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {order.scheduled_date && order.scheduled_time ? (
+                              <div className="flex items-center gap-1">
+                                <Calendar size={12} className="text-primary flex-shrink-0" />
+                                <div>
+                                  <p className="text-xs font-semibold text-primary whitespace-nowrap">{order.scheduled_date}</p>
+                                  <p className="text-[10px] text-text-secondary">{order.scheduled_time}</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-[#2ECC71] font-medium">Now</span>
                             )}
                           </td>
                           <td className="px-4 py-3">

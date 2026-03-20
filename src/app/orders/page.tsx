@@ -1,14 +1,15 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle, KeyRound, Copy } from "lucide-react";
-import { getProductImage } from "@/data/products";
+import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle, KeyRound, Copy, Calendar, RefreshCw } from "lucide-react";
+import { getProductImage, products } from "@/data/products";
 import { useState, useEffect, useCallback } from "react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
 import { getRewardsSummary, initRewards } from "@/lib/rewards";
@@ -30,6 +31,7 @@ function getStepIndex(status: string) {
 
 export default function OrdersPage() {
   const { user, loading: authLoading } = useAuth();
+  const { addItem, clearCart } = useCart();
   const router = useRouter();
 
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -87,6 +89,27 @@ export default function OrdersPage() {
     setMpesaCodeInputs((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
   };
 
+  const handleReorder = (order: OrderRecord) => {
+    clearCart();
+    const items = order.order_items && order.order_items.length > 0
+      ? order.order_items
+      : [{ name: order.product_name || "Water Order", quantity: order.quantity || 1, price: order.price_total }];
+
+    for (const item of items) {
+      // Try to find matching product for proper cart ID
+      const matchedProduct = products.find((p) => item.name.includes(p.name) || item.name.includes(`${p.size}L`));
+      const isNew = item.name.toLowerCase().includes("new");
+      const cartId = matchedProduct ? `${matchedProduct.id}-${isNew ? "new" : "refill"}` : `reorder-${item.name}`;
+      addItem({
+        id: cartId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      });
+    }
+    router.push("/cart");
+  };
+
   if (!user) return null;
 
   const liveOrders = orders.filter((o) => {
@@ -130,6 +153,16 @@ export default function OrdersPage() {
                         {displayId}
                       </span>
                     </div>
+                    {/* Scheduled Delivery Badge */}
+                    {order.scheduled_date && order.scheduled_time && (
+                      <div className="bg-primary-light rounded-lg p-2.5 mb-3 flex items-center gap-2">
+                        <Calendar size={14} className="text-primary flex-shrink-0" />
+                        <div>
+                          <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Scheduled Delivery</p>
+                          <p className="text-xs font-bold text-primary">{order.scheduled_date} at {order.scheduled_time}</p>
+                        </div>
+                      </div>
+                    )}
                     <div className="space-y-2 mb-4">
                       {itemsList.map((item, idx) => {
                         const img = getProductImage(item.name);
@@ -418,13 +451,22 @@ export default function OrdersPage() {
                         <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                       </div>
                     </div>
-                    <Link
-                      href={`/invoices?orderId=${order.id}`}
-                      className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 hover:underline"
-                    >
-                      <FileText size={12} />
-                      View Invoice
-                    </Link>
+                    <div className="flex items-center gap-2 mt-3">
+                      <Link
+                        href={`/invoices?orderId=${order.id}`}
+                        className="flex items-center gap-1 text-primary text-xs font-semibold hover:underline"
+                      >
+                        <FileText size={12} />
+                        View Invoice
+                      </Link>
+                      <button
+                        onClick={() => handleReorder(order)}
+                        className="flex items-center gap-1 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#1a5a9a] transition-colors ml-auto"
+                      >
+                        <RefreshCw size={12} />
+                        Re-order
+                      </button>
+                    </div>
                   </div>
                 );
               })}
