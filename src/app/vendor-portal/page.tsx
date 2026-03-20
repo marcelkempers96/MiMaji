@@ -178,6 +178,7 @@ export default function VendorPortalPage() {
   const pendingOrders = orders.filter((o) => o.status === "paid" && !o.vendor_id);
   const activeOrders = orders.filter((o) => o.status === "confirmed" || o.status === "out_for_delivery");
   const completedOrders = orders.filter((o) => o.status === "delivered");
+  const cancelledOrders = orders.filter((o) => o.status === "cancelled");
 
   const statsCards = stats ? [
     { label: "Today's Orders", value: String(stats.todayOrders), icon: Package, color: "#2979C1" },
@@ -518,6 +519,9 @@ export default function VendorPortalPage() {
               <div className="flex justify-between text-sm"><span className="text-text-secondary">Total Revenue</span><span className="font-bold text-text-primary">KES {stats.totalRevenue.toLocaleString()}</span></div>
               <div className="flex justify-between text-sm"><span className="text-text-secondary">Pending</span><span className="font-bold text-[#F5A623]">{pendingOrders.length}</span></div>
               <div className="flex justify-between text-sm"><span className="text-text-secondary">Completed</span><span className="font-bold text-[#2ECC71]">{completedOrders.length}</span></div>
+              {cancelledOrders.length > 0 && (
+                <div className="flex justify-between text-sm"><span className="text-text-secondary">Cancelled</span><span className="font-bold text-red-600">{cancelledOrders.length}</span></div>
+              )}
             </div>
           </div>
         )}
@@ -727,6 +731,9 @@ export default function VendorPortalPage() {
                   <div className="flex justify-between text-sm"><span className="text-text-secondary">Pending</span><span className="font-bold text-[#F5A623]">{pendingOrders.length}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-text-secondary">Active</span><span className="font-bold text-primary">{activeOrders.length}</span></div>
                   <div className="flex justify-between text-sm"><span className="text-text-secondary">Completed</span><span className="font-bold text-[#2ECC71]">{completedOrders.length}</span></div>
+                  {cancelledOrders.length > 0 && (
+                    <div className="flex justify-between text-sm"><span className="text-text-secondary">Cancelled</span><span className="font-bold text-red-600">{cancelledOrders.length}</span></div>
+                  )}
                 </div>
               </div>
             </div>
@@ -744,6 +751,7 @@ function OrderStatusBadge({ status }: { status: string }) {
     confirmed: { label: "Confirmed", bg: "bg-primary-light", text: "text-primary" },
     out_for_delivery: { label: "In Transit", bg: "bg-primary-light", text: "text-primary" },
     delivered: { label: "Delivered", bg: "bg-[#E8F5E9]", text: "text-[#2ECC71]" },
+    cancelled: { label: "Cancelled", bg: "bg-red-50", text: "text-red-600" },
   };
   const c = config[status] || config.pending_payment;
   return <span className={`${c.bg} ${c.text} text-xs px-2.5 py-1 rounded-full font-semibold`}>{c.label}</span>;

@@ -60,6 +60,24 @@ function saveMockOrders(orders: OrderRecord[]) {
   try { localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(orders)); } catch {}
 }
 
+/** Fetch ALL orders (for admin panel) */
+export async function fetchAllOrders(): Promise<OrderRecord[]> {
+  if (!hasSupabaseConfig) {
+    return getMockOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching all orders:", error);
+    return [];
+  }
+  return (data || []).map(mapSupabaseOrder);
+}
+
 export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
   if (!hasSupabaseConfig) {
     return getMockOrders().filter((o) => o.customer_id === userId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -253,7 +271,7 @@ export async function updateOrder(orderId: string, updates: Partial<OrderRecord>
 }
 
 // Map DB status to display status
-export function mapOrderStatus(dbStatus: string): "Processing" | "Confirmed" | "In Transit" | "Delivered" {
+export function mapOrderStatus(dbStatus: string): "Processing" | "Confirmed" | "In Transit" | "Delivered" | "Cancelled" {
   switch (dbStatus) {
     case "pending_payment":
     case "paid":
@@ -265,7 +283,7 @@ export function mapOrderStatus(dbStatus: string): "Processing" | "Confirmed" | "
     case "delivered":
       return "Delivered";
     case "cancelled":
-      return "Delivered"; // show as complete
+      return "Cancelled";
     default:
       return "Processing";
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { OrderRecord, formatOrderId, formatOrderDate } from "@/lib/orders";
+import { OrderRecord, formatOrderId, formatOrderDate, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS } from "@/lib/vendor";
 import {
   RefreshCw,
@@ -64,23 +64,6 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
 };
 
 // ── Helpers ──
-const MOCK_ORDERS_KEY = "mimaji_mock_orders";
-
-function getOrders(): OrderRecord[] {
-  try {
-    const raw = localStorage.getItem(MOCK_ORDERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveOrders(orders: OrderRecord[]) {
-  try {
-    localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(orders));
-  } catch {}
-}
-
 function formatKES(amount: number): string {
   return `KES ${amount.toLocaleString("en-KE")}`;
 }
@@ -203,8 +186,10 @@ export default function AdminDashboard() {
   }
 
   const loadOrders = useCallback(() => {
-    setOrders(getOrders());
-    setLastRefresh(new Date());
+    fetchAllOrders().then((data) => {
+      setOrders(data);
+      setLastRefresh(new Date());
+    });
   }, []);
 
   // Initial load + polling
@@ -274,7 +259,7 @@ export default function AdminDashboard() {
   }
 
   // ── Status update ──
-  function handleStatusUpdate(orderId: string, newStatus: string) {
+  async function handleStatusUpdate(orderId: string, newStatus: string) {
     // Intercept cancel to show refund confirmation
     if (newStatus === "cancelled") {
       const order = orders.find((o) => o.id === orderId);
@@ -284,27 +269,17 @@ export default function AdminDashboard() {
         return;
       }
     }
-    const all = getOrders();
-    const idx = all.findIndex((o) => o.id === orderId);
-    if (idx !== -1) {
-      all[idx].status = newStatus;
-      all[idx].updated_at = new Date().toISOString();
-      saveOrders(all);
-      setOrders([...all]);
-    }
+    await updateOrderStatus(orderId, newStatus);
+    // Refresh from source of truth
+    loadOrders();
     setStatusDropdown(null);
   }
 
-  function confirmCancel() {
+  async function confirmCancel() {
     if (!cancelConfirm) return;
-    const all = getOrders();
-    const idx = all.findIndex((o) => o.id === cancelConfirm.orderId);
-    if (idx !== -1) {
-      all[idx].status = "cancelled";
-      all[idx].updated_at = new Date().toISOString();
-      saveOrders(all);
-      setOrders([...all]);
-    }
+    await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    // Refresh from source of truth
+    loadOrders();
     setCancelConfirm(null);
   }
 
