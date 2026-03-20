@@ -36,6 +36,10 @@ export default function AccountSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
+  const [showCorporateForm, setShowCorporateForm] = useState(false);
+  const [corpBusinessName, setCorpBusinessName] = useState("");
+  const [corpBusinessReg, setCorpBusinessReg] = useState("");
+  const [corpSaved, setCorpSaved] = useState(false);
 
   // Load saved profile data on mount
   useEffect(() => {
@@ -51,6 +55,8 @@ export default function AccountSettingsPage() {
             if (data.mpesa_number !== user.phone) setMpesaDifferent(true);
           }
           if (data.avatar_url) setProfilePicUrl(data.avatar_url);
+          if ((data as Record<string, unknown>).business_name) { setCorpBusinessName((data as Record<string, unknown>).business_name as string); setShowCorporateForm(true); }
+          if ((data as Record<string, unknown>).business_reg_no) setCorpBusinessReg((data as Record<string, unknown>).business_reg_no as string);
         }
       });
     } else {
@@ -64,6 +70,8 @@ export default function AccountSettingsPage() {
           if (profile.mpesaNumber !== user.phone) setMpesaDifferent(true);
         }
         if (profile.profilePicUrl) setProfilePicUrl(profile.profilePicUrl);
+        if (profile.businessName) { setCorpBusinessName(profile.businessName); setShowCorporateForm(true); }
+        if (profile.businessRegNo) setCorpBusinessReg(profile.businessRegNo);
       } catch {}
     }
   }, [user?.id, user?.phone]);
@@ -236,15 +244,60 @@ export default function AccountSettingsPage() {
           <Building2 size={20} className="text-primary flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-text-primary font-medium">Set Up Corporate Account</p>
-            <p className="text-text-secondary text-xs">Register a new business account for corporate invoicing and bulk orders.</p>
+            <p className="text-text-secondary text-xs">Register your business for corporate invoicing and bulk orders.</p>
           </div>
         </div>
-        <Link
-          href="/login?mode=signup&corporate=true"
-          className="mt-3 block w-full text-center bg-primary-light text-primary rounded-xl py-2.5 font-semibold text-sm hover:bg-primary hover:text-white transition-colors"
-        >
-          Sign Up Corporate Account
-        </Link>
+        {!showCorporateForm ? (
+          <button
+            onClick={() => setShowCorporateForm(true)}
+            className="mt-3 block w-full text-center bg-primary-light text-primary rounded-xl py-2.5 font-semibold text-sm hover:bg-primary hover:text-white transition-colors"
+          >
+            Set Up Corporate Account
+          </button>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <div>
+              <label className="text-xs text-text-secondary font-medium mb-1 block">Business Name</label>
+              <input
+                type="text"
+                value={corpBusinessName}
+                onChange={(e) => setCorpBusinessName(e.target.value)}
+                placeholder="e.g. Acme Ltd"
+                className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-text-secondary font-medium mb-1 block">Business Registration No.</label>
+              <input
+                type="text"
+                value={corpBusinessReg}
+                onChange={(e) => setCorpBusinessReg(e.target.value)}
+                placeholder="e.g. PVT-2024-001234"
+                className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary"
+              />
+            </div>
+            <button
+              onClick={async () => {
+                if (!user?.id) return;
+                if (hasSupabaseConfig) {
+                  await supabase.from("profiles").update({ business_name: corpBusinessName, business_reg_no: corpBusinessReg, is_corporate: true }).eq("id", user.id);
+                } else {
+                  const profileKey = `mimaji_profile_${user.id}`;
+                  const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
+                  localStorage.setItem(profileKey, JSON.stringify({ ...existing, businessName: corpBusinessName, businessRegNo: corpBusinessReg, isCorporate: true }));
+                }
+                setCorpSaved(true);
+                setTimeout(() => setCorpSaved(false), 2500);
+              }}
+              className="w-full bg-primary text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-[#1a5a9a] transition-colors"
+            >
+              {corpSaved ? "Saved!" : "Save Corporate Details"}
+            </button>
+            {corpSaved && (
+              <p className="text-[#2ECC71] text-xs font-semibold text-center">Corporate account details saved.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Support - M-PESA Info */}
