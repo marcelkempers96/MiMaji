@@ -128,6 +128,7 @@ export default function ConfirmOrderPage() {
         orderItems,
         scheduledDate: scheduledDelivery?.date,
         scheduledTime: scheduledDelivery?.time,
+        deliveryCode: user.deliveryPin,
       });
 
       if (orderError || !orderId) {
@@ -198,6 +199,9 @@ export default function ConfirmOrderPage() {
         console.error("Rewards processing failed:", e);
       }
 
+      // Use user's persistent delivery PIN if available, otherwise generate from order ID
+      const deliveryCode = user.deliveryPin || generateDeliveryCode(orderId);
+
       // Save order details before clearing cart
       confirmedOrderRef.current = {
         orderId,
@@ -206,8 +210,16 @@ export default function ConfirmOrderPage() {
         total: finalTotal,
         address: selectedLocation?.address || "Not set",
         paymentMethod,
-        deliveryCode: generateDeliveryCode(orderId),
+        deliveryCode,
       };
+
+      // Save the user's delivery code to their profile for cross-device access
+      try {
+        const codeKey = `mimaji_user_delivery_code_${user.id}`;
+        const existingCodes = JSON.parse(localStorage.getItem(codeKey) || "[]");
+        existingCodes.push({ orderId, code: deliveryCode, createdAt: new Date().toISOString() });
+        localStorage.setItem(codeKey, JSON.stringify(existingCodes));
+      } catch {}
 
       clearCart();
       try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}

@@ -46,7 +46,7 @@ export default function HomePage() {
 
         {/* Hero */}
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5 relative overflow-hidden">
-          <img src={watermany.src} alt="" className="absolute top-4 right-4 w-20 h-20 opacity-15 object-contain" />
+          <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15" />
           <h1 className="text-2xl font-extrabold leading-tight">
             Order Water Online
           </h1>
@@ -384,7 +384,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white relative overflow-hidden">
-        <img src={watermany.src} alt="" className="absolute top-8 right-8 w-40 h-40 opacity-10 object-contain" />
+        <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10" />
         <div className="max-w-6xl mx-auto px-8 py-20 flex items-center gap-12 relative">
           <div className="flex-1">
             <h1 className="text-5xl font-extrabold leading-tight">
@@ -554,17 +554,17 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <p className="text-white/80 text-lg mt-2 max-w-md">
               Keep your team hydrated with scheduled water deliveries. Corporate accounts available with volume discounts and monthly invoicing.
             </p>
-            <div className="flex items-center gap-6 mt-6">
+            <div className="flex items-center gap-6 mt-6 flex-wrap">
               <Link
                 href="/buy"
-                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors whitespace-nowrap"
+                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-6 py-3 text-sm transition-colors whitespace-nowrap flex-shrink-0"
               >
-                <ShoppingCart size={20} />
+                <ShoppingCart size={18} />
                 Order for Office
               </Link>
               <Link
                 href="/corporate"
-                className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap"
+                className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
               >
                 Set Up Corporate Account →
               </Link>
