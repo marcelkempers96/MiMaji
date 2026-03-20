@@ -80,7 +80,11 @@ function TrackPage() {
   const currentStep = getStepIndex(displayStatus);
   const displayDate = order ? formatOrderDate(order.created_at) : "";
   const displayId = order ? formatOrderId(order.id) : "";
-  const displayName = order?.product_name || (order?.order_items?.[0]?.name) || "Water Order";
+  const orderItemsList = order?.order_items && order.order_items.length > 0
+    ? order.order_items
+    : order?.product_name
+      ? [{ name: order.product_name, quantity: order.quantity || 1, price: order.price_total }]
+      : [{ name: "Water Order", quantity: 1, price: order?.price_total || 0 }];
   const estimatedMinutes = order?.estimated_delivery_minutes;
 
   const trackContent = (
@@ -102,17 +106,21 @@ function TrackPage() {
         <>
           {/* Order Info Header */}
           <div className="bg-surface shadow-card rounded-xl p-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-primary bg-primary-light px-2 py-0.5 rounded-full">{displayId}</span>
               <span className="text-xs text-text-secondary">{displayDate}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Droplets size={18} className="text-primary" />
               </div>
               <div className="flex-1">
-                <p className="font-bold text-sm text-text-primary">{displayName}</p>
-                <p className="text-text-secondary text-xs">KES {order.price_total.toLocaleString()}</p>
+                {orderItemsList.map((item, idx) => (
+                  <p key={idx} className="text-sm text-text-primary">
+                    <span className="font-bold">{item.quantity}x</span> {item.name}
+                  </p>
+                ))}
+                <p className="text-text-secondary text-sm mt-1">KES {order.price_total.toLocaleString()}</p>
               </div>
             </div>
           </div>
