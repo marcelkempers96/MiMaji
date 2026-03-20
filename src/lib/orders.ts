@@ -1,9 +1,24 @@
 import { supabase } from "./supabase";
 
+export interface DeliveryAddressDetails {
+  streetName?: string;
+  buildingName?: string;
+  unitNumber?: string;
+  floor?: string;
+  locationType?: string;
+  postalCode?: string;
+  additionalDirections?: string;
+  neighbourhood?: string;
+  label?: string;
+  lat?: number;
+  lng?: number;
+}
+
 export interface OrderRecord {
   id: string;
   customer_id: string;
   delivery_address: string;
+  delivery_address_details: DeliveryAddressDetails | null;
   quantity: number;
   price_total: number;
   status: string;
@@ -101,6 +116,7 @@ function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
     id: row.id as string,
     customer_id: row.customer_id as string,
     delivery_address: (row.delivery_address as string) || "",
+    delivery_address_details: (row.delivery_address_details as DeliveryAddressDetails) || null,
     quantity: Number(row.quantity) || 0,
     price_total: Number(row.price_total) || 0,
     status: (row.status as string) || "pending_payment",
@@ -143,6 +159,7 @@ export async function fetchOrderById(orderId: string): Promise<OrderRecord | nul
 export async function createOrder(params: {
   customerId: string;
   deliveryAddress: string;
+  deliveryAddressDetails?: DeliveryAddressDetails | null;
   quantity: number;
   priceTotal: number;
   productName: string;
@@ -161,6 +178,7 @@ export async function createOrder(params: {
       id: orderId,
       customer_id: params.customerId,
       delivery_address: params.deliveryAddress,
+      delivery_address_details: params.deliveryAddressDetails || null,
       quantity: Math.min(params.quantity, 10),
       price_total: params.priceTotal,
       product_name: params.productName,
@@ -202,6 +220,7 @@ export async function createOrder(params: {
     .insert({
       customer_id: params.customerId,
       delivery_address: params.deliveryAddress,
+      delivery_address_details: params.deliveryAddressDetails || null,
       quantity: Math.min(params.quantity, 10),
       price_total: params.priceTotal,
       product_name: params.productName,

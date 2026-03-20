@@ -445,10 +445,15 @@ export default function AdminDashboard() {
                                   .join(", ")
                               : order.product_name || "—"}
                           </td>
-                          <td className="px-4 py-3 text-text-secondary max-w-[160px]">
+                          <td className="px-4 py-3 text-text-secondary max-w-[200px]">
                             <span title={order.delivery_address}>
                               {truncate(order.delivery_address, 25)}
                             </span>
+                            {order.delivery_address_details?.additionalDirections && (
+                              <p className="text-[11px] italic truncate" title={order.delivery_address_details.additionalDirections}>
+                                {truncate(order.delivery_address_details.additionalDirections, 30)}
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-3 font-semibold whitespace-nowrap">
                             {formatKES(order.price_total)}
