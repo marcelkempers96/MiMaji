@@ -42,9 +42,11 @@ function ImpactContent() {
           <Heart size={28} className="text-white" />
           <h1 className="text-2xl md:text-4xl font-extrabold">Water is Life</h1>
         </div>
-        <p className="text-white/80 text-sm md:text-base max-w-xl">
-          At MiMaji, every order you place helps bring clean water to communities that need it most.
-          Together, we&apos;re making a difference — one delivery at a time.
+        <p className="text-white/80 text-sm md:text-base max-w-xl leading-relaxed">
+          In Nairobi, we turn on a tap and expect water to flow. But across Kenya, 15 million people still walk hours for water that isn&apos;t even safe to drink. Children miss school for it. Mothers carry it on their backs. Communities are built &mdash; or broken &mdash; by access to it.
+        </p>
+        <p className="text-white/70 text-sm md:text-base max-w-xl mt-3 leading-relaxed">
+          MiMaji was born from a simple truth: water shouldn&apos;t be a privilege. Every order you place through MiMaji doesn&apos;t just bring clean water to your door &mdash; it helps carry it to someone who has never had that luxury.
         </p>
       </div>
 
@@ -57,39 +59,39 @@ function ImpactContent() {
           <div>
             <h2 className="font-extrabold text-lg md:text-xl text-text-primary mb-2">Our Promise</h2>
             <p className="text-text-primary text-sm md:text-base font-medium">
-              For every <span className="font-extrabold text-[#2ECC71]">100 Litres</span> delivered,
-              we supply <span className="font-extrabold text-[#2ECC71]">10% (10 Litres)</span> of
-              clean water to rural communities in Kenya.
+              For every <span className="font-extrabold text-[#2ECC71]">100 Litres</span> we deliver,
+              we commit <span className="font-extrabold text-[#2ECC71]">10 Litres</span> of
+              clean water to underserved communities across Kenya.
             </p>
             <p className="text-text-secondary text-xs md:text-sm mt-2">
-              That means every time you order, you&apos;re directly contributing to someone&apos;s access to clean, safe water.
+              It&apos;s not charity &mdash; it&apos;s how business should work. You take care of your family, and together we take care of ours. Every litre counts.
             </p>
           </div>
         </div>
       </div>
 
       {/* Impact Stats */}
-      <h2 className="font-bold text-base md:text-xl text-text-primary mb-3">Impact So Far</h2>
+      <h2 className="font-bold text-base md:text-xl text-text-primary mb-3">Our Impact So Far</h2>
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-surface shadow-card rounded-xl p-4 text-center">
           <Droplets size={24} className="text-primary mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-primary">50,000L</p>
-          <p className="text-text-secondary text-xs">Water Delivered</p>
+          <p className="text-2xl font-extrabold text-primary">4,200L</p>
+          <p className="text-text-secondary text-xs">Clean Water Delivered</p>
         </div>
         <div className="bg-surface shadow-card rounded-xl p-4 text-center">
           <Heart size={24} className="text-[#E8544E] mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-[#E8544E]">5,000L</p>
-          <p className="text-text-secondary text-xs">Donated to Rural Areas</p>
+          <p className="text-2xl font-extrabold text-[#E8544E]">420L</p>
+          <p className="text-text-secondary text-xs">Donated to Rural Communities</p>
         </div>
         <div className="bg-surface shadow-card rounded-xl p-4 text-center">
           <Users size={24} className="text-[#F5A623] mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-[#F5A623]">2,500+</p>
-          <p className="text-text-secondary text-xs">Families Served</p>
+          <p className="text-2xl font-extrabold text-[#F5A623]">85+</p>
+          <p className="text-text-secondary text-xs">Households Served</p>
         </div>
         <div className="bg-surface shadow-card rounded-xl p-4 text-center">
           <MapPin size={24} className="text-[#2ECC71] mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-[#2ECC71]">12</p>
-          <p className="text-text-secondary text-xs">Rural Communities</p>
+          <p className="text-2xl font-extrabold text-[#2ECC71]">2</p>
+          <p className="text-text-secondary text-xs">Partner Communities</p>
         </div>
       </div>
 
@@ -105,9 +107,7 @@ function ImpactContent() {
           </div>
         </div>
         <p className="text-text-secondary text-sm mb-4">
-          MajiMap is our initiative to map water access points, boreholes, and distribution networks
-          across Kenya. By understanding where water is — and where it isn&apos;t — we can direct
-          resources where they&apos;re needed most.
+          We can&apos;t fix what we can&apos;t see. MajiMap is our long-term initiative to map every water access point, borehole, and distribution network across Kenya. The goal is simple: understand where water flows and where it doesn&apos;t, so we can direct help to the communities that need it most. It&apos;s ambitious. It&apos;s necessary. And it starts with every delivery we make.
         </p>
         <div className="bg-primary-light rounded-xl p-4 mb-4">
           <h3 className="font-bold text-sm text-text-primary mb-2">How MajiMap Works</h3>
@@ -137,27 +137,27 @@ function ImpactContent() {
 
       {/* How You Help */}
       <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-2xl p-5 md:p-8 mb-6">
-        <h2 className="font-extrabold text-lg text-text-primary mb-4">How Your Order Helps</h2>
+        <h2 className="font-extrabold text-lg text-text-primary mb-4">How Your Order Makes a Difference</h2>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary">1</div>
             <div>
-              <p className="font-bold text-sm text-text-primary">You Order Water</p>
-              <p className="text-text-secondary text-xs">Place an order for purified water through MiMaji</p>
+              <p className="font-bold text-sm text-text-primary">You Order Clean Water</p>
+              <p className="text-text-secondary text-xs">Safe, KEBS-certified water delivered straight to your home or office in Nairobi</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary">2</div>
             <div>
-              <p className="font-bold text-sm text-text-primary">We Deliver to You</p>
-              <p className="text-text-secondary text-xs">Fast, reliable delivery to your door in Nairobi</p>
+              <p className="font-bold text-sm text-text-primary">We Deliver &mdash; Rain or Shine</p>
+              <p className="text-text-secondary text-xs">Our riders bring it to your doorstep, because no one should have to carry water on their back</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-[#2ECC71]">3</div>
             <div>
-              <p className="font-bold text-sm text-text-primary">10% Goes to Rural Kenya</p>
-              <p className="text-text-secondary text-xs">For every 100L delivered, 10L goes to communities without clean water access</p>
+              <p className="font-bold text-sm text-text-primary">10% Flows to Those Who Need It</p>
+              <p className="text-text-secondary text-xs">For every 100L you order, 10L of clean water reaches a family in rural Kenya who would otherwise go without</p>
             </div>
           </div>
         </div>
