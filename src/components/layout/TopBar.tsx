@@ -14,7 +14,7 @@ export default function TopBar({ title, showBack = true }: TopBarProps) {
   const router = useRouter();
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-surface sticky top-0 z-10">
+    <div className="flex items-center gap-3 px-4 py-3 bg-surface sticky top-0 z-10 md:hidden">
       {showBack && (
         <button
           onClick={() => router.back()}

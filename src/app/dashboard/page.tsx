@@ -22,6 +22,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
+import { initRewards, getRewardsSummary } from "@/lib/rewards";
 
 const shortcuts = [
   { label: "Schedule", icon: Calendar, href: "/schedule" },
@@ -107,8 +108,17 @@ export default function DashboardPage() {
   );
 }
 
-function DashboardContent({ user, desktop }: { user: { phone: string; name: string }; desktop?: boolean }) {
+function DashboardContent({ user, desktop }: { user: { id: string; phone: string; name: string }; desktop?: boolean }) {
   const [showInstallPopup, setShowInstallPopup] = useState(false);
+  const [freeLitres, setFreeLitres] = useState(0);
+
+  useEffect(() => {
+    if (user?.id) {
+      initRewards(user.id);
+      const summary = getRewardsSummary(user.id);
+      setFreeLitres(summary.freeLitres);
+    }
+  }, [user?.id]);
 
   return (
     <div className="px-4">
@@ -134,8 +144,8 @@ function DashboardContent({ user, desktop }: { user: { phone: string; name: stri
         <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-xl p-4 mb-3 flex items-center gap-3 hover:shadow-card transition-shadow">
           <Star size={24} className="text-rating" />
           <div className="flex-1">
-            <p className="font-bold text-sm text-text-primary">150 Reward Points</p>
-            <p className="text-text-secondary text-xs">Water Cadet — Earn more!</p>
+            <p className="font-bold text-sm text-text-primary">{freeLitres}L Free Water Earned</p>
+            <p className="text-text-secondary text-xs">Refer friends & earn more!</p>
           </div>
           <ChevronRight size={20} className="text-text-secondary" />
         </div>

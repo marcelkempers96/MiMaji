@@ -20,6 +20,7 @@ function LoginContent() {
   const initialCorporate = searchParams.get("corporate") === "true";
 
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
+  const [countryCode, setCountryCode] = useState("+254");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -60,8 +61,18 @@ function LoginContent() {
     }
   }, [user, router, searchParams, justSignedUp, referralCode]);
 
+  const getFullPhone = () => {
+    let cleaned = phone.replace(/\s/g, "").replace(/^0+/, "");
+    // Prepend country code digits (strip +)
+    const codeDigits = countryCode.replace("+", "");
+    if (!cleaned.startsWith(codeDigits)) {
+      cleaned = codeDigits + cleaned;
+    }
+    return cleaned;
+  };
+
   const handleLogin = async () => {
-    const cleaned = phone.replace(/\s/g, "");
+    const cleaned = getFullPhone();
     if (cleaned.length < 9) {
       setError("Please enter a valid phone number");
       return;
@@ -84,7 +95,7 @@ function LoginContent() {
   };
 
   const handleSignup = async () => {
-    const cleaned = phone.replace(/\s/g, "");
+    const cleaned = getFullPhone();
     if (cleaned.length < 9) {
       setError("Please enter a valid phone number");
       return;
@@ -156,13 +167,33 @@ function LoginContent() {
           <label className="block text-sm font-medium text-text-primary mb-2">
             Phone Number
           </label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => { setPhone(e.target.value); setError(""); }}
-            placeholder="07XX XXX XXX"
-            className="rounded-xl border border-gray-200 h-12 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary"
-          />
+          <div className="flex gap-2">
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="rounded-xl border border-gray-200 h-12 px-2 text-text-primary outline-none focus:border-primary text-sm w-[100px] flex-shrink-0 bg-white"
+            >
+              <option value="+254">🇰🇪 +254</option>
+              <option value="+255">🇹🇿 +255</option>
+              <option value="+256">🇺🇬 +256</option>
+              <option value="+250">🇷🇼 +250</option>
+              <option value="+251">🇪🇹 +251</option>
+              <option value="+252">🇸🇴 +252</option>
+              <option value="+257">🇧🇮 +257</option>
+              <option value="+243">🇨🇩 +243</option>
+              <option value="+27">🇿🇦 +27</option>
+              <option value="+234">🇳🇬 +234</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+1">🇺🇸 +1</option>
+            </select>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); setError(""); }}
+              placeholder="7XX XXX XXX"
+              className="rounded-xl border border-gray-200 h-12 px-4 flex-1 text-text-primary placeholder:text-text-secondary outline-none focus:border-primary"
+            />
+          </div>
 
           {/* Name (signup only) */}
           {mode === "signup" && (

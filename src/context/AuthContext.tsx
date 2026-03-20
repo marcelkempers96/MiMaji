@@ -147,8 +147,9 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
       return { error: "This phone number is already registered. Please log in." };
     }
 
+    // Use deterministic ID based on phone so the same account works across devices
     const newUser: User = {
-      id: `mock-user-${Date.now()}`,
+      id: `mock-user-${cleaned}`,
       phone: cleaned,
       name,
       role: "customer",

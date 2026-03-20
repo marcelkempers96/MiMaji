@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock } from "lucide-react";
+import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound } from "lucide-react";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -178,9 +178,95 @@ export default function ConfirmOrderPage() {
     return `${totalItems} items`;
   };
 
+  // ── M-PESA Payment Code Entry (for mpesa-app method) ──
+  const [mpesaCode, setMpesaCode] = useState("");
+  const [codeSubmitted, setCodeSubmitted] = useState(false);
+
+  const handleMpesaCodeSubmit = async () => {
+    if (!mpesaCode.trim() || !confirmedOrderRef.current) return;
+    try {
+      await updateOrderStatus(confirmedOrderRef.current.orderId, "paid", mpesaCode.trim().toUpperCase());
+      confirmedOrderRef.current.mpesaRef = mpesaCode.trim().toUpperCase();
+      setCodeSubmitted(true);
+    } catch (e) {
+      console.error("Failed to update M-PESA code:", e);
+      setCodeSubmitted(true);
+    }
+  };
+
   // ── Payment Confirmation Screen ──
   if (paymentStatus === "confirmed" && confirmedOrderRef.current) {
     const order = confirmedOrderRef.current;
+
+    // Show M-PESA code entry screen for mpesa-app payments before showing success
+    if (order.paymentMethod === "mpesa-app" && !codeSubmitted) {
+      return (
+        <div className="bg-background min-h-screen pb-28">
+          <TopBar title="Enter M-PESA Code" />
+          <div className="max-w-md mx-auto md:max-w-lg px-4 mt-6">
+            <div className="flex justify-center mb-4">
+              <div className="w-20 h-20 bg-primary-light rounded-full flex items-center justify-center">
+                <KeyRound size={40} className="text-primary" />
+              </div>
+            </div>
+
+            <h2 className="text-xl font-bold text-text-primary text-center mb-1">
+              Enter M-PESA Payment Code
+            </h2>
+            <p className="text-text-secondary text-sm text-center mb-6">
+              Key in your M-PESA payment code so we can confirm that you have paid and process your order.
+            </p>
+
+            <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
+              <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">
+                M-PESA Confirmation Code
+              </label>
+              <input
+                type="text"
+                value={mpesaCode}
+                onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+                placeholder="e.g. SJ12ABCDEF"
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-lg font-mono font-bold text-text-primary tracking-widest text-center focus:border-primary focus:outline-none transition-colors"
+                maxLength={15}
+              />
+              <p className="text-text-secondary text-xs mt-2 text-center">
+                You will receive this code via SMS after completing your M-PESA payment.
+              </p>
+            </div>
+
+            <div className="bg-[#FFF5EC] rounded-xl p-4 mb-6">
+              <p className="text-[#F5A623] text-xs font-bold mb-1">Payment Details Reminder</p>
+              <div className="text-text-secondary text-xs space-y-1">
+                <p>Business Number: <span className="font-bold text-text-primary">123456</span></p>
+                <p>Account Number: <span className="font-bold text-text-primary">{user?.phone || "Your phone"}</span></p>
+                <p>Amount: <span className="font-bold text-text-primary">KES {order.total.toLocaleString()}</span></p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleMpesaCodeSubmit}
+              disabled={mpesaCode.trim().length < 5}
+              className={`w-full py-3.5 rounded-xl font-semibold text-sm text-center flex items-center justify-center gap-2 transition-colors ${
+                mpesaCode.trim().length >= 5
+                  ? "bg-primary text-white hover:bg-[#1a5a9a]"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              <CheckCircle2 size={18} />
+              Confirm Payment Code
+            </button>
+
+            <button
+              onClick={() => setCodeSubmitted(true)}
+              className="w-full mt-3 text-text-secondary text-sm font-medium text-center hover:text-primary transition-colors"
+            >
+              Skip for now — I&apos;ll provide the code later
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="bg-background min-h-screen pb-28">
         <TopBar title="Payment Confirmation" />
@@ -199,7 +285,7 @@ export default function ConfirmOrderPage() {
             {order.paymentMethod === "cash"
               ? "Your order has been placed. Have cash ready for the driver."
               : order.paymentMethod === "mpesa-app"
-              ? "Complete your M-PESA payment to confirm your order."
+              ? (order.mpesaRef ? "Your M-PESA payment code has been received. We will confirm your order shortly." : "Complete your M-PESA payment to confirm your order.")
               : "Your payment has been processed successfully."}
           </p>
 
@@ -354,16 +440,17 @@ export default function ConfirmOrderPage() {
             </div>
 
             {/* Estimated Delivery Time */}
-            <div className="bg-[#E8F5E9] rounded-xl p-3">
-              <div className="flex items-center gap-2">
+            <div className="bg-[#E8F5E9] rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
                 <Clock size={16} className="text-[#2ECC71] flex-shrink-0" />
-                <div>
-                  <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide">Estimated Delivery</p>
-                  <p className="text-sm font-medium text-text-primary">
-                    {getEstimatedDelivery().duration} &middot; Arriving ~{getEstimatedDelivery().arrivalTime}
-                  </p>
-                </div>
+                <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide">Estimated Delivery</p>
               </div>
+              <p className="text-2xl font-extrabold text-text-primary">
+                ETA: {getEstimatedDelivery().duration}
+              </p>
+              <p className="text-sm text-text-secondary mt-1">
+                Arriving ~{getEstimatedDelivery().arrivalTime}
+              </p>
             </div>
 
             <div className="flex justify-between items-center">

@@ -309,7 +309,6 @@ function ProductCard({
       {/* Refill Row */}
       <BottleTypeRow
         label="Refill"
-        sublabel="Use your existing bottle"
         icon={<RefreshCw size={14} />}
         accentColor="text-[#2ECC71]"
         accentBg="bg-[#E8F5E9]"
@@ -321,7 +320,6 @@ function ProductCard({
       {/* New Bottle Row */}
       <BottleTypeRow
         label="New Bottle"
-        sublabel="Brand new sealed"
         icon={<PackagePlus size={14} />}
         accentColor="text-primary"
         accentBg="bg-primary-light"
@@ -335,7 +333,6 @@ function ProductCard({
 
 function BottleTypeRow({
   label,
-  sublabel,
   icon,
   accentColor,
   accentBg,
@@ -344,7 +341,6 @@ function BottleTypeRow({
   onChangeQty,
 }: {
   label: string;
-  sublabel: string;
   icon: React.ReactNode;
   accentColor: string;
   accentBg: string;
@@ -361,10 +357,7 @@ function BottleTypeRow({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <span className={qty > 0 ? accentColor : "text-text-secondary"}>{icon}</span>
-          <div className="min-w-0">
-            <p className={`text-xs font-bold ${qty > 0 ? "text-text-primary" : "text-text-secondary"}`}>{label}</p>
-            <p className="text-[10px] text-text-secondary">{sublabel}</p>
-          </div>
+          <p className={`text-xs font-bold ${qty > 0 ? "text-text-primary" : "text-text-secondary"}`}>{label}</p>
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0">

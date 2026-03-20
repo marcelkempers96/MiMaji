@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1 } from "@/assets/images";
+import { logo1, test1 } from "@/assets/images";
 import {
   Droplets, Shield, AlertTriangle, Beaker, FlaskConical,
   Pipette, Home, ShoppingCart, CheckCircle, MapPin,
@@ -56,17 +56,25 @@ function CollapsibleSection({ icon, title, children }: { icon: React.ReactNode; 
 function WaterGuideContent() {
   return (
     <>
+      {/* Hero Image */}
+      <div className="rounded-2xl overflow-hidden mb-4">
+        <img src={test1.src} alt="Clean water for Kenya" className="w-full h-48 md:h-72 object-cover rounded-2xl" />
+      </div>
+
       {/* Hero */}
       <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 md:p-10 text-white mb-6">
         <div className="flex items-center gap-3 mb-3">
           <Droplets size={28} className="text-white" />
-          <h1 className="text-xl md:text-3xl font-extrabold">Your Guide to Safe Drinking Water in Nairobi</h1>
+          <h1 className="text-xl md:text-3xl font-extrabold">Your Guide to Safe Drinking Water in Kenya</h1>
         </div>
         <p className="text-white/80 text-sm md:text-base">
-          By MiMaji &mdash; mimaji.co.ke
+          Written by Marcel Kempers &mdash; Founder, MiMaji
         </p>
-        <p className="text-white/70 text-sm mt-3 md:text-base">
-          At MiMaji, we believe every Nairobian deserves to know exactly what&apos;s in their water. This guide explains the key measures of water safety in simple, clear terms &mdash; so you can make informed decisions about the water your family drinks, cooks with, and bathes in.
+        <p className="text-white/70 text-sm mt-3 md:text-base leading-relaxed">
+          Water is life. It&apos;s the first thing a newborn needs, the foundation of every meal we cook, the quiet backbone of every healthy family. Yet for millions of Kenyans, the simple act of turning on a tap and trusting what comes out is still not a reality.
+        </p>
+        <p className="text-white/70 text-sm mt-2 md:text-base leading-relaxed">
+          I started MiMaji because I believe that no one should have to wonder whether the water they&apos;re drinking is safe. Not a mother in Kibera, not a student in Westlands, not a family in Kitengela. This guide is my way of putting that knowledge in your hands &mdash; because when you understand your water, you can protect the people you love.
         </p>
       </div>
 

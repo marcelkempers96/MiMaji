@@ -1,15 +1,26 @@
 "use client";
 
 import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1 } from "@/assets/images";
-import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
+import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2 } from "lucide-react";
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { getRewardsSummary, initRewards } from "@/lib/rewards";
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [freeLitres, setFreeLitres] = useState(0);
+
+  useEffect(() => {
+    if (user?.id) {
+      initRewards(user.id);
+      const summary = getRewardsSummary(user.id);
+      setFreeLitres(summary.freeLitres);
+    }
+  }, [user?.id]);
 
   return (
     <div className="bg-background min-h-screen pb-20">
@@ -73,12 +84,11 @@ export default function HomePage() {
 
         {/* Locations Banner */}
         <div className="bg-surface shadow-card rounded-xl overflow-hidden mb-5">
-          <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-32 object-cover" />
+          <div className="w-full aspect-[16/9]">
+            <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-full object-contain" />
+          </div>
           <div className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <MapPin size={16} className="text-primary" />
-              <p className="font-bold text-sm text-text-primary">Delivering from 30 Locations Across Nairobi</p>
-            </div>
+            <p className="font-bold text-sm text-text-primary mb-1">Delivering from 30 Locations Across Nairobi</p>
             <p className="text-text-secondary text-xs mb-3">
               We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
             </p>
@@ -162,16 +172,13 @@ export default function HomePage() {
             </p>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-[#E0E0E0] rounded-full overflow-hidden">
-                <div className="h-full bg-[#2ECC71] rounded-full w-[0%]" />
+                <div className="h-full bg-[#2ECC71] rounded-full" style={{ width: `${Math.min((freeLitres / 50) * 100, 100)}%` }} />
               </div>
-              <span className="text-xs text-text-secondary font-medium">0L / 50L</span>
+              <span className="text-xs text-text-secondary font-medium">{freeLitres}L / 50L</span>
             </div>
             <p className="text-xs text-primary font-semibold mt-2">View Rewards →</p>
           </div>
         </Link>
-
-        {/* WhatsApp Banner - static, above Water is Life */}
-        <WhatsAppMobileBanner />
 
         {/* Impact */}
         <Link href="/impact">
@@ -199,15 +206,15 @@ export default function HomePage() {
           <div className="flex gap-2 mt-3">
             <Link
               href="/buy"
-              className="flex-1 bg-cta-alt text-white text-center rounded-full py-2 text-xs font-bold hover:bg-[#d44a44] transition-colors"
+              className="bg-cta-alt text-white text-center rounded-full px-4 py-1.5 text-[11px] font-bold hover:bg-[#d44a44] transition-colors"
             >
               Order for Office
             </Link>
             <Link
-              href="/contact"
-              className="flex-1 bg-white/20 text-white text-center rounded-full py-2 text-xs font-bold hover:bg-white/30 transition-colors"
+              href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
+              className="bg-white/20 text-white text-center rounded-full px-4 py-1.5 text-[11px] font-bold hover:bg-white/30 transition-colors flex items-center gap-1"
             >
-              Corporate Account
+              Set Up Corporate Account
             </Link>
           </div>
         </div>
@@ -229,6 +236,9 @@ export default function HomePage() {
             </div>
           </div>
         </Link>
+
+        {/* WhatsApp Banner */}
+        <WhatsAppMobileBanner />
 
         {/* Footer */}
         <MobileFooter />
@@ -329,6 +339,12 @@ function MobileFooter() {
           <Mail size={14} />
           support@mimaji.co.ke
         </a>
+      </div>
+
+      <div className="bg-primary-light rounded-xl p-3 mb-4">
+        <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide mb-1">M-PESA Payment Details</p>
+        <p className="text-text-primary text-sm">Till Number: <span className="font-bold">123456</span></p>
+        <p className="text-text-primary text-sm">Account No: <span className="font-bold">Your Phone Number</span></p>
       </div>
 
       <div className="border-t border-[#E0E0E0] pt-4 flex items-center justify-between">
@@ -453,10 +469,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
       <section className="max-w-6xl mx-auto px-8 py-12">
         <div className="bg-surface shadow-card rounded-2xl overflow-hidden flex items-center gap-0">
           <div className="flex-1 p-10">
-            <div className="flex items-center gap-3 mb-3">
-              <MapPin size={24} className="text-primary" />
-              <h2 className="text-2xl font-extrabold text-text-primary">Delivering from 30 Locations Across Nairobi</h2>
-            </div>
+            <h2 className="text-2xl font-extrabold text-text-primary mb-3">Delivering from 30 Locations Across Nairobi</h2>
             <p className="text-text-secondary text-base mb-6 max-w-md">
               We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
             </p>
@@ -468,8 +481,8 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
               See All Vendors
             </Link>
           </div>
-          <div className="flex-1">
-            <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-[280px] object-cover" />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full max-h-[300px] object-contain" />
           </div>
         </div>
       </section>
@@ -567,6 +580,28 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
         </div>
       </section>
 
+      {/* Water Quality Guide Banner */}
+      <section className="max-w-6xl mx-auto px-8 py-12">
+        <Link href="/water-guide">
+          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-2xl overflow-hidden hover:shadow-card-hover transition-shadow flex items-stretch">
+            <div className="flex-1 p-10">
+              <div className="flex items-center gap-3 mb-3">
+                <Droplets size={24} className="text-primary" />
+                <h2 className="text-2xl font-extrabold text-text-primary">Water Quality Guide</h2>
+              </div>
+              <p className="text-text-secondary text-base mb-2 max-w-md">
+                Learn what makes water safe to drink — E. coli, TDS, pH, turbidity & more. Know what to look for when ordering water in Nairobi.
+              </p>
+              <span className="text-primary text-sm font-semibold">Read the full guide →</span>
+            </div>
+            <div className="flex-1 flex gap-1 min-h-[200px]">
+              <img src={warehouse.src} alt="MiMaji warehouse" className="w-1/2 object-cover" />
+              <img src={clean1.src} alt="Clean water quality" className="w-1/2 object-cover" />
+            </div>
+          </div>
+        </Link>
+      </section>
+
       {/* Impact Section */}
       <section className="max-w-6xl mx-auto px-8 py-16">
         <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-2xl p-10 flex items-center gap-8">
@@ -638,6 +673,15 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
                   <Mail size={14} />
                   support@mimaji.co.ke
                 </a>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-white/20 pt-6 mb-6">
+            <div className="flex items-center gap-6 mb-4">
+              <div>
+                <p className="text-white/50 text-xs uppercase tracking-wide font-semibold mb-1">M-PESA Payment</p>
+                <p className="text-white/80 text-sm">Till Number: <span className="font-bold text-white">123456</span></p>
+                <p className="text-white/80 text-sm">Account No: <span className="font-bold text-white">Your Phone Number</span></p>
               </div>
             </div>
           </div>

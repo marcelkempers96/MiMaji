@@ -18,10 +18,15 @@ import {
   Droplets,
   Calendar,
   AlertCircle,
+  XCircle,
+  Trash2,
+  Edit3,
+  Ban,
+  CheckCircle2,
 } from "lucide-react";
 
 // ── Types ──
-type Tab = "overview" | "orders" | "vendors" | "analytics";
+type Tab = "overview" | "orders" | "vendors" | "analytics" | "users";
 
 type OrderStatus =
   | "pending_payment"
@@ -134,6 +139,68 @@ export default function AdminDashboard() {
   const [kenyaTime, setKenyaTime] = useState(getKenyaTime());
   const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [cancelConfirm, setCancelConfirm] = useState<{ orderId: string; amount: number } | null>(null);
+
+  // Users management
+  interface MockUser { id: string; phone: string; name: string; role: string }
+  const [users, setUsers] = useState<MockUser[]>([]);
+  const [editingUser, setEditingUser] = useState<MockUser | null>(null);
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState<string | null>(null);
+
+  // Vendor management
+  const [editingVendor, setEditingVendor] = useState<string | null>(null);
+  const [vendorEdits, setVendorEdits] = useState<Partial<VendorInfo>>({});
+
+  function loadUsers() {
+    const builtIn: MockUser[] = [
+      { id: "mock-admin-001", phone: "254700000000", name: "Admin User", role: "admin" },
+      { id: "mock-vendor-001", phone: "254711000000", name: "AquaPure Kilimani", role: "vendor" },
+    ];
+    try {
+      const raw = localStorage.getItem("mimaji_mock_signups");
+      const signups = raw ? JSON.parse(raw) : {};
+      const signupUsers: MockUser[] = Object.values(signups).map((s: unknown) => {
+        const su = s as { user: MockUser };
+        return su.user;
+      });
+      setUsers([...builtIn, ...signupUsers]);
+    } catch {
+      setUsers(builtIn);
+    }
+  }
+
+  function updateUser(userId: string, updates: Partial<MockUser>) {
+    try {
+      const raw = localStorage.getItem("mimaji_mock_signups");
+      const signups = raw ? JSON.parse(raw) : {};
+      for (const [phone, entry] of Object.entries(signups)) {
+        const e = entry as { password: string; user: MockUser };
+        if (e.user.id === userId) {
+          e.user = { ...e.user, ...updates };
+          signups[phone] = e;
+        }
+      }
+      localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+      loadUsers();
+    } catch {}
+    setEditingUser(null);
+  }
+
+  function deleteUser(userId: string) {
+    try {
+      const raw = localStorage.getItem("mimaji_mock_signups");
+      const signups = raw ? JSON.parse(raw) : {};
+      for (const [phone, entry] of Object.entries(signups)) {
+        const e = entry as { password: string; user: MockUser };
+        if (e.user.id === userId) {
+          delete signups[phone];
+        }
+      }
+      localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+      loadUsers();
+    } catch {}
+    setDeleteUserConfirm(null);
+  }
 
   const loadOrders = useCallback(() => {
     setOrders(getOrders());
@@ -143,6 +210,7 @@ export default function AdminDashboard() {
   // Initial load + polling
   useEffect(() => {
     loadOrders();
+    loadUsers();
     const orderInterval = setInterval(loadOrders, 10_000);
     const clockInterval = setInterval(() => setKenyaTime(getKenyaTime()), 1_000);
     return () => {
@@ -207,6 +275,15 @@ export default function AdminDashboard() {
 
   // ── Status update ──
   function handleStatusUpdate(orderId: string, newStatus: string) {
+    // Intercept cancel to show refund confirmation
+    if (newStatus === "cancelled") {
+      const order = orders.find((o) => o.id === orderId);
+      if (order) {
+        setCancelConfirm({ orderId, amount: order.price_total });
+        setStatusDropdown(null);
+        return;
+      }
+    }
     const all = getOrders();
     const idx = all.findIndex((o) => o.id === orderId);
     if (idx !== -1) {
@@ -218,12 +295,26 @@ export default function AdminDashboard() {
     setStatusDropdown(null);
   }
 
+  function confirmCancel() {
+    if (!cancelConfirm) return;
+    const all = getOrders();
+    const idx = all.findIndex((o) => o.id === cancelConfirm.orderId);
+    if (idx !== -1) {
+      all[idx].status = "cancelled";
+      all[idx].updated_at = new Date().toISOString();
+      saveOrders(all);
+      setOrders([...all]);
+    }
+    setCancelConfirm(null);
+  }
+
   // ── Tab buttons ──
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: "Overview", icon: <BarChart3 size={16} /> },
     { id: "orders", label: "Orders", icon: <ShoppingCart size={16} /> },
     { id: "vendors", label: "Vendors", icon: <Store size={16} /> },
     { id: "analytics", label: "Analytics", icon: <Droplets size={16} /> },
+    { id: "users", label: "Users", icon: <Users size={16} /> },
   ];
 
   return (
@@ -472,11 +563,125 @@ export default function AdminDashboard() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {MOCK_VENDORS.map((vendor) => (
-                <VendorCard
-                  key={vendor.id}
-                  vendor={vendor}
-                  orderCount={vendorOrderCount(vendor.id)}
-                />
+                <div key={vendor.id} className="bg-surface shadow-card rounded-2xl p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      {editingVendor === vendor.id ? (
+                        <input
+                          type="text"
+                          value={vendorEdits.name ?? vendor.name}
+                          onChange={(e) => setVendorEdits({ ...vendorEdits, name: e.target.value })}
+                          className="border border-gray-200 rounded-lg px-2 py-1 text-sm font-semibold outline-none focus:border-primary w-full"
+                        />
+                      ) : (
+                        <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
+                      )}
+                      {editingVendor === vendor.id ? (
+                        <input
+                          type="text"
+                          value={vendorEdits.area ?? vendor.area}
+                          onChange={(e) => setVendorEdits({ ...vendorEdits, area: e.target.value })}
+                          className="border border-gray-200 rounded-lg px-2 py-1 text-xs mt-1 outline-none focus:border-primary w-full"
+                        />
+                      ) : (
+                        <p className="text-sm text-text-secondary">{vendor.area}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-lg">
+                      <span className="text-rating text-sm">&#9733;</span>
+                      <span className="text-xs font-semibold text-text-primary">{vendor.rating}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-text-secondary">Locations</p>
+                      <p className="font-semibold text-text-primary">{vendor.locations.length}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-text-secondary">Orders</p>
+                      <p className="font-semibold text-text-primary">{vendorOrderCount(vendor.id)}</p>
+                    </div>
+                  </div>
+
+                  <div className="text-xs space-y-1.5 pt-1 border-t border-gray-100">
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Biz Reg No</span>
+                      {editingVendor === vendor.id ? (
+                        <input
+                          type="text"
+                          value={vendorEdits.businessRegNo ?? vendor.businessRegNo}
+                          onChange={(e) => setVendorEdits({ ...vendorEdits, businessRegNo: e.target.value })}
+                          className="border border-gray-200 rounded px-1.5 py-0.5 font-mono text-xs outline-none focus:border-primary w-28 text-right"
+                        />
+                      ) : (
+                        <span className="font-mono text-text-primary">{vendor.businessRegNo}</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">M-Pesa</span>
+                      {editingVendor === vendor.id ? (
+                        <input
+                          type="text"
+                          value={vendorEdits.mpesaNumber ?? vendor.mpesaNumber}
+                          onChange={(e) => setVendorEdits({ ...vendorEdits, mpesaNumber: e.target.value })}
+                          className="border border-gray-200 rounded px-1.5 py-0.5 font-mono text-xs outline-none focus:border-primary w-28 text-right"
+                        />
+                      ) : (
+                        <span className="font-mono text-text-primary">{vendor.mpesaNumber}</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Hours</span>
+                      {editingVendor === vendor.id ? (
+                        <input
+                          type="text"
+                          value={vendorEdits.hours ?? vendor.hours}
+                          onChange={(e) => setVendorEdits({ ...vendorEdits, hours: e.target.value })}
+                          className="border border-gray-200 rounded px-1.5 py-0.5 text-xs outline-none focus:border-primary w-28 text-right"
+                        />
+                      ) : (
+                        <span className="text-text-primary">{vendor.hours}</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Reviews</span>
+                      <span className="text-text-primary">{vendor.reviews}</span>
+                    </div>
+                  </div>
+
+                  {/* Edit/Save buttons */}
+                  <div className="pt-2 border-t border-gray-100 flex gap-2">
+                    {editingVendor === vendor.id ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            // In mock mode, vendor data is in-memory only; edits are visual feedback
+                            Object.assign(vendor, vendorEdits);
+                            setEditingVendor(null);
+                            setVendorEdits({});
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg font-medium transition-colors"
+                        >
+                          <CheckCircle2 size={12} /> Save
+                        </button>
+                        <button
+                          onClick={() => { setEditingVendor(null); setVendorEdits({}); }}
+                          className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                        >
+                          <XCircle size={12} /> Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingVendor(vendor.id); setVendorEdits({}); }}
+                        className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-blue-50 hover:bg-blue-100 text-primary rounded-lg font-medium transition-colors"
+                      >
+                        <Edit3 size={12} /> Edit Vendor
+                      </button>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           </section>
@@ -587,6 +792,179 @@ export default function AdminDashboard() {
           </section>
         )}
 
+        {/* ═══ USERS TAB ═══ */}
+        {activeTab === "users" && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-text-primary">
+                User Accounts ({users.length})
+              </h2>
+              <button
+                onClick={loadUsers}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+              >
+                <RefreshCw size={12} /> Reload
+              </button>
+            </div>
+
+            <div className="bg-surface shadow-card rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-text-secondary text-left text-xs uppercase tracking-wider">
+                      <th className="px-4 py-3 font-medium">User ID</th>
+                      <th className="px-4 py-3 font-medium">Phone</th>
+                      <th className="px-4 py-3 font-medium">Name</th>
+                      <th className="px-4 py-3 font-medium">Role</th>
+                      <th className="px-4 py-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs">{truncate(u.id, 18)}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{u.phone}</td>
+                        <td className="px-4 py-3">
+                          {editingUser?.id === u.id ? (
+                            <input
+                              type="text"
+                              value={editingUser.name}
+                              onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                              className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-full max-w-[180px] outline-none focus:border-primary"
+                            />
+                          ) : (
+                            <span className="font-medium text-text-primary">{u.name}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {editingUser?.id === u.id ? (
+                            <select
+                              value={editingUser.role}
+                              onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                              className="border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-primary"
+                            >
+                              <option value="customer">Customer</option>
+                              <option value="admin">Admin</option>
+                              <option value="vendor">Vendor</option>
+                            </select>
+                          ) : (
+                            <span className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full ${
+                              u.role === "admin" ? "bg-purple-100 text-purple-800" :
+                              u.role === "vendor" ? "bg-blue-100 text-blue-800" :
+                              "bg-gray-100 text-gray-600"
+                            }`}>
+                              {u.role}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {editingUser?.id === u.id ? (
+                              <>
+                                <button
+                                  onClick={() => updateUser(u.id, { name: editingUser.name, role: editingUser.role })}
+                                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg font-medium transition-colors"
+                                >
+                                  <CheckCircle2 size={12} /> Save
+                                </button>
+                                <button
+                                  onClick={() => setEditingUser(null)}
+                                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                                >
+                                  <XCircle size={12} /> Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                {!u.id.startsWith("mock-admin") && !u.id.startsWith("mock-vendor") && (
+                                  <>
+                                    <button
+                                      onClick={() => setEditingUser({ ...u })}
+                                      className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-primary rounded-lg font-medium transition-colors"
+                                    >
+                                      <Edit3 size={12} /> Edit
+                                    </button>
+                                    {deleteUserConfirm === u.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          onClick={() => deleteUser(u.id)}
+                                          className="text-xs px-2 py-1.5 bg-red-500 text-white rounded-lg font-medium"
+                                        >
+                                          Confirm
+                                        </button>
+                                        <button
+                                          onClick={() => setDeleteUserConfirm(null)}
+                                          className="text-xs px-2 py-1.5 bg-gray-100 rounded-lg font-medium"
+                                        >
+                                          No
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setDeleteUserConfirm(u.id)}
+                                        className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors"
+                                      >
+                                        <Trash2 size={12} /> Delete
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+                                {(u.id.startsWith("mock-admin") || u.id.startsWith("mock-vendor")) && (
+                                  <span className="text-xs text-text-secondary italic">Built-in account</span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ═══ CANCEL CONFIRMATION MODAL ═══ */}
+        {cancelConfirm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setCancelConfirm(null)}>
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <XCircle size={24} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-text-primary">Cancel Order?</h3>
+                  <p className="text-sm text-text-secondary">This action cannot be undone</p>
+                </div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5">
+                <p className="text-sm text-red-800 font-medium">Refund Required</p>
+                <p className="text-sm text-red-700 mt-1">
+                  Customer should be refunded <span className="font-bold">{formatKES(cancelConfirm.amount)}</span> via M-PESA.
+                </p>
+                <p className="text-xs text-red-600 mt-2">
+                  Order ID: {formatOrderId(cancelConfirm.orderId)}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCancelConfirm(null)}
+                  className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-text-primary hover:bg-gray-50 transition-colors"
+                >
+                  Keep Order
+                </button>
+                <button
+                  onClick={confirmCancel}
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-colors"
+                >
+                  Cancel & Refund
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ═══ SUPPORT NOTE (always visible at bottom) ═══ */}
         <div className="bg-surface shadow-card rounded-2xl p-5 flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
@@ -656,64 +1034,3 @@ function StatCard({
   );
 }
 
-// ── Vendor Card ──
-function VendorCard({
-  vendor,
-  orderCount,
-}: {
-  vendor: VendorInfo;
-  orderCount: number;
-}) {
-  return (
-    <div className="bg-surface shadow-card rounded-2xl p-5 space-y-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
-          <p className="text-sm text-text-secondary">{vendor.area}</p>
-        </div>
-        <div className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-lg">
-          <span className="text-rating text-sm">&#9733;</span>
-          <span className="text-xs font-semibold text-text-primary">
-            {vendor.rating}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-gray-50 rounded-lg p-2">
-          <p className="text-text-secondary">Locations</p>
-          <p className="font-semibold text-text-primary">
-            {vendor.locations.length}
-          </p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-2">
-          <p className="text-text-secondary">Orders</p>
-          <p className="font-semibold text-text-primary">{orderCount}</p>
-        </div>
-      </div>
-
-      <div className="text-xs space-y-1.5 pt-1 border-t border-gray-100">
-        <div className="flex justify-between">
-          <span className="text-text-secondary">Biz Reg No</span>
-          <span className="font-mono text-text-primary">
-            {vendor.businessRegNo}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-secondary">M-Pesa</span>
-          <span className="font-mono text-text-primary">
-            {vendor.mpesaNumber}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-secondary">Hours</span>
-          <span className="text-text-primary">{vendor.hours}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-secondary">Reviews</span>
-          <span className="text-text-primary">{vendor.reviews}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
