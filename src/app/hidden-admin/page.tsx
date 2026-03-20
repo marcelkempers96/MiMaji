@@ -56,7 +56,7 @@ function deleteCustomVendor(vendorId: string) {
 }
 
 // ── Types ──
-type Tab = "overview" | "orders" | "vendors" | "analytics" | "users";
+type Tab = "overview" | "orders" | "vendors" | "analytics" | "users" | "subscriptions";
 
 type OrderStatus =
   | "pending_payment"
@@ -395,6 +395,7 @@ export default function AdminDashboard() {
     loadOrders();
     loadUsers();
     loadVendors();
+    loadSubscriptions();
     const orderInterval = setInterval(loadOrders, 10_000);
     const clockInterval = setInterval(() => setKenyaTime(getKenyaTime()), 1_000);
     return () => {
@@ -484,10 +485,107 @@ export default function AdminDashboard() {
   }
 
   // ── Tab buttons ──
+  // Subscriptions state
+  interface SubscriptionRecord { id: string; userId: string; userName: string; userPhone: string; planId: string; planName: string; jugsPerMonth: number; pricePerJug: number; monthlyTotal: number; status: string; startDate: string; }
+  const [subscriptions, setSubscriptions] = useState<SubscriptionRecord[]>([]);
+  const [showAddSub, setShowAddSub] = useState(false);
+  const [newSub, setNewSub] = useState({ phone: "", name: "", planId: "custom", jugs: "4", pricePerJug: "120" });
+  const [deleteSubConfirm, setDeleteSubConfirm] = useState<string | null>(null);
+
+  async function loadSubscriptions() {
+    if (hasSupabaseConfig) {
+      try {
+        const { data, error } = await supabase.from("subscriptions").select("*").order("created_at", { ascending: false });
+        if (!error && data) {
+          setSubscriptions(data.map((s: Record<string, unknown>) => ({
+            id: s.id as string,
+            userId: (s.user_id as string) || "",
+            userName: (s.user_name as string) || "",
+            userPhone: (s.user_phone as string) || "",
+            planId: (s.plan_id as string) || "custom",
+            planName: (s.plan_name as string) || "Custom",
+            jugsPerMonth: Number(s.jugs_per_month) || 0,
+            pricePerJug: Number(s.price_per_jug) || 0,
+            monthlyTotal: Number(s.monthly_total) || 0,
+            status: (s.status as string) || "active",
+            startDate: (s.created_at as string) || new Date().toISOString(),
+          })));
+          return;
+        }
+      } catch {}
+    }
+    // Fallback: localStorage
+    try {
+      const raw = localStorage.getItem("mimaji_admin_subscriptions");
+      setSubscriptions(raw ? JSON.parse(raw) : []);
+    } catch { setSubscriptions([]); }
+  }
+
+  async function addSubscription() {
+    const jugs = parseInt(newSub.jugs) || 4;
+    const ppj = parseInt(newSub.pricePerJug) || 120;
+    const sub: SubscriptionRecord = {
+      id: `sub-${Date.now()}`,
+      userId: "",
+      userName: newSub.name,
+      userPhone: newSub.phone,
+      planId: newSub.planId,
+      planName: jugs <= 5 ? "Starter" : jugs <= 12 ? "Standard" : "Premium",
+      jugsPerMonth: jugs,
+      pricePerJug: ppj,
+      monthlyTotal: jugs * ppj,
+      status: "active",
+      startDate: new Date().toISOString(),
+    };
+    if (hasSupabaseConfig) {
+      await supabase.from("subscriptions").insert({
+        user_name: sub.userName,
+        user_phone: sub.userPhone,
+        plan_id: sub.planId,
+        plan_name: sub.planName,
+        jugs_per_month: sub.jugsPerMonth,
+        price_per_jug: sub.pricePerJug,
+        monthly_total: sub.monthlyTotal,
+        status: "active",
+      });
+      await loadSubscriptions();
+    } else {
+      const all = [...subscriptions, sub];
+      localStorage.setItem("mimaji_admin_subscriptions", JSON.stringify(all));
+      setSubscriptions(all);
+    }
+    setNewSub({ phone: "", name: "", planId: "custom", jugs: "4", pricePerJug: "120" });
+    setShowAddSub(false);
+  }
+
+  async function toggleSubscriptionStatus(subId: string, newStatus: string) {
+    if (hasSupabaseConfig) {
+      await supabase.from("subscriptions").update({ status: newStatus }).eq("id", subId);
+      await loadSubscriptions();
+    } else {
+      const all = subscriptions.map((s) => s.id === subId ? { ...s, status: newStatus } : s);
+      localStorage.setItem("mimaji_admin_subscriptions", JSON.stringify(all));
+      setSubscriptions(all);
+    }
+  }
+
+  async function deleteSubscription(subId: string) {
+    if (hasSupabaseConfig) {
+      await supabase.from("subscriptions").delete().eq("id", subId);
+      await loadSubscriptions();
+    } else {
+      const all = subscriptions.filter((s) => s.id !== subId);
+      localStorage.setItem("mimaji_admin_subscriptions", JSON.stringify(all));
+      setSubscriptions(all);
+    }
+    setDeleteSubConfirm(null);
+  }
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: "Overview", icon: <BarChart3 size={16} /> },
     { id: "orders", label: "Orders", icon: <ShoppingCart size={16} /> },
     { id: "vendors", label: "Vendors", icon: <Store size={16} /> },
+    { id: "subscriptions", label: "Subscriptions", icon: <RefreshCw size={16} /> },
     { id: "analytics", label: "Analytics", icon: <Droplets size={16} /> },
     { id: "users", label: "Users", icon: <Users size={16} /> },
   ];
@@ -504,6 +602,9 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-300 mt-0.5 flex items-center gap-1.5">
               <Clock size={13} />
               {kenyaTime} (EAT)
+              <span className={`ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${hasSupabaseConfig ? "bg-green-500/20 text-green-300" : "bg-yellow-500/20 text-yellow-300"}`}>
+                {hasSupabaseConfig ? "Live Data" : "Local/Demo Mode"}
+              </span>
             </p>
           </div>
           <button
@@ -1118,7 +1219,9 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {/* Default/Mock Vendors */}
+            {/* Default/Mock Vendors - only show when Supabase is not configured */}
+            {!hasSupabaseConfig && (
+            <>
             <h3 className="text-sm font-semibold text-text-secondary mb-3">Default Vendors ({MOCK_VENDORS.length})</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {MOCK_VENDORS.map((vendor) => (
@@ -1243,6 +1346,153 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+            </>
+            )}
+          </section>
+        )}
+
+        {/* ═══ SUBSCRIPTIONS TAB ═══ */}
+        {activeTab === "subscriptions" && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-text-primary">
+                Subscriptions ({subscriptions.length})
+              </h2>
+              <button
+                onClick={() => setShowAddSub(!showAddSub)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Plus size={14} />
+                Add Subscription
+              </button>
+            </div>
+
+            <p className="text-sm text-text-secondary">
+              When customers contact via WhatsApp to subscribe, add their subscription here. It will appear in their account.
+            </p>
+
+            {/* Add Subscription Form */}
+            {showAddSub && (
+              <div className="bg-surface shadow-card rounded-2xl p-6">
+                <h3 className="font-semibold text-text-primary mb-4">Activate New Subscription</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Customer Name *</label>
+                    <input type="text" value={newSub.name} onChange={(e) => setNewSub({ ...newSub, name: e.target.value })}
+                      placeholder="e.g. John Doe" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Phone Number *</label>
+                    <input type="text" value={newSub.phone} onChange={(e) => setNewSub({ ...newSub, phone: e.target.value })}
+                      placeholder="e.g. 254758434076" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Jugs Per Month (2-20) *</label>
+                    <input type="number" min="2" max="20" value={newSub.jugs} onChange={(e) => setNewSub({ ...newSub, jugs: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Price Per Jug (KES)</label>
+                    <input type="number" value={newSub.pricePerJug} onChange={(e) => setNewSub({ ...newSub, pricePerJug: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                  </div>
+                </div>
+                <div className="mt-3 bg-primary-light rounded-lg p-3">
+                  <p className="text-sm font-semibold text-primary">
+                    Monthly Total: KES {((parseInt(newSub.jugs) || 0) * (parseInt(newSub.pricePerJug) || 0)).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button onClick={addSubscription} disabled={!newSub.name || !newSub.phone}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${newSub.name && newSub.phone ? "bg-primary text-white hover:bg-[#1a5a9a]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
+                    Activate Subscription
+                  </button>
+                  <button onClick={() => setShowAddSub(false)}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-text-primary hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Subscriptions Table */}
+            {subscriptions.length === 0 ? (
+              <div className="bg-surface shadow-card rounded-2xl px-5 py-16 text-center">
+                <AlertCircle size={32} className="mx-auto mb-3 opacity-40" />
+                <p className="font-medium text-text-secondary">No subscriptions yet</p>
+                <p className="text-sm text-text-secondary mt-1">Add subscriptions for customers who contact via WhatsApp.</p>
+              </div>
+            ) : (
+              <div className="bg-surface shadow-card rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 text-text-secondary text-left text-xs uppercase tracking-wider">
+                        <th className="px-4 py-3 font-medium">Customer</th>
+                        <th className="px-4 py-3 font-medium">Phone</th>
+                        <th className="px-4 py-3 font-medium">Plan</th>
+                        <th className="px-4 py-3 font-medium">Jugs/Month</th>
+                        <th className="px-4 py-3 font-medium">Price/Jug</th>
+                        <th className="px-4 py-3 font-medium">Monthly Total</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                        <th className="px-4 py-3 font-medium">Start Date</th>
+                        <th className="px-4 py-3 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {subscriptions.map((sub) => (
+                        <tr key={sub.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-text-primary">{sub.userName}</td>
+                          <td className="px-4 py-3 font-mono text-xs">+{sub.userPhone.replace(/^254/, "254 ")}</td>
+                          <td className="px-4 py-3 text-xs">{sub.planName}</td>
+                          <td className="px-4 py-3 font-semibold">{sub.jugsPerMonth}</td>
+                          <td className="px-4 py-3">{formatKES(sub.pricePerJug)}</td>
+                          <td className="px-4 py-3 font-semibold">{formatKES(sub.monthlyTotal)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full ${
+                              sub.status === "active" ? "bg-green-100 text-green-800" :
+                              sub.status === "paused" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-red-100 text-red-800"
+                            }`}>
+                              {sub.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary text-xs whitespace-nowrap">{formatOrderDate(sub.startDate)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {sub.status === "active" ? (
+                                <button onClick={() => toggleSubscriptionStatus(sub.id, "paused")}
+                                  className="text-xs px-2.5 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 rounded-lg font-medium transition-colors">
+                                  Pause
+                                </button>
+                              ) : sub.status === "paused" ? (
+                                <button onClick={() => toggleSubscriptionStatus(sub.id, "active")}
+                                  className="text-xs px-2.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-800 rounded-lg font-medium transition-colors">
+                                  Resume
+                                </button>
+                              ) : null}
+                              {deleteSubConfirm === sub.id ? (
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => deleteSubscription(sub.id)}
+                                    className="text-xs px-2 py-1.5 bg-red-500 text-white rounded-lg font-medium">Confirm</button>
+                                  <button onClick={() => setDeleteSubConfirm(null)}
+                                    className="text-xs px-2 py-1.5 bg-gray-100 rounded-lg font-medium">No</button>
+                                </div>
+                              ) : (
+                                <button onClick={() => setDeleteSubConfirm(sub.id)}
+                                  className="text-xs px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors">
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </section>
         )}
 

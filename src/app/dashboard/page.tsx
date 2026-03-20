@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
 import { initRewards, getRewardsSummary } from "@/lib/rewards";
+import { fetchUserOrders, mapOrderStatus } from "@/lib/orders";
 
 const shortcuts = [
   { label: "Schedule", icon: Calendar, href: "/schedule" },
@@ -113,12 +114,22 @@ export default function DashboardPage() {
 function DashboardContent({ user, desktop }: { user: { id: string; phone: string; name: string }; desktop?: boolean }) {
   const [showInstallPopup, setShowInstallPopup] = useState(false);
   const [freeLitres, setFreeLitres] = useState(0);
+  const [activeOrderCount, setActiveOrderCount] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
       initRewards(user.id);
       const summary = getRewardsSummary(user.id);
       setFreeLitres(summary.freeLitres);
+
+      // Fetch active orders count
+      fetchUserOrders(user.id).then((orders) => {
+        const active = orders.filter((o) => {
+          const status = mapOrderStatus(o.status);
+          return status !== "Delivered" && status !== "Cancelled";
+        });
+        setActiveOrderCount(active.length);
+      });
     }
   }, [user?.id]);
 
@@ -136,7 +147,9 @@ function DashboardContent({ user, desktop }: { user: { id: string; phone: string
       <Link href="/orders">
         <div className="bg-surface shadow-card rounded-xl p-4 mb-3 flex items-center gap-3 hover:shadow-card-hover transition-shadow">
           <FileText size={24} className="text-primary" />
-          <span className="font-bold text-text-primary flex-1">My Orders</span>
+          <span className="font-bold text-text-primary flex-1">
+            My Orders{activeOrderCount > 0 && <span className="text-primary"> ({activeOrderCount})</span>}
+          </span>
           <ChevronRight size={20} className="text-text-secondary" />
         </div>
       </Link>

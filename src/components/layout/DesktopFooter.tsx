@@ -42,22 +42,27 @@ export default function DesktopFooter() {
   return (
     <footer className="bg-[#1A2A3A] text-white pt-16 pb-0">
       <div className="max-w-6xl mx-auto px-8">
-        <div className="grid grid-cols-4 gap-8 mb-12">
-          <div>
-            <div className="flex items-center mb-4">
-              <img src={logo1.src} alt="MiMaji" className="h-[50px] w-auto brightness-0 invert" />
-            </div>
-            <p className="text-white/60 text-sm mb-4">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
-            <p className="text-white/40 text-xs mb-4">For every 100L delivered, 10L goes to rural communities.</p>
-            <div className="flex items-center gap-3">
-              <a href="https://instagram.com/mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><InstagramIcon size={18} /></a>
-              <a href="https://x.com/mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><XIcon size={18} /></a>
-              <a href="https://facebook.com/mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><FacebookIcon size={18} /></a>
-              <a href="https://tiktok.com/@mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><TikTokIcon size={18} /></a>
+        {/* Logo & Social */}
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-6">
+            <img src={logo1.src} alt="MiMaji" className="h-[50px] w-auto brightness-0 invert" />
+            <div>
+              <p className="text-white/60 text-sm">Water delivered to your door in Nairobi. Fast, reliable, local.</p>
+              <p className="text-white/40 text-xs mt-1">For every 100L delivered, 10L goes to rural communities.</p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <a href="https://instagram.com/mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><InstagramIcon size={18} /></a>
+            <a href="https://x.com/mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><XIcon size={18} /></a>
+            <a href="https://facebook.com/mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><FacebookIcon size={18} /></a>
+            <a href="https://tiktok.com/@mimaji" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors"><TikTokIcon size={18} /></a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-8 mb-12">
+          {/* Column 1: Services */}
           <div>
-            <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Quick Links</h4>
+            <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Services</h4>
             <div className="flex flex-col gap-2">
               <Link href="/buy" className="text-white/60 text-sm hover:text-white transition-colors">Order Water</Link>
               <Link href="/products" className="text-white/60 text-sm hover:text-white transition-colors">Our Products</Link>
@@ -65,8 +70,10 @@ export default function DesktopFooter() {
               <Link href="/subscriptions" className="text-white/60 text-sm hover:text-white transition-colors">Subscriptions</Link>
               <Link href="/rewards" className="text-white/60 text-sm hover:text-white transition-colors">Water Warriors Rewards</Link>
               <Link href="/schedule" className="text-white/60 text-sm hover:text-white transition-colors">Schedule Delivery</Link>
+              <Link href="/corporate" className="text-white/60 text-sm hover:text-white transition-colors">Corporate Solutions</Link>
             </div>
           </div>
+          {/* Column 2: Company */}
           <div>
             <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Company</h4>
             <div className="flex flex-col gap-2">
@@ -75,16 +82,16 @@ export default function DesktopFooter() {
               <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
               <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
               <Link href="/blog" className="text-white/60 text-sm hover:text-white transition-colors">Blog</Link>
-              <Link href="/corporate" className="text-white/60 text-sm hover:text-white transition-colors">Corporate Solutions</Link>
-              <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
-              <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
               <Link href="/vendor-login" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Login</Link>
               <Link href="/vendor-signup" className="text-[#2ECC71] text-sm font-semibold hover:text-[#27ae60] transition-colors">Sign Up as Vendor</Link>
             </div>
           </div>
+          {/* Column 3: Help & Contact */}
           <div>
-            <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Contact Us</h4>
+            <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Help & Contact</h4>
             <div className="flex flex-col gap-2">
+              <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
+              <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
               <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="text-[#25D366] text-sm font-semibold hover:text-[#1fb855] transition-colors flex items-center gap-2">
                 <MessageCircle size={14} />
                 WhatsApp (24/7)
