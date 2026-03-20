@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText } from "lucide-react";
+import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 import Link from "next/link";
@@ -125,6 +125,20 @@ export default function OrdersPage() {
                           </p>
                         ))}
                         <p className="text-text-secondary text-sm mt-1">KES {order.price_total.toLocaleString()}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {order.payment_method === "cash" ? (
+                            <Banknote size={12} className="text-text-secondary" />
+                          ) : (
+                            <Smartphone size={12} className="text-text-secondary" />
+                          )}
+                          <span className="text-text-secondary text-xs">
+                            {order.payment_method === "stk-push" ? "M-PESA STK Push" :
+                             order.payment_method === "mpesa-app" ? "M-PESA App" :
+                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             "M-PESA"}
+                            {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -238,9 +252,22 @@ export default function OrdersPage() {
                           </p>
                         ))}
                         <p className="text-text-secondary text-xs mt-1">
-                          {order.mpesa_ref ? `M-Pesa: ${order.mpesa_ref} · ` : ""}
                           Paid KES {order.price_total.toLocaleString()}
                         </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {order.payment_method === "cash" ? (
+                            <Banknote size={11} className="text-text-secondary" />
+                          ) : (
+                            <Smartphone size={11} className="text-text-secondary" />
+                          )}
+                          <span className="text-text-secondary text-[11px]">
+                            {order.payment_method === "stk-push" ? "M-PESA STK Push" :
+                             order.payment_method === "mpesa-app" ? "M-PESA App" :
+                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             "M-PESA"}
+                            {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
+                          </span>
+                        </div>
                       </div>
                       <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     </div>

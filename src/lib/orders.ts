@@ -24,6 +24,8 @@ export interface OrderRecord {
   scheduled_time: string | null;
   // Delivery confirmation code (4-digit PIN the customer shares with driver)
   delivery_code: string | null;
+  // Payment method used for this order
+  payment_method: string | null;
 }
 
 /** Generate a 4-digit delivery confirmation code from the order ID */
@@ -98,6 +100,7 @@ function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
     scheduled_date: (row.scheduled_date as string) || null,
     scheduled_time: (row.scheduled_time as string) || null,
     delivery_code: (row.delivery_code as string) || null,
+    payment_method: (row.payment_method as string) || null,
   };
 }
 
@@ -130,6 +133,8 @@ export async function createOrder(params: {
   scheduledTime?: string;
   /** Optional user-level delivery PIN to use instead of auto-generated one */
   deliveryCode?: string;
+  /** Payment method: stk-push, mpesa-app, or cash */
+  paymentMethod?: string;
 }): Promise<{ orderId: string | null; error: string | null }> {
   if (!hasSupabaseConfig) {
     const orderId = crypto.randomUUID();
@@ -155,6 +160,7 @@ export async function createOrder(params: {
       scheduled_date: params.scheduledDate || null,
       scheduled_time: params.scheduledTime || null,
       delivery_code: params.deliveryCode || generateDeliveryCode(orderId),
+      payment_method: params.paymentMethod || null,
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -191,6 +197,7 @@ export async function createOrder(params: {
       scheduled_date: params.scheduledDate || null,
       scheduled_time: params.scheduledTime || null,
       delivery_code: generateDeliveryCode(tempId),
+      payment_method: params.paymentMethod || null,
     })
     .select("id")
     .single();

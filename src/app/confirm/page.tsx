@@ -39,19 +39,19 @@ export default function ConfirmOrderPage() {
   const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
-  const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "confirmed" | "error">("idle");
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "awaiting_code" | "confirmed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
 
   // Auth guard: redirect to login if not authenticated (after loading completes)
-  if (!authLoading && !user && paymentStatus !== "confirmed") {
+  if (!authLoading && !user && paymentStatus !== "confirmed" && paymentStatus !== "awaiting_code") {
     router.push("/login?redirect=/delivery");
     return null;
   }
 
-  // Empty cart guard: redirect to shop if cart is empty (unless showing confirmation)
-  if (!authLoading && user && items.length === 0 && paymentStatus !== "confirmed") {
+  // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
+  if (!authLoading && user && items.length === 0 && paymentStatus !== "confirmed" && paymentStatus !== "awaiting_code") {
     router.push("/buy");
     return null;
   }
@@ -113,6 +113,87 @@ export default function ConfirmOrderPage() {
     deliveryCode: string;
   } | null>(null);
 
+  // Pending order params — saved before order is actually created
+  const pendingOrderRef = useRef<{
+    productName: string;
+    orderItems: Array<{ name: string; quantity: number; price: number }>;
+    savedItems: typeof items;
+    address: string;
+    stkMpesaRef: string | null;
+  } | null>(null);
+
+  /** Create the real order, assign vendor, process rewards, clear cart */
+  const finalizeOrder = async (mpesaRef: string | null) => {
+    if (!user?.phone || !user?.id || !pendingOrderRef.current) return;
+
+    const pending = pendingOrderRef.current;
+
+    const { orderId, error: orderError } = await createOrder({
+      customerId: user.id,
+      deliveryAddress: pending.address,
+      quantity: Math.min(totalItems || pending.savedItems.length, 10),
+      priceTotal: finalTotal,
+      productName: pending.productName,
+      orderItems: pending.orderItems,
+      scheduledDate: scheduledDelivery?.date,
+      scheduledTime: scheduledDelivery?.time,
+      deliveryCode: user.deliveryPin,
+      paymentMethod,
+    });
+
+    if (orderError || !orderId) {
+      throw new Error(orderError || "Failed to create order");
+    }
+
+    // Update status based on payment
+    if (mpesaRef) {
+      await updateOrderStatus(orderId, "paid", mpesaRef);
+    } else if (paymentMethod === "cash") {
+      await updateOrderStatus(orderId, "confirmed");
+    }
+
+    // Trigger vendor assignment
+    try {
+      await assignOrderToVendor(orderId);
+    } catch (e) {
+      console.error("Vendor assignment failed:", e);
+    }
+
+    // Process referral rewards
+    try {
+      initRewards(user.id);
+      processOrderRewards(user.id, pending.orderItems);
+      if (claimRewards && rewardsApplied > 0) {
+        useFreeLitres(user.id, rewardsApplied);
+      }
+    } catch (e) {
+      console.error("Rewards processing failed:", e);
+    }
+
+    const deliveryCode = user.deliveryPin || generateDeliveryCode(orderId);
+
+    confirmedOrderRef.current = {
+      orderId,
+      mpesaRef,
+      items: [...pending.savedItems],
+      total: finalTotal,
+      address: pending.address,
+      paymentMethod,
+      deliveryCode,
+    };
+
+    // Save delivery code for cross-device access
+    try {
+      const codeKey = `mimaji_user_delivery_code_${user.id}`;
+      const existingCodes = JSON.parse(localStorage.getItem(codeKey) || "[]");
+      existingCodes.push({ orderId, code: deliveryCode, createdAt: new Date().toISOString() });
+      localStorage.setItem(codeKey, JSON.stringify(existingCodes));
+    } catch {}
+
+    clearCart();
+    try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}
+  };
+
   const handleConfirm = async () => {
     if (!user?.phone || !user?.id) {
       router.push("/login?redirect=/delivery");
@@ -123,7 +204,6 @@ export default function ConfirmOrderPage() {
     setErrorMsg("");
 
     try {
-      // Create order
       const productName = items.length === 1
         ? `${items[0].quantity}x ${items[0].name}`
         : `${totalItems} items`;
@@ -134,32 +214,17 @@ export default function ConfirmOrderPage() {
         price: item.price,
       }));
 
-      const { orderId, error: orderError } = await createOrder({
-        customerId: user.id,
-        deliveryAddress: selectedLocation?.address || "Not set",
-        quantity: Math.min(totalItems, 10),
-        priceTotal: finalTotal,
+      // Save order params — order is NOT created yet
+      pendingOrderRef.current = {
         productName,
         orderItems,
-        scheduledDate: scheduledDelivery?.date,
-        scheduledTime: scheduledDelivery?.time,
-        deliveryCode: user.deliveryPin,
-      });
+        savedItems: [...items],
+        address: selectedLocation?.address || "Not set",
+        stkMpesaRef: null,
+      };
 
-      if (orderError || !orderId) {
-        throw new Error(orderError || "Failed to create order");
-      }
-
-      let mpesaRef: string | null = null;
-
-      if (paymentMethod === "mpesa-app") {
-        // For M-PESA app payment, mark as pending
-        mpesaRef = null;
-      } else if (paymentMethod === "cash") {
-        // Cash on delivery
-        mpesaRef = null;
-      } else {
-        // STK Push flow
+      if (paymentMethod === "stk-push") {
+        // STK Push: process payment first, only create order on success
         try {
           const res = await fetch("/api/mpesa/stkpush", {
             method: "POST",
@@ -167,78 +232,40 @@ export default function ConfirmOrderPage() {
             body: JSON.stringify({
               phone: user.phone,
               amount: finalTotal,
-              orderId,
+              orderId: "pending", // no order ID yet
             }),
           });
 
           const data = await res.json().catch(() => ({}));
 
           if (data.mock) {
-            // Demo mode — simulate successful payment
-            mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-            await updateOrderStatus(orderId, "paid", mpesaRef);
+            // Demo mode — simulate successful payment, NOW create order
+            const mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
+            await finalizeOrder(mpesaRef);
+            setPaymentStatus("confirmed");
           } else if (!res.ok) {
-            // STK Push failed — show popup to choose different method
             setStkFailedPopup(true);
             setPaymentStatus("idle");
             return;
           } else {
-            // Real STK push sent
-            await updateOrderStatus(orderId, "paid");
-            mpesaRef = data.CheckoutRequestID || null;
+            // Real STK push sent — payment confirmed, NOW create order
+            const mpesaRef = data.CheckoutRequestID || null;
+            await finalizeOrder(mpesaRef);
+            setPaymentStatus("confirmed");
           }
         } catch (fetchErr) {
-          // Network/STK error — show popup to choose different method
           setStkFailedPopup(true);
           setPaymentStatus("idle");
           return;
         }
+      } else if (paymentMethod === "mpesa-app") {
+        // M-PESA App: go to code entry screen, order created when code submitted or skipped
+        setPaymentStatus("awaiting_code");
+      } else {
+        // Cash on Delivery: create order immediately
+        await finalizeOrder(null);
+        setPaymentStatus("confirmed");
       }
-
-      // Trigger vendor assignment
-      try {
-        await assignOrderToVendor(orderId);
-      } catch (e) {
-        console.error("Vendor assignment failed:", e);
-      }
-
-      // Process referral rewards (checks if this order qualifies for referral bonuses)
-      try {
-        initRewards(user.id);
-        processOrderRewards(user.id, orderItems);
-        // Apply claimed rewards
-        if (claimRewards && rewardsApplied > 0) {
-          useFreeLitres(user.id, rewardsApplied);
-        }
-      } catch (e) {
-        console.error("Rewards processing failed:", e);
-      }
-
-      // Use user's persistent delivery PIN if available, otherwise generate from order ID
-      const deliveryCode = user.deliveryPin || generateDeliveryCode(orderId);
-
-      // Save order details before clearing cart
-      confirmedOrderRef.current = {
-        orderId,
-        mpesaRef,
-        items: [...items],
-        total: finalTotal,
-        address: selectedLocation?.address || "Not set",
-        paymentMethod,
-        deliveryCode,
-      };
-
-      // Save the user's delivery code to their profile for cross-device access
-      try {
-        const codeKey = `mimaji_user_delivery_code_${user.id}`;
-        const existingCodes = JSON.parse(localStorage.getItem(codeKey) || "[]");
-        existingCodes.push({ orderId, code: deliveryCode, createdAt: new Date().toISOString() });
-        localStorage.setItem(codeKey, JSON.stringify(existingCodes));
-      } catch {}
-
-      clearCart();
-      try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}
-      setPaymentStatus("confirmed");
     } catch (err) {
       setPaymentStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Payment failed. Please try again.");
@@ -262,121 +289,138 @@ export default function ConfirmOrderPage() {
 
   // ── M-PESA Payment Code Entry (for mpesa-app method) ──
   const [mpesaCode, setMpesaCode] = useState("");
-  const [codeSubmitted, setCodeSubmitted] = useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
 
   const handleMpesaCodeSubmit = async () => {
-    if (!mpesaCode.trim() || !confirmedOrderRef.current) return;
+    if (!mpesaCode.trim()) return;
+    setCreatingOrder(true);
     try {
-      await updateOrderStatus(confirmedOrderRef.current.orderId, "paid", mpesaCode.trim().toUpperCase());
-      confirmedOrderRef.current.mpesaRef = mpesaCode.trim().toUpperCase();
-      setCodeSubmitted(true);
+      await finalizeOrder(mpesaCode.trim().toUpperCase());
+      setPaymentStatus("confirmed");
     } catch (e) {
-      console.error("Failed to update M-PESA code:", e);
-      setCodeSubmitted(true);
+      console.error("Failed to create order:", e);
+      setPaymentStatus("error");
+      setErrorMsg("Failed to place order. Please try again.");
     }
+    setCreatingOrder(false);
   };
+
+  const handleMpesaSkip = async () => {
+    setCreatingOrder(true);
+    try {
+      await finalizeOrder(null);
+      setPaymentStatus("confirmed");
+    } catch (e) {
+      console.error("Failed to create order:", e);
+      setPaymentStatus("error");
+      setErrorMsg("Failed to place order. Please try again.");
+    }
+    setCreatingOrder(false);
+  };
+
+  // ── M-PESA Code Entry Screen (order not yet created) ──
+  if (paymentStatus === "awaiting_code") {
+    return (
+      <div className="bg-background min-h-screen pb-28">
+        <TopBar title="Enter M-PESA Code" />
+        <div className="max-w-md mx-auto md:max-w-lg px-4 mt-6">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-primary-light rounded-full flex items-center justify-center">
+              <KeyRound size={40} className="text-primary" />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-text-primary text-center mb-1">
+            Enter M-PESA Payment Code
+          </h2>
+          <p className="text-text-secondary text-sm text-center mb-6">
+            Key in your M-PESA payment code so we can confirm that you have paid and process your order.
+          </p>
+
+          <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
+            <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">
+              M-PESA Confirmation Code
+            </label>
+            <input
+              type="text"
+              value={mpesaCode}
+              onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+              placeholder="e.g. SJ12ABCDEF"
+              className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-lg font-mono font-bold text-text-primary tracking-widest text-center focus:border-primary focus:outline-none transition-colors"
+              maxLength={15}
+              disabled={creatingOrder}
+            />
+            <p className="text-text-secondary text-xs mt-2 text-center">
+              You will receive this code via SMS after completing your M-PESA payment.
+            </p>
+          </div>
+
+          <div className="bg-[#FFF5EC] rounded-xl p-4 mb-6">
+            <p className="text-[#F5A623] text-xs font-bold mb-2">Payment Details</p>
+            <p className="text-text-secondary text-[10px] mb-2">If you haven&apos;t paid yet, use these details in M-PESA → Lipa na M-PESA → Pay Bill:</p>
+            <div className="bg-white rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-text-secondary">Business Number</p>
+                  <p className="text-sm font-bold text-text-primary font-mono">123456</p>
+                </div>
+                <button onClick={() => { navigator.clipboard.writeText("123456"); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                  <Copy size={12} /> Copy
+                </button>
+              </div>
+              <div className="h-px bg-gray-100" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-text-secondary">Account Number</p>
+                  <p className="text-sm font-bold text-text-primary font-mono">{user?.phone || "Your phone"}</p>
+                </div>
+                {user?.phone && (
+                  <button onClick={() => { navigator.clipboard.writeText(user.phone); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                    <Copy size={12} /> Copy
+                  </button>
+                )}
+              </div>
+              <div className="h-px bg-gray-100" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-text-secondary">Amount</p>
+                  <p className="text-sm font-bold text-[#2ECC71] font-mono">KES {finalTotal.toLocaleString()}</p>
+                </div>
+                <button onClick={() => { navigator.clipboard.writeText(finalTotal.toString()); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                  <Copy size={12} /> Copy
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleMpesaCodeSubmit}
+            disabled={mpesaCode.trim().length < 5 || creatingOrder}
+            className={`w-full py-3.5 rounded-xl font-semibold text-sm text-center flex items-center justify-center gap-2 transition-colors ${
+              mpesaCode.trim().length >= 5 && !creatingOrder
+                ? "bg-primary text-white hover:bg-[#1a5a9a]"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            <CheckCircle2 size={18} />
+            {creatingOrder ? "Placing Order..." : "Confirm Payment & Place Order"}
+          </button>
+
+          <button
+            onClick={handleMpesaSkip}
+            disabled={creatingOrder}
+            className="w-full mt-3 text-text-secondary text-sm font-medium text-center hover:text-primary transition-colors"
+          >
+            {creatingOrder ? "Placing Order..." : "Skip for now — I\u2019ll provide the code later"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Payment Confirmation Screen ──
   if (paymentStatus === "confirmed" && confirmedOrderRef.current) {
     const order = confirmedOrderRef.current;
-
-    // Show M-PESA code entry screen for mpesa-app payments before showing success
-    if (order.paymentMethod === "mpesa-app" && !codeSubmitted) {
-      return (
-        <div className="bg-background min-h-screen pb-28">
-          <TopBar title="Enter M-PESA Code" />
-          <div className="max-w-md mx-auto md:max-w-lg px-4 mt-6">
-            <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 bg-primary-light rounded-full flex items-center justify-center">
-                <KeyRound size={40} className="text-primary" />
-              </div>
-            </div>
-
-            <h2 className="text-xl font-bold text-text-primary text-center mb-1">
-              Enter M-PESA Payment Code
-            </h2>
-            <p className="text-text-secondary text-sm text-center mb-6">
-              Key in your M-PESA payment code so we can confirm that you have paid and process your order.
-            </p>
-
-            <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
-              <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">
-                M-PESA Confirmation Code
-              </label>
-              <input
-                type="text"
-                value={mpesaCode}
-                onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                placeholder="e.g. SJ12ABCDEF"
-                className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-lg font-mono font-bold text-text-primary tracking-widest text-center focus:border-primary focus:outline-none transition-colors"
-                maxLength={15}
-              />
-              <p className="text-text-secondary text-xs mt-2 text-center">
-                You will receive this code via SMS after completing your M-PESA payment.
-              </p>
-            </div>
-
-            <div className="bg-[#FFF5EC] rounded-xl p-4 mb-6">
-              <p className="text-[#F5A623] text-xs font-bold mb-2">Payment Details</p>
-              <p className="text-text-secondary text-[10px] mb-2">If you haven&apos;t paid yet, use these details in M-PESA → Lipa na M-PESA → Pay Bill:</p>
-              <div className="bg-white rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-text-secondary">Business Number</p>
-                    <p className="text-sm font-bold text-text-primary font-mono">123456</p>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText("123456"); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
-                    <Copy size={12} /> Copy
-                  </button>
-                </div>
-                <div className="h-px bg-gray-100" />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-text-secondary">Account Number</p>
-                    <p className="text-sm font-bold text-text-primary font-mono">{user?.phone || "Your phone"}</p>
-                  </div>
-                  {user?.phone && (
-                    <button onClick={() => { navigator.clipboard.writeText(user.phone); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
-                      <Copy size={12} /> Copy
-                    </button>
-                  )}
-                </div>
-                <div className="h-px bg-gray-100" />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-text-secondary">Amount</p>
-                    <p className="text-sm font-bold text-[#2ECC71] font-mono">KES {order.total.toLocaleString()}</p>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText(order.total.toString()); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
-                    <Copy size={12} /> Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleMpesaCodeSubmit}
-              disabled={mpesaCode.trim().length < 5}
-              className={`w-full py-3.5 rounded-xl font-semibold text-sm text-center flex items-center justify-center gap-2 transition-colors ${
-                mpesaCode.trim().length >= 5
-                  ? "bg-primary text-white hover:bg-[#1a5a9a]"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <CheckCircle2 size={18} />
-              Confirm Payment Code
-            </button>
-
-            <button
-              onClick={() => setCodeSubmitted(true)}
-              className="w-full mt-3 text-text-secondary text-sm font-medium text-center hover:text-primary transition-colors"
-            >
-              Skip for now — I&apos;ll provide the code later
-            </button>
-          </div>
-        </div>
-      );
-    }
 
     return (
       <div className="bg-background min-h-screen pb-28">
