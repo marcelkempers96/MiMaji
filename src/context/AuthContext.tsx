@@ -271,21 +271,51 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Load profile data (role, deliveryPin) from profiles table
+  const loadProfile = useCallback(async (userId: string, baseUser: User): Promise<User> => {
+    try {
+      const sb = await getSupabase();
+      const { data } = await sb.from("profiles").select("role, delivery_pin, full_name, phone").eq("id", userId).single();
+      if (data) {
+        return {
+          ...baseUser,
+          role: (data.role as UserRole) || baseUser.role,
+          deliveryPin: data.delivery_pin || undefined,
+          name: data.full_name || baseUser.name,
+          phone: data.phone || baseUser.phone,
+        };
+      }
+    } catch {}
+    return baseUser;
+  }, [getSupabase]);
+
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
 
     getSupabase().then((sb) => {
-      sb.auth.getSession().then(({ data: { session: sess } }) => {
+      sb.auth.getSession().then(async ({ data: { session: sess } }) => {
         setSession(sess);
-        setUser(mapUser(sess?.user ?? null));
+        const baseUser = mapUser(sess?.user ?? null);
+        if (baseUser) {
+          const enriched = await loadProfile(baseUser.id, baseUser);
+          setUser(enriched);
+        } else {
+          setUser(null);
+        }
         setLoading(false);
       }).catch(() => {
         setLoading(false);
       });
 
-      const { data: { subscription: sub } } = sb.auth.onAuthStateChange((_event, sess) => {
+      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (_event, sess) => {
         setSession(sess);
-        setUser(mapUser(sess?.user ?? null));
+        const baseUser = mapUser(sess?.user ?? null);
+        if (baseUser) {
+          const enriched = await loadProfile(baseUser.id, baseUser);
+          setUser(enriched);
+        } else {
+          setUser(null);
+        }
         setLoading(false);
       });
       subscription = sub;
@@ -294,7 +324,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => { subscription?.unsubscribe(); };
-  }, [getSupabase, mapUser]);
+  }, [getSupabase, mapUser, loadProfile]);
 
   const login = useCallback(async (phone: string, password: string): Promise<{ error?: string }> => {
     const sb = await getSupabase();
@@ -356,8 +386,16 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     if (updates.mpesaNumber !== undefined) metadata.mpesa_number = updates.mpesaNumber;
     const { error } = await sb.auth.updateUser({ data: metadata });
     if (error) return { error: error.message };
-    if (updates.name && user) {
-      setUser({ ...user, name: updates.name });
+
+    // Also update the profiles table
+    if (user) {
+      const profileUpdates: Record<string, string> = {};
+      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
+      if (updates.email !== undefined) profileUpdates.email = updates.email;
+      if (updates.mpesaNumber !== undefined) profileUpdates.mpesa_number = updates.mpesaNumber;
+      await sb.from("profiles").update(profileUpdates).eq("id", user.id);
+
+      setUser({ ...user, ...(updates.name ? { name: updates.name } : {}) });
     }
     return {};
   }, [getSupabase, user]);

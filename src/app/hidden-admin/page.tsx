@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
-import { VendorInfo, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
+import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
+import { supabase } from "@/lib/supabase";
+
+const hasSupabaseConfig =
+  typeof process !== "undefined" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 import {
   RefreshCw,
   Package,
@@ -172,47 +180,97 @@ export default function AdminDashboard() {
   });
   const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
 
-  function loadVendors() {
-    setCustomVendors(loadCustomVendors());
+  async function loadVendors() {
+    if (hasSupabaseConfig) {
+      const vendors = await fetchVendors();
+      setCustomVendors(vendors);
+    } else {
+      setCustomVendors(loadCustomVendors());
+    }
   }
 
-  function handleAddVendor() {
-    const id = `cv-${Date.now()}`;
-    const vendor: VendorInfo = {
-      id,
-      name: newVendor.name,
-      area: newVendor.area,
-      distance: "",
-      rating: parseFloat(newVendor.rating) || 4.5,
-      reviews: parseInt(newVendor.reviews) || 0,
-      hours: newVendor.hours,
-      products: newVendor.products,
-      businessRegNo: newVendor.businessRegNo,
-      mpesaNumber: newVendor.mpesaNumber,
-      phoneNumbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
-      locations: [
-        ...(newVendor.locationName ? [{
-          id: `${id}-loc1`,
-          name: newVendor.locationName,
-          area: newVendor.locationArea || newVendor.area,
-          lat: parseFloat(newVendor.locationLat) || -1.2864,
-          lng: parseFloat(newVendor.locationLng) || 36.8172,
-        }] : []),
-        ...newVendor.additionalLocations
-          .filter((l) => l.name)
-          .map((l, i) => ({
-            id: `${id}-loc${i + 2}`,
-            name: l.name,
-            area: l.area || newVendor.area,
-            lat: parseFloat(l.lat) || -1.2864,
-            lng: parseFloat(l.lng) || 36.8172,
-          })),
-      ],
-    };
-    const vendors = loadCustomVendors();
-    vendors.push(vendor);
-    saveCustomVendors(vendors);
-    setCustomVendors(vendors);
+  async function handleAddVendor() {
+    if (hasSupabaseConfig) {
+      // Insert vendor into Supabase
+      const { data: vendorData, error } = await supabase.from("vendors").insert({
+        name: newVendor.name,
+        area: newVendor.area,
+        rating: parseFloat(newVendor.rating) || 4.5,
+        reviews: parseInt(newVendor.reviews) || 0,
+        hours: newVendor.hours,
+        products: newVendor.products,
+        business_reg_no: newVendor.businessRegNo,
+        mpesa_number: newVendor.mpesaNumber,
+        phone_numbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
+        delivery_radius_km: parseInt(newVendor.deliveryRadius) || 10,
+        active: true,
+      }).select("id").single();
+
+      if (!error && vendorData) {
+        // Insert locations
+        const locations = [];
+        if (newVendor.locationName) {
+          locations.push({
+            vendor_id: vendorData.id,
+            name: newVendor.locationName,
+            area: newVendor.locationArea || newVendor.area,
+            lat: parseFloat(newVendor.locationLat) || -1.2864,
+            lng: parseFloat(newVendor.locationLng) || 36.8172,
+          });
+        }
+        for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
+          locations.push({
+            vendor_id: vendorData.id,
+            name: loc.name,
+            area: loc.area || newVendor.area,
+            lat: parseFloat(loc.lat) || -1.2864,
+            lng: parseFloat(loc.lng) || 36.8172,
+          });
+        }
+        if (locations.length > 0) {
+          await supabase.from("vendor_locations").insert(locations);
+        }
+      }
+      await loadVendors();
+    } else {
+      const id = `cv-${Date.now()}`;
+      const vendor: VendorInfo = {
+        id,
+        name: newVendor.name,
+        area: newVendor.area,
+        distance: "",
+        rating: parseFloat(newVendor.rating) || 4.5,
+        reviews: parseInt(newVendor.reviews) || 0,
+        hours: newVendor.hours,
+        products: newVendor.products,
+        businessRegNo: newVendor.businessRegNo,
+        mpesaNumber: newVendor.mpesaNumber,
+        phoneNumbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
+        locations: [
+          ...(newVendor.locationName ? [{
+            id: `${id}-loc1`,
+            name: newVendor.locationName,
+            area: newVendor.locationArea || newVendor.area,
+            lat: parseFloat(newVendor.locationLat) || -1.2864,
+            lng: parseFloat(newVendor.locationLng) || 36.8172,
+          }] : []),
+          ...newVendor.additionalLocations
+            .filter((l) => l.name)
+            .map((l, i) => ({
+              id: `${id}-loc${i + 2}`,
+              name: l.name,
+              area: l.area || newVendor.area,
+              lat: parseFloat(l.lat) || -1.2864,
+              lng: parseFloat(l.lng) || 36.8172,
+            })),
+        ],
+      };
+      const vendors = loadCustomVendors();
+      vendors.push(vendor);
+      saveCustomVendors(vendors);
+      setCustomVendors(vendors);
+    }
+
     setNewVendor({
       name: "", area: "", rating: "4.5", reviews: "0", hours: "7AM - 8PM",
       products: [], businessRegNo: "", mpesaNumber: "",
@@ -222,16 +280,37 @@ export default function AdminDashboard() {
     setShowAddVendor(false);
   }
 
-  function handleDeleteCustomVendor(vendorId: string) {
-    const remaining = deleteCustomVendor(vendorId);
-    setCustomVendors(remaining);
+  async function handleDeleteCustomVendor(vendorId: string) {
+    if (hasSupabaseConfig) {
+      await supabase.from("vendors").update({ active: false }).eq("id", vendorId);
+      await loadVendors();
+    } else {
+      const remaining = deleteCustomVendor(vendorId);
+      setCustomVendors(remaining);
+    }
     setDeleteVendorConfirm(null);
   }
 
   // Demo account IDs (used to identify built-in accounts)
   const DEMO_IDS = ["d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d"];
 
-  function loadUsers() {
+  async function loadUsers() {
+    if (hasSupabaseConfig) {
+      try {
+        const { data, error } = await supabase.from("profiles").select("id, phone, full_name, role").order("created_at", { ascending: false });
+        if (!error && data) {
+          setUsers(data.map((p: Record<string, unknown>) => ({
+            id: p.id as string,
+            phone: (p.phone as string) || "",
+            name: (p.full_name as string) || "",
+            role: (p.role as string) || "customer",
+          })));
+          return;
+        }
+      } catch {}
+    }
+
+    // Fallback: localStorage mock
     const builtIn: MockUser[] = [
       { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
       { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
@@ -240,52 +319,15 @@ export default function AdminDashboard() {
     const allUsers: MockUser[] = [...builtIn];
 
     try {
-      // Load from mock signups (primary source)
       const raw = localStorage.getItem("mimaji_mock_signups");
       const signups = raw ? JSON.parse(raw) : {};
-      const signupUsers: MockUser[] = [];
       const seenPhones = new Set<string>();
       for (const entry of Object.values(signups)) {
         const su = (entry as { user: MockUser }).user;
         if (!seenIds.has(su.id) && !seenPhones.has(su.phone)) {
-          signupUsers.push(su);
+          allUsers.push(su);
           seenIds.add(su.id);
           seenPhones.add(su.phone);
-        }
-      }
-      allUsers.push(...signupUsers);
-
-      // Also check for users from order history (derive users from orders)
-      const ordersRaw = localStorage.getItem("mimaji_mock_orders");
-      if (ordersRaw) {
-        const orders = JSON.parse(ordersRaw);
-        for (const order of orders) {
-          if (order.customer_id && !seenIds.has(order.customer_id)) {
-            // Try to find their name from profile storage
-            let userName = "Unknown User";
-            try {
-              const profileKey = `mimaji_profile_${order.customer_id}`;
-              const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
-              if (profile.name) userName = profile.name;
-            } catch {}
-            // Try to find from mock session
-            try {
-              const sessionRaw = localStorage.getItem("mimaji_mock_user");
-              if (sessionRaw) {
-                const sessionUser = JSON.parse(sessionRaw);
-                if (sessionUser.id === order.customer_id && sessionUser.name) {
-                  userName = sessionUser.name;
-                }
-              }
-            } catch {}
-            allUsers.push({
-              id: order.customer_id,
-              phone: order.customer_id.replace("mock-user-", "") || "Unknown",
-              name: userName,
-              role: "customer",
-            });
-            seenIds.add(order.customer_id);
-          }
         }
       }
     } catch {}
@@ -293,36 +335,51 @@ export default function AdminDashboard() {
     setUsers(allUsers);
   }
 
-  function updateUser(userId: string, updates: Partial<MockUser>) {
-    try {
-      const raw = localStorage.getItem("mimaji_mock_signups");
-      const signups = raw ? JSON.parse(raw) : {};
-      for (const [phone, entry] of Object.entries(signups)) {
-        const e = entry as { password: string; user: MockUser };
-        if (e.user.id === userId) {
-          e.user = { ...e.user, ...updates };
-          signups[phone] = e;
+  async function updateUser(userId: string, updates: Partial<MockUser>) {
+    if (hasSupabaseConfig) {
+      const profileUpdates: Record<string, unknown> = {};
+      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
+      if (updates.role !== undefined) profileUpdates.role = updates.role;
+      await supabase.from("profiles").update(profileUpdates).eq("id", userId);
+      await loadUsers();
+    } else {
+      try {
+        const raw = localStorage.getItem("mimaji_mock_signups");
+        const signups = raw ? JSON.parse(raw) : {};
+        for (const [phone, entry] of Object.entries(signups)) {
+          const e = entry as { password: string; user: MockUser };
+          if (e.user.id === userId) {
+            e.user = { ...e.user, ...updates };
+            signups[phone] = e;
+          }
         }
-      }
-      localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-      loadUsers();
-    } catch {}
+        localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+        loadUsers();
+      } catch {}
+    }
     setEditingUser(null);
   }
 
-  function deleteUser(userId: string) {
-    try {
-      const raw = localStorage.getItem("mimaji_mock_signups");
-      const signups = raw ? JSON.parse(raw) : {};
-      for (const [phone, entry] of Object.entries(signups)) {
-        const e = entry as { password: string; user: MockUser };
-        if (e.user.id === userId) {
-          delete signups[phone];
+  async function deleteUser(userId: string) {
+    if (hasSupabaseConfig) {
+      // Note: deleting from profiles will cascade from auth.users FK
+      // We just remove the profile; the auth user remains but is effectively deactivated
+      await supabase.from("profiles").delete().eq("id", userId);
+      await loadUsers();
+    } else {
+      try {
+        const raw = localStorage.getItem("mimaji_mock_signups");
+        const signups = raw ? JSON.parse(raw) : {};
+        for (const [phone, entry] of Object.entries(signups)) {
+          const e = entry as { password: string; user: MockUser };
+          if (e.user.id === userId) {
+            delete signups[phone];
+          }
         }
-      }
-      localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-      loadUsers();
-    } catch {}
+        localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+        loadUsers();
+      } catch {}
+    }
     setDeleteUserConfirm(null);
   }
 
@@ -361,7 +418,7 @@ export default function AdminDashboard() {
   const activeOrders = orders.filter(
     (o: OrderRecord) => o.status !== "delivered" && o.status !== "cancelled"
   ).length;
-  const allVendors = [...MOCK_VENDORS, ...customVendors];
+  const allVendors = hasSupabaseConfig ? customVendors : [...MOCK_VENDORS, ...customVendors];
   const totalVendors = allVendors.length;
 
   const statusCounts: Record<string, number> = {};
