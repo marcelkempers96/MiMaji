@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1 } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, webicon } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2 } from "lucide-react";
 
 import Link from "next/link";
@@ -34,7 +34,7 @@ export default function HomePage() {
           </div>
           {user ? (
             <Link href="/dashboard" className="text-primary text-sm font-semibold">
-              Hi, {user.name}
+              {user.name}&apos;s Dashboard
             </Link>
           ) : (
             <Link href="/login" className="bg-primary text-white text-sm font-semibold rounded-full px-5 py-2 hover:bg-[#1a5a9a] transition-colors">
@@ -44,7 +44,8 @@ export default function HomePage() {
         </div>
 
         {/* Hero */}
-        <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5">
+        <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5 relative overflow-hidden">
+          <img src={webicon.src} alt="" className="absolute top-4 right-4 w-20 h-20 opacity-15 object-contain" />
           <h1 className="text-2xl font-extrabold leading-tight">
             Order Water Online
           </h1>
@@ -84,20 +85,16 @@ export default function HomePage() {
 
         {/* Locations Banner */}
         <div className="bg-surface shadow-card rounded-xl overflow-hidden mb-5">
-          <div className="w-full aspect-[16/9]">
-            <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-full object-contain" />
+          <div className="w-full">
+            <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-auto object-contain" />
           </div>
           <div className="p-4">
             <p className="font-bold text-sm text-text-primary mb-1">Delivering from 30 Locations Across Nairobi</p>
-            <p className="text-text-secondary text-xs mb-3">
+            <p className="text-text-secondary text-xs mb-2">
               We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
             </p>
-            <Link
-              href="/vendors"
-              className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-5 py-2 text-xs font-bold hover:bg-[#1a5a9a] transition-colors"
-            >
-              <MapPin size={14} />
-              See All Vendors
+            <Link href="/vendors" className="text-primary text-xs font-semibold hover:underline">
+              See all vendors →
             </Link>
           </div>
         </div>
@@ -180,20 +177,6 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* Impact */}
-        <Link href="/impact">
-          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-3 hover:shadow-card transition-shadow">
-            <div className="flex items-center gap-3">
-              <Heart size={20} className="text-[#2ECC71]" />
-              <div>
-                <p className="font-bold text-sm text-text-primary">Water is Life</p>
-                <p className="text-text-secondary text-xs">For every 100L, we supply 10L to rural communities</p>
-                <p className="text-[#2ECC71] text-xs font-semibold mt-1">Learn about our impact →</p>
-              </div>
-            </div>
-          </div>
-        </Link>
-
         {/* Corporate / Office Water */}
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-xl p-4 mb-3">
           <div className="flex items-center gap-3">
@@ -203,16 +186,16 @@ export default function HomePage() {
               <p className="text-white/70 text-xs">Scheduled deliveries, volume discounts & monthly invoicing</p>
             </div>
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="flex flex-col gap-2 mt-3">
             <Link
               href="/buy"
-              className="bg-cta-alt text-white text-center rounded-full px-4 py-1.5 text-[11px] font-bold hover:bg-[#d44a44] transition-colors"
+              className="bg-cta-alt text-white text-center rounded-full px-4 py-2 text-xs font-bold hover:bg-[#d44a44] transition-colors whitespace-nowrap"
             >
               Order for Office
             </Link>
             <Link
               href={user ? "/account-settings" : "/login?mode=signup&corporate=true"}
-              className="bg-white/20 text-white text-center rounded-full px-4 py-1.5 text-[11px] font-bold hover:bg-white/30 transition-colors flex items-center gap-1"
+              className="bg-white/20 text-white text-center rounded-full px-4 py-2 text-xs font-bold hover:bg-white/30 transition-colors whitespace-nowrap"
             >
               Set Up Corporate Account
             </Link>
@@ -221,7 +204,7 @@ export default function HomePage() {
 
         {/* Water Quality Guide */}
         <Link href="/water-guide">
-          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl overflow-hidden mb-5 hover:shadow-card transition-shadow">
+          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl overflow-hidden mb-3 hover:shadow-card transition-shadow">
             <div className="flex gap-1 h-24">
               <img src={warehouse.src} alt="MiMaji warehouse" className="w-1/2 object-cover" />
               <img src={clean1.src} alt="Clean water quality" className="w-1/2 object-cover" />
@@ -231,8 +214,24 @@ export default function HomePage() {
                 <Droplets size={16} className="text-primary" />
                 <p className="font-bold text-sm text-text-primary">Water Quality Guide</p>
               </div>
-              <p className="text-text-secondary text-xs">Learn what makes water safe — E. coli, TDS, pH & more</p>
-              <p className="text-primary text-xs font-semibold mt-1">Read the full guide →</p>
+              <p className="text-text-secondary text-xs">
+                Learn what makes water safe to drink — E. coli, TDS, pH, turbidity & more. Know what to look for when ordering water in Nairobi.
+              </p>
+              <p className="text-primary text-xs font-semibold mt-2">Read the full guide →</p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Impact - Water is Life */}
+        <Link href="/impact">
+          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-5 hover:shadow-card transition-shadow">
+            <div className="flex items-center gap-3">
+              <Heart size={20} className="text-[#2ECC71]" />
+              <div>
+                <p className="font-bold text-sm text-text-primary">Water is Life</p>
+                <p className="text-text-secondary text-xs">For every 100L, we supply 10L to rural communities</p>
+                <p className="text-[#2ECC71] text-xs font-semibold mt-1">Learn about our impact →</p>
+              </div>
             </div>
           </div>
         </Link>
@@ -371,7 +370,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <Link href="/support" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Support</Link>
             {user ? (
               <Link href="/dashboard" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">
-                Hi, {user.name}
+                {user.name}&apos;s Dashboard
               </Link>
             ) : (
               <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
@@ -381,8 +380,9 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white">
-        <div className="max-w-6xl mx-auto px-8 py-20 flex items-center gap-12">
+      <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white relative overflow-hidden">
+        <img src={webicon.src} alt="" className="absolute top-8 right-8 w-40 h-40 opacity-10 object-contain" />
+        <div className="max-w-6xl mx-auto px-8 py-20 flex items-center gap-12 relative">
           <div className="flex-1">
             <h1 className="text-5xl font-extrabold leading-tight">
               Order Water Online<br />
@@ -473,12 +473,8 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <p className="text-text-secondary text-base mb-6 max-w-md">
               We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
             </p>
-            <Link
-              href="/vendors"
-              className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-6 py-3 text-sm font-bold hover:bg-[#1a5a9a] transition-colors"
-            >
-              <MapPin size={16} />
-              See All Vendors
+            <Link href="/vendors" className="text-primary text-sm font-semibold hover:underline">
+              See all vendors →
             </Link>
           </div>
           <div className="flex-1 flex items-center justify-center p-4">
@@ -590,7 +586,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
                 <h2 className="text-2xl font-extrabold text-text-primary">Water Quality Guide</h2>
               </div>
               <p className="text-text-secondary text-base mb-2 max-w-md">
-                Learn what makes water safe to drink — E. coli, TDS, pH, turbidity & more. Know what to look for when ordering water in Nairobi.
+                Learn what makes water safe to drink — E. coli, TDS, pH, turbidity & more. Know what to look for when ordering water in Nairobi. Understand the key indicators of water safety and how MiMaji ensures every drop meets quality standards.
               </p>
               <span className="text-primary text-sm font-semibold">Read the full guide →</span>
             </div>

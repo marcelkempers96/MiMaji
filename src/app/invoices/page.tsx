@@ -82,33 +82,95 @@ export default function InvoicesPage() {
                   </span>
                   <button
                     onClick={() => {
-                      // Generate a simple invoice view
+                      const deliveryFee = 100;
+                      const subtotal = order.price_total - deliveryFee;
                       const invoiceWindow = window.open("", "_blank");
                       if (invoiceWindow) {
-                        invoiceWindow.document.write(`
-                          <html><head><title>Invoice ${invoiceNumber}</title>
-                          <style>
-                            body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-                            h1 { color: #2979C1; } table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                            th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
-                            th { background: #f5f5f5; } .total { font-size: 1.2em; font-weight: bold; }
-                          </style></head><body>
-                          <h1>MiMaji Invoice</h1>
-                          <p><strong>Invoice:</strong> ${invoiceNumber}</p>
-                          <p><strong>Date:</strong> ${displayDate}</p>
-                          <p><strong>Customer:</strong> ${user.name} (${user.phone})</p>
-                          <p><strong>Delivery Address:</strong> ${order.delivery_address}</p>
-                          ${order.mpesa_ref ? `<p><strong>M-Pesa Ref:</strong> ${order.mpesa_ref}</p>` : ""}
-                          <table>
-                            <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
-                            <tbody>
-                              ${(order.order_items || []).map((item) => `<tr><td>${item.name}</td><td>${item.quantity}</td><td>KES ${(item.price * item.quantity).toLocaleString()}</td></tr>`).join("")}
-                            </tbody>
-                          </table>
-                          <p class="total">Total: KES ${order.price_total.toLocaleString()}</p>
-                          <p style="color:#888; margin-top:40px; font-size:12px">MiMaji Water Delivery · support@mimaji.co.ke · +254 758 434 076</p>
-                          </body></html>
-                        `);
+                        invoiceWindow.document.write(`<!DOCTYPE html>
+<html><head><title>Invoice ${invoiceNumber}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1A2A3A; background: #fff; }
+  .invoice { max-width: 700px; margin: 0 auto; padding: 40px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 3px solid #2979C1; padding-bottom: 20px; }
+  .logo-section h1 { font-size: 28px; color: #2979C1; font-weight: 800; }
+  .logo-section p { color: #8899AA; font-size: 12px; margin-top: 4px; }
+  .invoice-info { text-align: right; }
+  .invoice-info h2 { font-size: 24px; color: #2979C1; text-transform: uppercase; letter-spacing: 2px; }
+  .invoice-info p { color: #8899AA; font-size: 13px; margin-top: 4px; }
+  .details { display: flex; justify-content: space-between; margin-bottom: 30px; }
+  .details-block { flex: 1; }
+  .details-block h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8899AA; margin-bottom: 8px; font-weight: 600; }
+  .details-block p { font-size: 13px; color: #1A2A3A; margin-bottom: 3px; }
+  .details-block p strong { font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  thead th { background: #2979C1; color: #fff; padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  thead th:last-child { text-align: right; }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid #F0F0F0; font-size: 13px; }
+  tbody td:last-child { text-align: right; font-weight: 500; }
+  tbody tr:nth-child(even) { background: #F8FAFC; }
+  .totals { margin-left: auto; width: 280px; margin-top: 10px; }
+  .totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 1px solid #F0F0F0; }
+  .totals-row.grand { border-top: 2px solid #2979C1; border-bottom: none; padding-top: 12px; margin-top: 4px; }
+  .totals-row.grand span { font-size: 18px; font-weight: 700; color: #2979C1; }
+  .payment-info { background: #F8FAFC; border-radius: 8px; padding: 16px; margin-top: 30px; }
+  .payment-info h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8899AA; margin-bottom: 8px; }
+  .payment-info p { font-size: 13px; color: #1A2A3A; margin-bottom: 3px; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E0E0E0; text-align: center; }
+  .footer p { color: #8899AA; font-size: 11px; margin-bottom: 4px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .invoice { padding: 20px; } }
+</style></head><body>
+<div class="invoice">
+  <div class="header">
+    <div class="logo-section">
+      <h1>MiMaji</h1>
+      <p>Water Delivery — Nairobi</p>
+      <p>support@mimaji.co.ke | +254 758 434 076</p>
+    </div>
+    <div class="invoice-info">
+      <h2>Invoice</h2>
+      <p><strong>${invoiceNumber}</strong></p>
+      <p>Date: ${displayDate}</p>
+    </div>
+  </div>
+  <div class="details">
+    <div class="details-block">
+      <h3>Bill To</h3>
+      <p><strong>${user.name}</strong></p>
+      <p>${user.phone}</p>
+      <p>${order.delivery_address || ""}</p>
+    </div>
+    <div class="details-block" style="text-align: right;">
+      <h3>From</h3>
+      <p><strong>MiMaji Ltd</strong></p>
+      <p>Nairobi, Kenya</p>
+      <p>Till: 123456</p>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr></thead>
+    <tbody>
+      ${(order.order_items || []).map((item, idx) => `<tr><td>${idx + 1}</td><td>${item.name}</td><td>${item.quantity}</td><td>KES ${item.price.toLocaleString()}</td><td>KES ${(item.price * item.quantity).toLocaleString()}</td></tr>`).join("")}
+    </tbody>
+  </table>
+  <div class="totals">
+    <div class="totals-row"><span>Subtotal</span><span>KES ${subtotal.toLocaleString()}</span></div>
+    <div class="totals-row"><span>Delivery Fee</span><span>KES ${deliveryFee.toLocaleString()}</span></div>
+    <div class="totals-row grand"><span>Total</span><span>KES ${order.price_total.toLocaleString()}</span></div>
+  </div>
+  <div class="payment-info">
+    <h3>Payment Details</h3>
+    <p>Status: <strong>${order.status === "delivered" ? "Paid" : "Processing"}</strong></p>
+    ${order.mpesa_ref ? `<p>M-Pesa Reference: <strong>${order.mpesa_ref}</strong></p>` : ""}
+    <p>Order ID: ${displayId}</p>
+  </div>
+  <div class="footer">
+    <p>Thank you for choosing MiMaji!</p>
+    <p>For every 100L delivered, we supply 10L to rural communities in Kenya.</p>
+    <p>&copy; 2026 MiMaji Ltd. All rights reserved.</p>
+  </div>
+</div>
+</body></html>`);
                         invoiceWindow.document.close();
                       }
                     }}

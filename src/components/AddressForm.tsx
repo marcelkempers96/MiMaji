@@ -103,31 +103,58 @@ export default function AddressForm({
     }
   }, [mapsLoaded]);
 
+  // Nominatim fallback predictions
+  const [nominatimResults, setNominatimResults] = useState<Array<{ place_id: string; display_name: string; lat: string; lon: string }>>([]);
+  const nominatimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchNominatim = useCallback(async (query: string) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + " Nairobi Kenya")}&limit=5&addressdetails=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const data = await res.json();
+      setNominatimResults(data);
+      setShowPredictions(data.length > 0);
+    } catch {
+      setNominatimResults([]);
+      setShowPredictions(false);
+    }
+  }, []);
+
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
-    if (!autocompleteServiceRef.current || value.length < 3) {
+    if (value.length < 3) {
       setPredictions([]);
+      setNominatimResults([]);
       setShowPredictions(false);
       return;
     }
 
-    autocompleteServiceRef.current.getPlacePredictions(
-      {
-        input: value,
-        componentRestrictions: { country: "ke" },
-        types: ["address", "establishment"],
-      },
-      (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          setPredictions(results);
-          setShowPredictions(true);
-        } else {
-          setPredictions([]);
-          setShowPredictions(false);
+    if (autocompleteServiceRef.current) {
+      // Use Google Maps
+      autocompleteServiceRef.current.getPlacePredictions(
+        {
+          input: value,
+          componentRestrictions: { country: "ke" },
+          types: ["address", "establishment"],
+        },
+        (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            setPredictions(results);
+            setShowPredictions(true);
+          } else {
+            setPredictions([]);
+            setShowPredictions(false);
+          }
         }
-      }
-    );
-  }, []);
+      );
+    } else {
+      // Fallback to Nominatim (debounced to respect rate limits)
+      if (nominatimTimerRef.current) clearTimeout(nominatimTimerRef.current);
+      nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 500);
+    }
+  }, [searchNominatim]);
 
   const handleSelectPrediction = (prediction: google.maps.places.AutocompletePrediction) => {
     setSearchQuery(prediction.description);
@@ -164,6 +191,17 @@ export default function AddressForm({
       const secondary = prediction.structured_formatting.secondary_text || "";
       if (secondary) setNeighbourhood(secondary.split(",")[0] || "");
     }
+  };
+
+  const handleSelectNominatim = (result: { place_id: string; display_name: string; lat: string; lon: string }) => {
+    setSearchQuery(result.display_name);
+    setShowPredictions(false);
+    setNominatimResults([]);
+    setLat(parseFloat(result.lat));
+    setLng(parseFloat(result.lon));
+    const parts = result.display_name.split(",").map((s: string) => s.trim());
+    if (parts.length > 0) setStreetName(parts[0]);
+    if (parts.length > 1) setNeighbourhood(parts[1]);
   };
 
   const handleGetCurrentLocation = () => {
@@ -272,7 +310,7 @@ export default function AddressForm({
           </button>
         </div>
 
-        {/* Autocomplete dropdown */}
+        {/* Autocomplete dropdown - Google Maps */}
         {showPredictions && predictions.length > 0 && (
           <div className="absolute z-20 top-12 left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-100 max-h-48 overflow-y-auto">
             {predictions.map((p) => (
@@ -290,13 +328,38 @@ export default function AddressForm({
             ))}
           </div>
         )}
+
+        {/* Autocomplete dropdown - Nominatim fallback */}
+        {showPredictions && predictions.length === 0 && nominatimResults.length > 0 && (
+          <div className="absolute z-20 top-12 left-0 right-0 bg-white rounded-xl shadow-lg border border-gray-100 max-h-48 overflow-y-auto">
+            {nominatimResults.map((r) => {
+              const parts = r.display_name.split(",").map((s: string) => s.trim());
+              return (
+                <button
+                  key={r.place_id}
+                  onClick={() => handleSelectNominatim(r)}
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-primary-light text-left transition-colors border-b border-gray-50 last:border-0"
+                >
+                  <MapPin size={16} className="text-text-secondary mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm text-text-primary font-medium truncate">{parts[0]}</p>
+                    <p className="text-xs text-text-secondary truncate">{parts.slice(1, 3).join(", ")}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {!mapsLoaded && (
+      {!mapsLoaded && !nominatimResults.length && (
         <p className="text-xs text-text-secondary mb-3 bg-primary-light rounded-lg px-3 py-2">
           Enter your delivery address manually below or search for your location.
         </p>
       )}
+
+      {/* Divider between search and address details */}
+      <div className="border-t border-gray-100 my-4" />
 
       {/* Address Type (home/office) */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
@@ -329,7 +392,7 @@ export default function AddressForm({
         type="text"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
-        placeholder={'e.g. "My Home", "Work"'}
+        placeholder="Label"
         className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
       />
 
@@ -365,7 +428,7 @@ export default function AddressForm({
         type="text"
         value={neighbourhood}
         onChange={(e) => setNeighbourhood(e.target.value)}
-        placeholder="e.g. Kilimani, Westlands, Karen"
+        placeholder="Neighbourhood / Area"
         className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
       />
 
@@ -377,7 +440,7 @@ export default function AddressForm({
         type="text"
         value={streetName}
         onChange={(e) => setStreetName(e.target.value)}
-        placeholder="e.g. Argwings Kodhek Road, Ngong Road"
+        placeholder="Street name"
         className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
       />
 
@@ -391,7 +454,7 @@ export default function AddressForm({
             type="text"
             value={buildingName}
             onChange={(e) => setBuildingName(e.target.value)}
-            placeholder="e.g. Valley Arcade, The Mirage"
+            placeholder="Building / estate name"
             className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
           />
         </>
@@ -408,7 +471,7 @@ export default function AddressForm({
               type="text"
               value={floor}
               onChange={(e) => setFloor(e.target.value)}
-              placeholder="e.g. 3, Ground"
+              placeholder="Floor"
               className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm"
             />
           </div>
@@ -420,7 +483,7 @@ export default function AddressForm({
               type="text"
               value={unitNumber}
               onChange={(e) => setUnitNumber(e.target.value)}
-              placeholder="e.g. 5B, 204"
+              placeholder="Unit / door no."
               className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm"
             />
           </div>
@@ -437,7 +500,7 @@ export default function AddressForm({
             type="text"
             value={unitNumber}
             onChange={(e) => setUnitNumber(e.target.value)}
-            placeholder="e.g. House 14, The Blue Gate"
+            placeholder="House number / name"
             className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
           />
         </>
@@ -451,7 +514,7 @@ export default function AddressForm({
         type="text"
         value={postalCode}
         onChange={(e) => setPostalCode(e.target.value)}
-        placeholder="e.g. 00100"
+        placeholder="Postal code"
         className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
       />
 

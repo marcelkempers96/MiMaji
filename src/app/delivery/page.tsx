@@ -124,14 +124,14 @@ export default function DeliveryPage() {
   );
 
   return (
-    <div className="bg-background min-h-screen pb-28">
+    <div className="bg-background min-h-screen pb-36">
       {/* Mobile */}
       <div className="md:hidden">
         <TopBar title="Delivery Address" />
         <div className="max-w-md mx-auto px-4 pt-4">
           {content}
         </div>
-        <div className="fixed bottom-16 left-0 right-0 bg-background px-4 py-3 max-w-md mx-auto">
+        <div className="fixed bottom-16 left-0 right-0 bg-background px-4 py-3 max-w-md mx-auto border-t border-gray-100">
           <Button
             variant="primary"
             fullWidth

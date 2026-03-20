@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ShoppingCart, ClipboardList, User } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const tabs = [
-  { key: "home", label: "Home", icon: Home, href: "/" },
+  { key: "home", label: "Home", icon: Home, href: "/", loggedInHref: "/dashboard" },
   { key: "buy", label: "Order", icon: ShoppingCart, href: "/buy" },
   { key: "orders", label: "Orders", icon: ClipboardList, href: "/orders" },
   { key: "profile", label: "Account", icon: User, href: "/profile" },
@@ -13,10 +14,16 @@ const tabs = [
 
 export default function BottomTabBar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   const isActive = (tab: (typeof tabs)[number]) => {
-    if (tab.href === "/") return pathname === "/" || pathname === "/dashboard";
+    if (tab.key === "home") return pathname === "/" || pathname === "/dashboard";
     return pathname.startsWith(tab.href);
+  };
+
+  const getHref = (tab: (typeof tabs)[number]) => {
+    if (tab.loggedInHref && user) return tab.loggedInHref;
+    return tab.href;
   };
 
   return (
@@ -28,7 +35,7 @@ export default function BottomTabBar() {
           return (
             <Link
               key={tab.key}
-              href={tab.href}
+              href={getHref(tab)}
               className={`flex flex-col items-center gap-0.5 px-4 py-2 transition-colors ${
                 active ? "text-primary" : "text-text-secondary"
               }`}

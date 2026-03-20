@@ -19,6 +19,9 @@ export interface OrderRecord {
   vendor_location: string | null;
   vendors_tried: string[];
   current_vendor_offer: string | null;
+  // Scheduling fields
+  scheduled_date: string | null;
+  scheduled_time: string | null;
 }
 
 // Check if real Supabase credentials are configured
@@ -80,6 +83,8 @@ function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
     vendor_location: (row.vendor_location as string) || null,
     vendors_tried: (row.vendors_tried as string[]) || [],
     current_vendor_offer: (row.current_vendor_offer as string) || null,
+    scheduled_date: (row.scheduled_date as string) || null,
+    scheduled_time: (row.scheduled_time as string) || null,
   };
 }
 
@@ -108,6 +113,8 @@ export async function createOrder(params: {
   priceTotal: number;
   productName: string;
   orderItems: Array<{ name: string; quantity: number; price: number }>;
+  scheduledDate?: string;
+  scheduledTime?: string;
 }): Promise<{ orderId: string | null; error: string | null }> {
   if (!hasSupabaseConfig) {
     const orderId = crypto.randomUUID();
@@ -130,6 +137,8 @@ export async function createOrder(params: {
       vendor_location: null,
       vendors_tried: [],
       current_vendor_offer: null,
+      scheduled_date: params.scheduledDate || null,
+      scheduled_time: params.scheduledTime || null,
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -152,6 +161,8 @@ export async function createOrder(params: {
       vendor_location: null,
       vendors_tried: [],
       current_vendor_offer: null,
+      scheduled_date: params.scheduledDate || null,
+      scheduled_time: params.scheduledTime || null,
     })
     .select("id")
     .single();
