@@ -218,6 +218,10 @@ function MobileFooter() {
           <MapPin size={16} />
           Vendor Map
         </Link>
+        <Link href="/water-guide" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+          <Droplets size={16} />
+          Water Guide
+        </Link>
         <Link href="/contact" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Phone size={16} />
           Contact
@@ -523,6 +527,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
               <div className="flex flex-col gap-2">
                 <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
                 <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
+                <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
                 <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
                 <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
                 <Link href="/vendor-login" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Login</Link>
