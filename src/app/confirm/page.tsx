@@ -36,13 +36,25 @@ type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 export default function ConfirmOrderPage() {
   const router = useRouter();
   const { items, totalItems, total, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "confirmed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
+
+  // Auth guard: redirect to login if not authenticated (after loading completes)
+  if (!authLoading && !user && paymentStatus !== "confirmed") {
+    router.push("/login?redirect=/delivery");
+    return null;
+  }
+
+  // Empty cart guard: redirect to shop if cart is empty (unless showing confirmation)
+  if (!authLoading && user && items.length === 0 && paymentStatus !== "confirmed") {
+    router.push("/buy");
+    return null;
+  }
 
   // Scheduled delivery
   const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(null);
@@ -102,7 +114,10 @@ export default function ConfirmOrderPage() {
   } | null>(null);
 
   const handleConfirm = async () => {
-    if (!user?.phone || !user?.id) return;
+    if (!user?.phone || !user?.id) {
+      router.push("/login?redirect=/delivery");
+      return;
+    }
 
     setPaymentStatus("loading");
     setErrorMsg("");
@@ -128,6 +143,7 @@ export default function ConfirmOrderPage() {
         orderItems,
         scheduledDate: scheduledDelivery?.date,
         scheduledTime: scheduledDelivery?.time,
+        deliveryCode: user.deliveryPin,
       });
 
       if (orderError || !orderId) {
@@ -198,6 +214,9 @@ export default function ConfirmOrderPage() {
         console.error("Rewards processing failed:", e);
       }
 
+      // Use user's persistent delivery PIN if available, otherwise generate from order ID
+      const deliveryCode = user.deliveryPin || generateDeliveryCode(orderId);
+
       // Save order details before clearing cart
       confirmedOrderRef.current = {
         orderId,
@@ -206,8 +225,16 @@ export default function ConfirmOrderPage() {
         total: finalTotal,
         address: selectedLocation?.address || "Not set",
         paymentMethod,
-        deliveryCode: generateDeliveryCode(orderId),
+        deliveryCode,
       };
+
+      // Save the user's delivery code to their profile for cross-device access
+      try {
+        const codeKey = `mimaji_user_delivery_code_${user.id}`;
+        const existingCodes = JSON.parse(localStorage.getItem(codeKey) || "[]");
+        existingCodes.push({ orderId, code: deliveryCode, createdAt: new Date().toISOString() });
+        localStorage.setItem(codeKey, JSON.stringify(existingCodes));
+      } catch {}
 
       clearCart();
       try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}

@@ -128,6 +128,8 @@ export async function createOrder(params: {
   orderItems: Array<{ name: string; quantity: number; price: number }>;
   scheduledDate?: string;
   scheduledTime?: string;
+  /** Optional user-level delivery PIN to use instead of auto-generated one */
+  deliveryCode?: string;
 }): Promise<{ orderId: string | null; error: string | null }> {
   if (!hasSupabaseConfig) {
     const orderId = crypto.randomUUID();
@@ -152,11 +154,20 @@ export async function createOrder(params: {
       current_vendor_offer: null,
       scheduled_date: params.scheduledDate || null,
       scheduled_time: params.scheduledTime || null,
-      delivery_code: generateDeliveryCode(orderId),
+      delivery_code: params.deliveryCode || generateDeliveryCode(orderId),
     };
     const orders = getMockOrders();
     orders.push(order);
     saveMockOrders(orders);
+
+    // Verify the order was actually persisted
+    const verify = getMockOrders();
+    if (!verify.find((o) => o.id === orderId)) {
+      // Retry save
+      verify.push(order);
+      saveMockOrders(verify);
+    }
+
     return { orderId, error: null };
   }
 

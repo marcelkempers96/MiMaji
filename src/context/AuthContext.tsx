@@ -10,6 +10,8 @@ export interface User {
   phone: string;
   name: string;
   role: UserRole;
+  /** Persistent 4-digit delivery confirmation PIN for this user */
+  deliveryPin?: string;
 }
 
 interface AuthContextType {
@@ -108,29 +110,44 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (phone: string, password: string): Promise<{ error?: string }> => {
-    const cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
+    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
+    // Normalize leading 0 → 254 (same as signup)
+    if (cleaned.startsWith("0")) {
+      cleaned = "254" + cleaned.slice(1);
+    }
+
+    // Build alternative formats to try
+    const phonesToTry = [cleaned];
+    // Also try without 254 prefix (with leading 0)
+    if (cleaned.startsWith("254")) {
+      phonesToTry.push("0" + cleaned.slice(3));
+    }
 
     // Check built-in accounts first
-    const account = MOCK_ACCOUNTS[cleaned];
-    if (account) {
-      if (account.password !== password) {
-        return { error: "Invalid phone number or password" };
+    for (const p of phonesToTry) {
+      const account = MOCK_ACCOUNTS[p];
+      if (account) {
+        if (account.password !== password) {
+          return { error: "Invalid phone number or password" };
+        }
+        setUser(account.user);
+        saveMockSession(account.user);
+        return {};
       }
-      setUser(account.user);
-      saveMockSession(account.user);
-      return {};
     }
 
     // Check dynamically signed-up users
     const signups = getSignedUpUsers();
-    const signupAccount = signups[cleaned];
-    if (signupAccount) {
-      if (signupAccount.password !== password) {
-        return { error: "Invalid phone number or password" };
+    for (const p of phonesToTry) {
+      const signupAccount = signups[p];
+      if (signupAccount) {
+        if (signupAccount.password !== password) {
+          return { error: "Invalid phone number or password" };
+        }
+        setUser(signupAccount.user);
+        saveMockSession(signupAccount.user);
+        return {};
       }
-      setUser(signupAccount.user);
-      saveMockSession(signupAccount.user);
-      return {};
     }
 
     return { error: "Invalid phone number or password" };
@@ -142,10 +159,19 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
       cleaned = "254" + cleaned.slice(1);
     }
 
-    // Check if phone is already registered
-    if (MOCK_ACCOUNTS[cleaned] || getSignedUpUsers()[cleaned]) {
+    // Check if phone is already registered (try both formats)
+    const altPhone = cleaned.startsWith("254") ? "0" + cleaned.slice(3) : cleaned;
+    const existingSignups = getSignedUpUsers();
+    if (MOCK_ACCOUNTS[cleaned] || MOCK_ACCOUNTS[altPhone] || existingSignups[cleaned] || existingSignups[altPhone]) {
       return { error: "This phone number is already registered. Please log in." };
     }
+
+    // Generate a persistent 4-digit delivery PIN for this user
+    let pinHash = 0;
+    for (let i = 0; i < cleaned.length; i++) {
+      pinHash = ((pinHash << 5) - pinHash + cleaned.charCodeAt(i)) | 0;
+    }
+    const deliveryPin = (Math.abs(pinHash) % 10000).toString().padStart(4, "0");
 
     // Use deterministic ID based on phone so the same account works across devices
     const newUser: User = {
@@ -153,9 +179,15 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
       phone: cleaned,
       name,
       role: "customer",
+      deliveryPin,
     };
 
+    // Save under normalized format
     saveSignedUpUser(cleaned, password, newUser);
+    // Also save under 0-prefix format for robustness
+    if (cleaned.startsWith("254")) {
+      saveSignedUpUser("0" + cleaned.slice(3), password, newUser);
+    }
     setUser(newUser);
     saveMockSession(newUser);
 
