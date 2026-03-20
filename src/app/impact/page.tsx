@@ -31,6 +31,11 @@ export default function ImpactPage() {
 function ImpactContent() {
   return (
     <>
+      {/* Impact Main Image */}
+      <div className="rounded-2xl overflow-hidden mb-4">
+        <img src="/impactmain.png" alt="MiMaji community water impact" className="w-full h-48 md:h-72 object-cover rounded-2xl" />
+      </div>
+
       {/* Hero Banner */}
       <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 md:p-10 text-white mb-6">
         <div className="flex items-center gap-3 mb-3">
@@ -126,7 +131,7 @@ function ImpactContent() {
           </ul>
         </div>
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl overflow-hidden min-h-[160px]">
-          <img src={waterDeliveryMiMaji.src} alt="MiMaji water access in Kenya" className="object-cover w-full h-full" />
+          <img src="/majimap.png" alt="MajiMap - Mapping water access across Kenya" className="object-cover w-full h-full" />
         </div>
       </div>
 

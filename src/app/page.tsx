@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mpesa1, order1, dev1 } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1 } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
 
 import Link from "next/link";
@@ -71,6 +71,27 @@ export default function HomePage() {
           </AuthLink>
         </div>
 
+        {/* Locations Banner */}
+        <div className="bg-surface shadow-card rounded-xl overflow-hidden mb-5">
+          <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-32 object-cover" />
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <MapPin size={16} className="text-primary" />
+              <p className="font-bold text-sm text-text-primary">Delivering from 30 Locations Across Nairobi</p>
+            </div>
+            <p className="text-text-secondary text-xs mb-3">
+              We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
+            </p>
+            <Link
+              href="/vendors"
+              className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-5 py-2 text-xs font-bold hover:bg-[#1a5a9a] transition-colors"
+            >
+              <MapPin size={14} />
+              See All Vendors
+            </Link>
+          </div>
+        </div>
+
         {/* How It Works */}
         <h2 className="text-base font-bold text-text-primary mb-3">How It Works</h2>
         <div className="bg-surface shadow-card rounded-xl p-4 mb-5">
@@ -89,7 +110,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Pay with M-Pesa</p>
-              <p className="text-text-secondary text-xs">Secure STK push payment to your phone</p>
+              <p className="text-text-secondary text-xs">Fast, secure mobile payment</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -154,7 +175,7 @@ export default function HomePage() {
 
         {/* Impact */}
         <Link href="/impact">
-          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-5 hover:shadow-card transition-shadow">
+          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-3 hover:shadow-card transition-shadow">
             <div className="flex items-center gap-3">
               <Heart size={20} className="text-[#2ECC71]" />
               <div>
@@ -162,6 +183,49 @@ export default function HomePage() {
                 <p className="text-text-secondary text-xs">For every 100L, we supply 10L to rural communities</p>
                 <p className="text-[#2ECC71] text-xs font-semibold mt-1">Learn about our impact →</p>
               </div>
+            </div>
+          </div>
+        </Link>
+
+        {/* Corporate / Office Water */}
+        <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-xl p-4 mb-3">
+          <div className="flex items-center gap-3">
+            <Building2 size={20} className="text-white" />
+            <div>
+              <p className="font-bold text-sm text-white">Water for Your Office</p>
+              <p className="text-white/70 text-xs">Scheduled deliveries, volume discounts & monthly invoicing</p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <Link
+              href="/buy"
+              className="flex-1 bg-cta-alt text-white text-center rounded-full py-2 text-xs font-bold hover:bg-[#d44a44] transition-colors"
+            >
+              Order for Office
+            </Link>
+            <Link
+              href="/contact"
+              className="flex-1 bg-white/20 text-white text-center rounded-full py-2 text-xs font-bold hover:bg-white/30 transition-colors"
+            >
+              Corporate Account
+            </Link>
+          </div>
+        </div>
+
+        {/* Water Quality Guide */}
+        <Link href="/water-guide">
+          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl overflow-hidden mb-5 hover:shadow-card transition-shadow">
+            <div className="flex gap-1 h-24">
+              <img src="/warehouse.png" alt="MiMaji warehouse" className="w-1/2 object-cover" />
+              <img src="/clean1.png" alt="Clean water quality" className="w-1/2 object-cover" />
+            </div>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Droplets size={16} className="text-primary" />
+                <p className="font-bold text-sm text-text-primary">Water Quality Guide</p>
+              </div>
+              <p className="text-text-secondary text-xs">Learn what makes water safe — E. coli, TDS, pH & more</p>
+              <p className="text-primary text-xs font-semibold mt-1">Read the full guide →</p>
             </div>
           </div>
         </Link>
@@ -217,6 +281,10 @@ function MobileFooter() {
         <Link href="/vendors" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <MapPin size={16} />
           Vendor Map
+        </Link>
+        <Link href="/water-guide" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+          <Droplets size={16} />
+          Water Guide
         </Link>
         <Link href="/contact" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Phone size={16} />
@@ -381,6 +449,31 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
         </div>
       </section>
 
+      {/* Locations Banner */}
+      <section className="max-w-6xl mx-auto px-8 py-12">
+        <div className="bg-surface shadow-card rounded-2xl overflow-hidden flex items-center gap-0">
+          <div className="flex-1 p-10">
+            <div className="flex items-center gap-3 mb-3">
+              <MapPin size={24} className="text-primary" />
+              <h2 className="text-2xl font-extrabold text-text-primary">Delivering from 30 Locations Across Nairobi</h2>
+            </div>
+            <p className="text-text-secondary text-base mb-6 max-w-md">
+              We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
+            </p>
+            <Link
+              href="/vendors"
+              className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-6 py-3 text-sm font-bold hover:bg-[#1a5a9a] transition-colors"
+            >
+              <MapPin size={16} />
+              See All Vendors
+            </Link>
+          </div>
+          <div className="flex-1">
+            <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-[280px] object-cover" />
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section className="max-w-6xl mx-auto px-8 py-16">
         <div className="grid grid-cols-3 gap-8">
@@ -523,6 +616,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
               <div className="flex flex-col gap-2">
                 <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
                 <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
+                <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
                 <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
                 <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
                 <Link href="/vendor-login" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Login</Link>

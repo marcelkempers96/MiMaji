@@ -227,17 +227,8 @@ function DashboardContent({ user, desktop }: { user: { phone: string; name: stri
         </div>
       </div>
 
-      {/* Impact */}
-      <Link href="/impact">
-        <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 flex items-center gap-3 mb-3 hover:shadow-card transition-shadow">
-          <Heart size={20} className="text-[#2ECC71]" />
-          <div className="flex-1">
-            <p className="font-bold text-sm text-text-primary">Your Impact</p>
-            <p className="text-text-secondary text-xs">Your orders help rural communities get clean water</p>
-          </div>
-          <ChevronRight size={18} className="text-text-secondary" />
-        </div>
-      </Link>
+      {/* Your Impact */}
+      <YourImpact />
 
       {/* Feature Shortcuts - mobile only */}
       {!desktop && (
@@ -256,5 +247,59 @@ function DashboardContent({ user, desktop }: { user: { phone: string; name: stri
         </div>
       )}
     </div>
+  );
+}
+
+function YourImpact() {
+  const [totalLitres, setTotalLitres] = useState(0);
+
+  useEffect(() => {
+    // Load total litres from localStorage order history
+    try {
+      const raw = localStorage.getItem("mimaji_orders");
+      if (raw) {
+        const orders = JSON.parse(raw);
+        let litres = 0;
+        for (const order of orders) {
+          if (order.status !== "cancelled") {
+            // Parse litres from order items
+            for (const item of order.items || []) {
+              const sizeMatch = item.name?.match(/(\d+)L/i);
+              if (sizeMatch) {
+                litres += parseInt(sizeMatch[1]) * (item.quantity || 1);
+              }
+            }
+          }
+        }
+        setTotalLitres(litres);
+      }
+    } catch {}
+  }, []);
+
+  const donatedLitres = Math.floor(totalLitres * 0.1); // 10% goes to rural communities
+
+  return (
+    <Link href="/impact">
+      <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-4 mb-3 hover:shadow-card transition-shadow">
+        <div className="flex items-center gap-3 mb-2">
+          <Heart size={20} className="text-[#2ECC71]" />
+          <p className="font-bold text-sm text-text-primary">Your Impact</p>
+          <ChevronRight size={18} className="text-text-secondary ml-auto" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white/60 rounded-lg p-2.5 text-center">
+            <p className="text-lg font-extrabold text-primary">{totalLitres}L</p>
+            <p className="text-text-secondary text-[10px]">Total Litres Ordered</p>
+          </div>
+          <div className="bg-white/60 rounded-lg p-2.5 text-center">
+            <p className="text-lg font-extrabold text-[#2ECC71]">{donatedLitres}L</p>
+            <p className="text-text-secondary text-[10px]">Donated to Communities</p>
+          </div>
+        </div>
+        <p className="text-text-secondary text-[10px] mt-2 text-center">
+          For every 100L you order, 10L goes to rural communities in Kenya
+        </p>
+      </div>
+    </Link>
   );
 }
