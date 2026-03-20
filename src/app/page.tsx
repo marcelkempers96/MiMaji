@@ -110,7 +110,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Pay with M-Pesa</p>
-              <p className="text-text-secondary text-xs">Fast, secure mobile payment</p>
+              <p className="text-text-secondary text-xs">Quick & easy mobile payment</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -436,7 +436,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
                 <img src={mpesa1.src} alt="M-Pesa payment" className="w-full h-full object-contain" />
               </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Pay with M-Pesa</h3>
-              <p className="text-text-secondary text-sm">Secure payment via STK push directly to your phone</p>
+              <p className="text-text-secondary text-sm">Quick & easy mobile payment via M-Pesa</p>
             </div>
             <div className="text-center">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4">

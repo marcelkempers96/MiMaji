@@ -137,6 +137,11 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
     // Skip if user hasn't changed
     if (userId === prevUserIdRef.current && loaded) return;
+
+    // Clear selected location when user changes to prevent cross-account leakage
+    if (prevUserIdRef.current !== null && userId !== prevUserIdRef.current) {
+      setSelectedLocation(null);
+    }
     prevUserIdRef.current = userId;
 
     if (userId && hasSupabaseConfig) {
