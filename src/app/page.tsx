@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mpesa1, order1, dev1 } from "@/assets/images";
+import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1 } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie } from "lucide-react";
 
 import Link from "next/link";
@@ -69,6 +69,27 @@ export default function HomePage() {
               <span className="text-text-secondary text-xs">Track & view</span>
             </div>
           </AuthLink>
+        </div>
+
+        {/* Locations Banner */}
+        <div className="bg-surface shadow-card rounded-xl overflow-hidden mb-5">
+          <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-32 object-cover" />
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <MapPin size={16} className="text-primary" />
+              <p className="font-bold text-sm text-text-primary">Delivering from 30 Locations Across Nairobi</p>
+            </div>
+            <p className="text-text-secondary text-xs mb-3">
+              We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
+            </p>
+            <Link
+              href="/vendors"
+              className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-5 py-2 text-xs font-bold hover:bg-[#1a5a9a] transition-colors"
+            >
+              <MapPin size={14} />
+              See All Vendors
+            </Link>
+          </div>
         </div>
 
         {/* How It Works */}
@@ -193,14 +214,18 @@ export default function HomePage() {
 
         {/* Water Quality Guide */}
         <Link href="/water-guide">
-          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-4 mb-5 hover:shadow-card transition-shadow">
-            <div className="flex items-center gap-3">
-              <Droplets size={20} className="text-primary" />
-              <div>
+          <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl overflow-hidden mb-5 hover:shadow-card transition-shadow">
+            <div className="flex gap-1 h-24">
+              <img src="/warehouse.png" alt="MiMaji warehouse" className="w-1/2 object-cover" />
+              <img src="/clean1.png" alt="Clean water quality" className="w-1/2 object-cover" />
+            </div>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Droplets size={16} className="text-primary" />
                 <p className="font-bold text-sm text-text-primary">Water Quality Guide</p>
-                <p className="text-text-secondary text-xs">Learn what makes water safe — E. coli, TDS, pH & more</p>
-                <p className="text-primary text-xs font-semibold mt-1">Read the full guide →</p>
               </div>
+              <p className="text-text-secondary text-xs">Learn what makes water safe — E. coli, TDS, pH & more</p>
+              <p className="text-primary text-xs font-semibold mt-1">Read the full guide →</p>
             </div>
           </div>
         </Link>
@@ -420,6 +445,31 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
               <h3 className="font-bold text-text-primary text-lg mb-2">Get It Delivered</h3>
               <p className="text-text-secondary text-sm">Track your delivery in real-time. Average delivery in 35 minutes</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Locations Banner */}
+      <section className="max-w-6xl mx-auto px-8 py-12">
+        <div className="bg-surface shadow-card rounded-2xl overflow-hidden flex items-center gap-0">
+          <div className="flex-1 p-10">
+            <div className="flex items-center gap-3 mb-3">
+              <MapPin size={24} className="text-primary" />
+              <h2 className="text-2xl font-extrabold text-text-primary">Delivering from 30 Locations Across Nairobi</h2>
+            </div>
+            <p className="text-text-secondary text-base mb-6 max-w-md">
+              We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
+            </p>
+            <Link
+              href="/vendors"
+              className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-6 py-3 text-sm font-bold hover:bg-[#1a5a9a] transition-colors"
+            >
+              <MapPin size={16} />
+              See All Vendors
+            </Link>
+          </div>
+          <div className="flex-1">
+            <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full h-[280px] object-cover" />
           </div>
         </div>
       </section>
