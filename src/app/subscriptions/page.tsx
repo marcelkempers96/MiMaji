@@ -5,9 +5,11 @@ import { useState } from "react";
 import { Check, Star, Truck, Clock, Shield, Gift } from "lucide-react";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import DesktopFooter from "@/components/layout/DesktopFooter";
+import { useAuth } from "@/context/AuthContext";
 
 interface Plan {
   id: string;
@@ -74,16 +76,40 @@ const plans: Plan[] = [
 
 export default function SubscriptionsPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>("standard");
+  const [subscribed, setSubscribed] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
+
+  const handleSubscribe = () => {
+    if (!user) {
+      router.push("/login?redirect=/subscriptions");
+      return;
+    }
+    // Save subscription to localStorage
+    const plan = plans.find((p) => p.id === selectedPlan);
+    if (plan) {
+      try {
+        localStorage.setItem("mimaji_subscription", JSON.stringify({
+          userId: user.id,
+          planId: plan.id,
+          planName: plan.name,
+          price: plan.price,
+          subscribedAt: new Date().toISOString(),
+        }));
+      } catch {}
+      setSubscribed(true);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       {/* Mobile */}
       <div className="md:hidden">
         <TopBar title="Subscription Plans" showBack={true} />
       </div>
 
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
-        <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} />
+        <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} onSubscribe={handleSubscribe} subscribed={subscribed} />
       </div>
 
       {/* Desktop */}
@@ -96,7 +122,7 @@ export default function SubscriptionsPage() {
               Save money with a monthly water plan. Free delivery, bonus rewards points, and never run out of water.
             </p>
           </div>
-          <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} desktop />
+          <SubscriptionContent selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} onSubscribe={handleSubscribe} subscribed={subscribed} desktop />
         </div>
         <DesktopFooter />
       </div>
@@ -104,7 +130,7 @@ export default function SubscriptionsPage() {
   );
 }
 
-function SubscriptionContent({ selectedPlan, setSelectedPlan, desktop }: { selectedPlan: string; setSelectedPlan: (id: string) => void; desktop?: boolean }) {
+function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subscribed, desktop }: { selectedPlan: string; setSelectedPlan: (id: string) => void; onSubscribe: () => void; subscribed: boolean; desktop?: boolean }) {
   return (
     <>
       {/* Why Subscribe */}
@@ -197,9 +223,19 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, desktop }: { selec
       </div>
 
       <div className={desktop ? "max-w-md mx-auto mt-8" : "mt-6"}>
-        <Button fullWidth>
-          Subscribe Now
-        </Button>
+        {subscribed ? (
+          <div className="bg-[#E8F5E9] border border-[#2ECC71]/30 rounded-xl p-4 text-center">
+            <Check size={24} className="text-[#2ECC71] mx-auto mb-2" />
+            <p className="font-bold text-text-primary text-sm">Subscription Active!</p>
+            <p className="text-text-secondary text-xs mt-1">
+              Your {plans.find((p) => p.id === selectedPlan)?.name} is now active. Your first delivery will be scheduled shortly.
+            </p>
+          </div>
+        ) : (
+          <Button fullWidth onClick={onSubscribe}>
+            Subscribe Now — KES {plans.find((p) => p.id === selectedPlan)?.price.toLocaleString()}/mo
+          </Button>
+        )}
         <p className="text-text-secondary text-xs text-center mt-3">
           Cancel or pause anytime. No long-term commitment required.
         </p>

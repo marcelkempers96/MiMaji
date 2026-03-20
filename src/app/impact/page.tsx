@@ -9,7 +9,7 @@ import DesktopFooter from "@/components/layout/DesktopFooter";
 
 export default function ImpactPage() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <TopBar title="Our Impact" showBack={true} />
 
       {/* Mobile Layout */}

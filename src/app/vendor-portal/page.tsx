@@ -320,7 +320,7 @@ export default function VendorPortalPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <TopBar title="Vendor Portal" showBack={true} />
 
       {/* ETA Modal */}

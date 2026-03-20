@@ -69,7 +69,7 @@ export default function RewardsPage() {
   const referralProgress = Math.min(summary.totalEarnedFromReferrals / referralCapLitres, 1) * 100;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <div className="md:hidden">
         <TopBar title="Rewards & Referrals" showBack={true} />
       </div>

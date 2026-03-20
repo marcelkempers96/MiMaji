@@ -48,23 +48,23 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
-// ── Mock accounts ──────────────────────────────────────────────────
+// ── Demo accounts ──────────────────────────────────────────────────
 const MOCK_ACCOUNTS: Record<string, { password: string; user: User }> = {
-  "0700000000": {
+  "0758434076": {
     password: "admin123",
-    user: { id: "mock-admin-001", phone: "254700000000", name: "Admin User", role: "admin" },
+    user: { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
   },
-  "254700000000": {
+  "254758434076": {
     password: "admin123",
-    user: { id: "mock-admin-001", phone: "254700000000", name: "Admin User", role: "admin" },
+    user: { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
   },
-  "0711000000": {
+  "0712345678": {
     password: "vendor123",
-    user: { id: "mock-vendor-001", phone: "254711000000", name: "AquaPure Kilimani", role: "vendor" },
+    user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
   },
-  "254711000000": {
+  "254712345678": {
     password: "vendor123",
-    user: { id: "mock-vendor-001", phone: "254711000000", name: "AquaPure Kilimani", role: "vendor" },
+    user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
   },
 };
 

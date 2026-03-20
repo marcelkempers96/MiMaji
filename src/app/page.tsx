@@ -24,7 +24,7 @@ export default function HomePage() {
   }, [user?.id]);
 
   return (
-    <div className="bg-background min-h-screen pb-20">
+    <div className="bg-background min-h-screen pb-16">
       <div className="max-w-md mx-auto px-4 md:hidden">
         {/* === MOBILE LAYOUT === */}
 
@@ -46,16 +46,16 @@ export default function HomePage() {
 
         {/* Hero */}
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5 relative overflow-hidden">
-          <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15" />
-          <div className="relative z-10">
-            <h1 className="text-2xl font-extrabold leading-tight">
+          <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none" />
+          <div className="relative z-20">
+            <h1 className="text-2xl font-extrabold leading-tight drop-shadow-md">
               Order Water Online
             </h1>
-            <p className="text-white text-sm mt-1">& Track Your Delivery</p>
+            <p className="text-white text-sm mt-1 drop-shadow-sm">& Track Your Delivery</p>
             <p className="text-white/90 text-xs mt-2">Premium purified water delivered to your door in Nairobi. Pay with M-Pesa.</p>
             <Link
               href="/buy"
-              className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-6 py-3 mt-4 text-sm transition-colors"
+              className="inline-flex items-center gap-2 bg-[#4A9FD7] hover:bg-[#3B8BC4] text-white font-bold rounded-full px-6 py-3 mt-4 text-sm transition-colors shadow-lg"
             >
               <ShoppingCart size={18} />
               Order Now
@@ -399,7 +399,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <div className="flex gap-4 mt-8">
               <Link
                 href="/buy"
-                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-8 py-4 text-base transition-colors"
+                className="inline-flex items-center gap-2 bg-[#4A9FD7] hover:bg-[#3B8BC4] text-white font-bold rounded-full px-8 py-4 text-base transition-colors shadow-lg"
               >
                 <ShoppingCart size={20} />
                 Order Now

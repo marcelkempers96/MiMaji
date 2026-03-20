@@ -40,7 +40,7 @@ export default function CancellationPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <div className="md:hidden">
         <TopBar title="Cancellation & Refund" showBack={true} />
         <div className="max-w-md mx-auto px-4 pt-4">{content}</div>

@@ -52,7 +52,7 @@ export default function VendorLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <TopBar title="Vendor Login" />
 
       <div className="max-w-md mx-auto md:max-w-lg px-4 pt-8">

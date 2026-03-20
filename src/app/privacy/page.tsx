@@ -41,7 +41,7 @@ export default function PrivacyPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       <div className="md:hidden">
         <TopBar title="Privacy Policy" showBack={true} />
         <div className="max-w-md mx-auto px-4 pt-4">{content}</div>

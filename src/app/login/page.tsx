@@ -364,10 +364,10 @@ function LoginContent() {
               <p className="text-primary text-xs font-semibold mb-2">Demo Accounts</p>
               <div className="flex flex-col gap-1.5">
                 <p className="text-text-secondary text-xs">
-                  Admin: <span className="font-mono font-medium text-text-primary">0700000000</span> / <span className="font-mono font-medium text-text-primary">admin123</span>
+                  Admin: <span className="font-mono font-medium text-text-primary">0758434076</span> / <span className="font-mono font-medium text-text-primary">admin123</span>
                 </p>
                 <p className="text-text-secondary text-xs">
-                  Vendor: <span className="font-mono font-medium text-text-primary">0711000000</span> / <span className="font-mono font-medium text-text-primary">vendor123</span>
+                  Vendor: <span className="font-mono font-medium text-text-primary">0712345678</span> / <span className="font-mono font-medium text-text-primary">vendor123</span>
                 </p>
               </div>
             </div>

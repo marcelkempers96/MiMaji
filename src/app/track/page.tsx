@@ -274,7 +274,7 @@ function TrackPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-16">
       {/* Mobile */}
       <div className="md:hidden">
         <TopBar title="Track Order" />
