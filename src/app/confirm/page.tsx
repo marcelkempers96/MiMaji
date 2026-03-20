@@ -69,7 +69,7 @@ export default function ConfirmOrderPage() {
   const { items, totalItems, deliveryFee, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stk-push");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mpesa-app");
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "awaiting_code" | "confirmed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
@@ -413,7 +413,7 @@ export default function ConfirmOrderPage() {
               type="text"
               value={mpesaCode}
               onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-              placeholder="e.g. SJ12ABCDEF"
+              placeholder="e.g. UCJLD9PMW4"
               className="w-full bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-lg font-mono font-bold text-text-primary tracking-widest text-center focus:border-primary focus:outline-none transition-colors"
               maxLength={15}
               disabled={creatingOrder}
@@ -461,6 +461,13 @@ export default function ConfirmOrderPage() {
             </div>
           </div>
 
+          {/* Screenshot reminder */}
+          <div className="bg-primary-light rounded-xl p-3 mb-4 text-center">
+            <p className="text-primary text-xs font-semibold">
+              We recommend you take a screenshot of this page for your records.
+            </p>
+          </div>
+
           <button
             onClick={handleMpesaCodeSubmit}
             disabled={mpesaCode.trim().length < 5 || creatingOrder}
@@ -502,15 +509,67 @@ export default function ConfirmOrderPage() {
           </div>
 
           <h2 className="text-xl font-bold text-text-primary text-center mb-1">
-            {order.paymentMethod === "cash" ? "Order Placed!" : "Payment Confirmed!"}
+            {order.paymentMethod === "cash" ? "Order Placed!" :
+             order.paymentMethod === "mpesa-app" && !order.mpesaRef ? "Order Received!" :
+             "Payment Confirmed!"}
           </h2>
-          <p className="text-text-secondary text-sm text-center mb-6">
+          <p className="text-text-secondary text-sm text-center mb-4">
             {order.paymentMethod === "cash"
               ? "Your order has been placed. Have cash ready for the driver."
-              : order.paymentMethod === "mpesa-app"
-              ? (order.mpesaRef ? "Your M-PESA payment code has been received. We will confirm your order shortly." : "Complete your M-PESA payment to confirm your order.")
+              : order.paymentMethod === "mpesa-app" && !order.mpesaRef
+              ? "Your order has been received. Please note: your order will only be confirmed once we receive and match your M-PESA payment code."
+              : order.paymentMethod === "mpesa-app" && order.mpesaRef
+              ? "Your M-PESA payment code has been received. We will verify and confirm your order shortly."
               : "Your payment has been processed successfully."}
           </p>
+
+          {/* MPESA App - No code yet - Action needed banner */}
+          {order.paymentMethod === "mpesa-app" && !order.mpesaRef && (
+            <div className="bg-[#FFF5EC] border-2 border-[#F5A623] rounded-xl p-4 mb-4">
+              <p className="text-[#F5A623] text-xs font-bold mb-2 uppercase tracking-wide">Action Required</p>
+              <p className="text-text-primary text-sm font-medium mb-2">
+                Please key in your M-PESA payment code in the My Orders page so we can confirm your order.
+              </p>
+              <p className="text-text-secondary text-xs">
+                Go to My Orders → find this order → enter the M-PESA code (e.g. UCJLD9PMW4) you received via SMS after paying.
+              </p>
+            </div>
+          )}
+
+          {/* Show MPESA till details for mpesa-app orders */}
+          {order.paymentMethod === "mpesa-app" && (
+            <div className="bg-[#E8F5E9] rounded-xl p-4 mb-4">
+              <p className="text-xs font-bold text-text-primary mb-2">MiMaji M-PESA Payment Details</p>
+              <div className="bg-white rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Business Number (Paybill)</p>
+                    <p className="text-sm font-bold text-text-primary font-mono">123456</p>
+                  </div>
+                  <button onClick={() => handleCopy("123456", "biz-confirm")} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                    <Copy size={12} /> Copy
+                  </button>
+                </div>
+                <div className="h-px bg-gray-100" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Account Number</p>
+                    <p className="text-sm font-bold text-text-primary font-mono">{user?.phone || "Your Phone"}</p>
+                  </div>
+                </div>
+                <div className="h-px bg-gray-100" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Amount to Pay</p>
+                    <p className="text-sm font-bold text-[#2ECC71] font-mono">KES {order.total.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-text-secondary text-[10px] mt-2 text-center">
+                We recommend you take a screenshot of this page for your records.
+              </p>
+            </div>
+          )}
 
           {/* Order Details Card */}
           <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
@@ -791,6 +850,28 @@ export default function ConfirmOrderPage() {
               <span>Delivery Fee</span>
               <span>KES {deliveryFee.toLocaleString()}</span>
             </div>
+
+            {/* Rewards Discount */}
+            {rewardsDiscount > 0 && (
+              <div className="flex justify-between items-center text-sm mb-1">
+                <span className="text-[#2ECC71] font-semibold">Rewards Discount ({rewardsApplied}L)</span>
+                <span className="text-[#2ECC71] font-semibold">- KES {rewardsDiscount.toLocaleString()}</span>
+              </div>
+            )}
+            {paymentMethod === "cash" && (
+              <div className="flex justify-between items-center text-sm mb-1">
+                <span className="text-text-secondary">COD Service Fee (rounded to nearest 50)</span>
+                <span className="text-text-secondary">+ KES {codFeeAmount.toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="h-px bg-gray-100 my-3" />
+
+            {/* Total to Pay - now inside the same card */}
+            <div className="flex justify-between items-center">
+              <span className="text-xl font-bold text-text-primary">Total to Pay</span>
+              <span className="text-xl font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span>
+            </div>
           </div>
 
           {/* Claim Rewards */}
@@ -842,30 +923,19 @@ export default function ConfirmOrderPage() {
           {/* Payment Method Selection */}
           <h3 className="font-bold text-sm text-text-primary mb-3">Payment Method</h3>
 
-          {/* Option 1: STK Push */}
-          <button
-            onClick={() => setPaymentMethod("stk-push")}
-            className={`w-full flex items-center gap-3 rounded-xl p-4 mb-3 transition-all text-left ${
-              paymentMethod === "stk-push"
-                ? "bg-[#E8F5E9] border-2 border-[#2ECC71]"
-                : "bg-surface border-2 border-transparent shadow-card"
-            }`}
+          {/* Option 1: STK Push — TEMPORARILY DISABLED */}
+          <div
+            className="w-full flex items-center gap-3 rounded-xl p-4 mb-3 bg-gray-100 border-2 border-transparent opacity-60 cursor-not-allowed relative"
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-              paymentMethod === "stk-push" ? "bg-[#2ECC71]" : "bg-gray-100"
-            }`}>
-              <Smartphone size={20} className={paymentMethod === "stk-push" ? "text-white" : "text-text-secondary"} />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-200">
+              <Smartphone size={20} className="text-text-secondary" />
             </div>
             <div className="flex-1">
-              <p className="font-bold text-sm text-text-primary">STK Push to M-PESA</p>
-              <p className="text-text-secondary text-xs">Receive a payment prompt on {user?.phone || "your phone"}</p>
+              <p className="font-bold text-sm text-text-secondary">STK Push to M-PESA</p>
+              <p className="text-text-secondary text-xs">Service not available at this time</p>
             </div>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-              paymentMethod === "stk-push" ? "border-[#2ECC71] bg-[#2ECC71]" : "border-gray-300"
-            }`}>
-              {paymentMethod === "stk-push" && <CheckCircle2 size={14} className="text-white" />}
-            </div>
-          </button>
+            <span className="text-[10px] font-semibold text-white bg-gray-400 px-2 py-0.5 rounded-full">Coming Soon</span>
+          </div>
 
           {/* Option 2: Pay via M-PESA App */}
           <button
@@ -883,7 +953,7 @@ export default function ConfirmOrderPage() {
             </div>
             <div className="flex-1">
               <p className="font-bold text-sm text-text-primary">Pay via M-PESA App</p>
-              <p className="text-text-secondary text-xs">Pay manually using Paybill / Till number</p>
+              <p className="text-text-secondary text-xs">Lipa na M-PESA → Pay Bill</p>
             </div>
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
               paymentMethod === "mpesa-app" ? "border-[#2ECC71] bg-[#2ECC71]" : "border-gray-300"
@@ -1001,32 +1071,12 @@ export default function ConfirmOrderPage() {
               <div className="bg-primary-light rounded-lg p-3">
                 <p className="text-primary text-xs font-bold">After payment:</p>
                 <p className="text-text-primary text-xs mt-1">
-                  Enter the M-PESA confirmation code (e.g. SJ12ABCDEF) on the next screen so we can verify your payment and process your order.
+                  Enter the M-PESA confirmation code (e.g. UCJLD9PMW4) on the next screen so we can verify your payment and process your order.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Final Total */}
-          <div className="bg-surface shadow-card rounded-xl p-4 mt-4">
-            {rewardsDiscount > 0 && (
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-[#2ECC71] font-semibold">Rewards Discount ({rewardsApplied}L)</span>
-                <span className="text-sm text-[#2ECC71] font-semibold">- KES {rewardsDiscount.toLocaleString()}</span>
-              </div>
-            )}
-            {paymentMethod === "cash" && (
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-text-secondary">COD Service Fee (rounded to nearest 50)</span>
-                <span className="text-sm text-text-secondary">+ KES {codFeeAmount.toLocaleString()}</span>
-              </div>
-            )}
-            <div className="h-px bg-gray-100 my-2" />
-            <div className="flex justify-between items-center">
-              <span className="text-xl font-bold text-text-primary">Total to Pay</span>
-              <span className="text-xl font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span>
-            </div>
-          </div>
 
           {/* Error Message */}
           {paymentStatus === "error" && (

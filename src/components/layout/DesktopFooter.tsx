@@ -70,6 +70,7 @@ export default function DesktopFooter() {
           <div>
             <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Company</h4>
             <div className="flex flex-col gap-2">
+              <Link href="/about" className="text-white/60 text-sm hover:text-white transition-colors">About Us</Link>
               <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
               <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
               <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>

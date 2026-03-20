@@ -133,8 +133,8 @@ function TrackPage() {
             </div>
           </div>
 
-          {/* Delivery Confirmation Code - show when order is confirmed or in transit */}
-          {currentStep >= 1 && currentStep < 3 && (
+          {/* Delivery Confirmation Code - always visible */}
+          {currentStep < 3 && (
             <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-4 mb-4">
               <p className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1">Your Delivery Code</p>
               <div className="flex items-center justify-center gap-3">

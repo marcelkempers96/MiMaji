@@ -163,6 +163,12 @@ export default function AdminDashboard() {
     products: [] as string[], businessRegNo: "", mpesaNumber: "",
     phoneNumbers: "", // comma-separated
     locationName: "", locationArea: "", locationLat: "", locationLng: "",
+    // Product prices
+    productPrices: {} as Record<string, { min: string; max: string; main: string }>,
+    // Multiple locations
+    additionalLocations: [] as Array<{ name: string; area: string; lat: string; lng: string }>,
+    // Other vendor info
+    deliveryRadius: "", description: "", minOrder: "",
   });
   const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
 
@@ -184,13 +190,24 @@ export default function AdminDashboard() {
       businessRegNo: newVendor.businessRegNo,
       mpesaNumber: newVendor.mpesaNumber,
       phoneNumbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
-      locations: newVendor.locationName ? [{
-        id: `${id}-loc1`,
-        name: newVendor.locationName,
-        area: newVendor.locationArea || newVendor.area,
-        lat: parseFloat(newVendor.locationLat) || -1.2864,
-        lng: parseFloat(newVendor.locationLng) || 36.8172,
-      }] : [],
+      locations: [
+        ...(newVendor.locationName ? [{
+          id: `${id}-loc1`,
+          name: newVendor.locationName,
+          area: newVendor.locationArea || newVendor.area,
+          lat: parseFloat(newVendor.locationLat) || -1.2864,
+          lng: parseFloat(newVendor.locationLng) || 36.8172,
+        }] : []),
+        ...newVendor.additionalLocations
+          .filter((l) => l.name)
+          .map((l, i) => ({
+            id: `${id}-loc${i + 2}`,
+            name: l.name,
+            area: l.area || newVendor.area,
+            lat: parseFloat(l.lat) || -1.2864,
+            lng: parseFloat(l.lng) || 36.8172,
+          })),
+      ],
     };
     const vendors = loadCustomVendors();
     vendors.push(vendor);
@@ -200,6 +217,7 @@ export default function AdminDashboard() {
       name: "", area: "", rating: "4.5", reviews: "0", hours: "7AM - 8PM",
       products: [], businessRegNo: "", mpesaNumber: "",
       phoneNumbers: "", locationName: "", locationArea: "", locationLat: "", locationLng: "",
+      productPrices: {}, additionalLocations: [], deliveryRadius: "", description: "", minOrder: "",
     });
     setShowAddVendor(false);
   }
@@ -218,17 +236,61 @@ export default function AdminDashboard() {
       { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
       { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
     ];
+    const seenIds = new Set(builtIn.map((u) => u.id));
+    const allUsers: MockUser[] = [...builtIn];
+
     try {
+      // Load from mock signups (primary source)
       const raw = localStorage.getItem("mimaji_mock_signups");
       const signups = raw ? JSON.parse(raw) : {};
-      const signupUsers: MockUser[] = Object.values(signups).map((s: unknown) => {
-        const su = s as { user: MockUser };
-        return su.user;
-      });
-      setUsers([...builtIn, ...signupUsers]);
-    } catch {
-      setUsers(builtIn);
-    }
+      const signupUsers: MockUser[] = [];
+      const seenPhones = new Set<string>();
+      for (const entry of Object.values(signups)) {
+        const su = (entry as { user: MockUser }).user;
+        if (!seenIds.has(su.id) && !seenPhones.has(su.phone)) {
+          signupUsers.push(su);
+          seenIds.add(su.id);
+          seenPhones.add(su.phone);
+        }
+      }
+      allUsers.push(...signupUsers);
+
+      // Also check for users from order history (derive users from orders)
+      const ordersRaw = localStorage.getItem("mimaji_mock_orders");
+      if (ordersRaw) {
+        const orders = JSON.parse(ordersRaw);
+        for (const order of orders) {
+          if (order.customer_id && !seenIds.has(order.customer_id)) {
+            // Try to find their name from profile storage
+            let userName = "Unknown User";
+            try {
+              const profileKey = `mimaji_profile_${order.customer_id}`;
+              const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
+              if (profile.name) userName = profile.name;
+            } catch {}
+            // Try to find from mock session
+            try {
+              const sessionRaw = localStorage.getItem("mimaji_mock_user");
+              if (sessionRaw) {
+                const sessionUser = JSON.parse(sessionRaw);
+                if (sessionUser.id === order.customer_id && sessionUser.name) {
+                  userName = sessionUser.name;
+                }
+              }
+            } catch {}
+            allUsers.push({
+              id: order.customer_id,
+              phone: order.customer_id.replace("mock-user-", "") || "Unknown",
+              name: userName,
+              role: "customer",
+            });
+            seenIds.add(order.customer_id);
+          }
+        }
+      }
+    } catch {}
+
+    setUsers(allUsers);
   }
 
   function updateUser(userId: string, updates: Partial<MockUser>) {
@@ -482,7 +544,8 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 font-medium">Items</th>
                       <th className="px-4 py-3 font-medium">Address</th>
                       <th className="px-4 py-3 font-medium">Amount</th>
-                      <th className="px-4 py-3 font-medium">Payment</th>
+                      <th className="px-4 py-3 font-medium">Pay Method</th>
+                      <th className="px-4 py-3 font-medium">MPESA Code</th>
                       <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 font-medium">Vendor</th>
                       <th className="px-4 py-3 font-medium">Actions</th>
@@ -537,9 +600,26 @@ export default function AdminDashboard() {
                             {formatKES(order.price_total)}
                           </td>
                           <td className="px-4 py-3">
+                            <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
+                              order.payment_method === "stk-push" ? "bg-blue-50 text-blue-700" :
+                              order.payment_method === "mpesa-app" ? "bg-green-50 text-green-700" :
+                              order.payment_method === "cash" ? "bg-orange-50 text-orange-700" :
+                              "bg-gray-50 text-gray-600"
+                            }`}>
+                              {order.payment_method === "stk-push" ? "STK Push" :
+                               order.payment_method === "mpesa-app" ? "M-PESA App" :
+                               order.payment_method === "cash" ? "Cash" :
+                               "Unknown"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
                             {order.mpesa_ref ? (
-                              <span className="text-xs font-mono bg-green-50 text-green-700 px-2 py-0.5 rounded">
+                              <span className="text-xs font-mono bg-green-50 text-green-700 px-2 py-0.5 rounded font-bold">
                                 {order.mpesa_ref}
+                              </span>
+                            ) : order.payment_method === "mpesa-app" ? (
+                              <span className="text-xs text-yellow-600 font-medium">
+                                Awaiting code
                               </span>
                             ) : order.status === "pending_payment" ? (
                               <span className="text-xs text-yellow-600">
@@ -547,7 +627,7 @@ export default function AdminDashboard() {
                               </span>
                             ) : (
                               <span className="text-xs text-text-secondary">
-                                Cash
+                                —
                               </span>
                             )}
                           </td>
@@ -713,6 +793,71 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* Product Prices */}
+                {newVendor.products.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">Product Prices (KES)</label>
+                    <div className="space-y-3">
+                      {newVendor.products.map((product) => (
+                        <div key={product} className="bg-gray-50 rounded-lg p-3">
+                          <p className="text-xs font-semibold text-text-primary mb-2">{product}</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="text-[10px] text-text-secondary block mb-1">Main Price</label>
+                              <input
+                                type="number"
+                                value={newVendor.productPrices[product]?.main || ""}
+                                onChange={(e) => setNewVendor({ ...newVendor, productPrices: { ...newVendor.productPrices, [product]: { ...(newVendor.productPrices[product] || { min: "", max: "", main: "" }), main: e.target.value } } })}
+                                placeholder="e.g. 250"
+                                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-text-secondary block mb-1">Min Price</label>
+                              <input
+                                type="number"
+                                value={newVendor.productPrices[product]?.min || ""}
+                                onChange={(e) => setNewVendor({ ...newVendor, productPrices: { ...newVendor.productPrices, [product]: { ...(newVendor.productPrices[product] || { min: "", max: "", main: "" }), min: e.target.value } } })}
+                                placeholder="e.g. 200"
+                                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-text-secondary block mb-1">Max Price</label>
+                              <input
+                                type="number"
+                                value={newVendor.productPrices[product]?.max || ""}
+                                onChange={(e) => setNewVendor({ ...newVendor, productPrices: { ...newVendor.productPrices, [product]: { ...(newVendor.productPrices[product] || { min: "", max: "", main: "" }), max: e.target.value } } })}
+                                placeholder="e.g. 300"
+                                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Vendor Info */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">Additional Info</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <input type="text" value={newVendor.description} onChange={(e) => setNewVendor({ ...newVendor, description: e.target.value })}
+                        placeholder="Short description of vendor" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <input type="text" value={newVendor.deliveryRadius} onChange={(e) => setNewVendor({ ...newVendor, deliveryRadius: e.target.value })}
+                        placeholder="Delivery radius (e.g. 5km)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <input type="text" value={newVendor.minOrder} onChange={(e) => setNewVendor({ ...newVendor, minOrder: e.target.value })}
+                        placeholder="Min order (e.g. 1 jug)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Primary Location */}
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block flex items-center gap-1">
@@ -736,6 +881,87 @@ export default function AdminDashboard() {
                         placeholder="Longitude (e.g. 36.8172)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
                     </div>
                   </div>
+
+                  {/* OpenStreetMap for location selection */}
+                  <div className="mt-3">
+                    <p className="text-[10px] text-text-secondary mb-1">Click the map to select coordinates, or enter them manually above.</p>
+                    <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: "250px" }}>
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                          newVendor.locationLng ? Number(newVendor.locationLng) - 0.02 : 36.7972
+                        }%2C${
+                          newVendor.locationLat ? Number(newVendor.locationLat) - 0.015 : -1.3014
+                        }%2C${
+                          newVendor.locationLng ? Number(newVendor.locationLng) + 0.02 : 36.8372
+                        }%2C${
+                          newVendor.locationLat ? Number(newVendor.locationLat) + 0.015 : -1.2714
+                        }&layer=mapnik${
+                          newVendor.locationLat && newVendor.locationLng
+                            ? `&marker=${newVendor.locationLat}%2C${newVendor.locationLng}`
+                            : "&marker=-1.2864%2C36.8172"
+                        }`}
+                      />
+                    </div>
+                    <a
+                      href={`https://www.openstreetmap.org/#map=15/${newVendor.locationLat || "-1.2864"}/${newVendor.locationLng || "36.8172"}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary text-[10px] font-semibold mt-1 inline-block hover:underline"
+                    >
+                      Open full map to find exact coordinates →
+                    </a>
+                  </div>
+                </div>
+
+                {/* Additional Locations */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide flex items-center gap-1">
+                      <MapPin size={12} /> Additional Locations
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setNewVendor({ ...newVendor, additionalLocations: [...newVendor.additionalLocations, { name: "", area: "", lat: "", lng: "" }] })}
+                      className="text-xs text-primary font-semibold flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Add Location
+                    </button>
+                  </div>
+                  {newVendor.additionalLocations.map((loc, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-lg p-3 mb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-text-secondary">Location {idx + 2}</span>
+                        <button
+                          onClick={() => {
+                            const updated = [...newVendor.additionalLocations];
+                            updated.splice(idx, 1);
+                            setNewVendor({ ...newVendor, additionalLocations: updated });
+                          }}
+                          className="text-red-500 text-[10px] font-semibold"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="text" value={loc.name}
+                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].name = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
+                          placeholder="Name" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                        <input type="text" value={loc.area}
+                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].area = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
+                          placeholder="Area" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary" />
+                        <input type="text" value={loc.lat}
+                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].lat = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
+                          placeholder="Latitude" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-mono outline-none focus:border-primary" />
+                        <input type="text" value={loc.lng}
+                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].lng = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
+                          placeholder="Longitude" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-mono outline-none focus:border-primary" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Submit */}
