@@ -1525,6 +1525,74 @@ function AdminDashboardInner() {
                     </div>
                   </div>
 
+                  {/* Locations editing */}
+                  {editingVendor === vendor.id && (
+                    <div className="pt-2 border-t border-gray-100">
+                      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 flex items-center gap-1"><MapPin size={10} /> Store Locations</p>
+                      {(vendorEdits.locations ?? vendor.locations).map((loc, li) => (
+                        <div key={li} className="bg-gray-50 rounded-lg p-2 mb-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-semibold text-text-secondary">Location {li + 1}</span>
+                            {(vendorEdits.locations ?? vendor.locations).length > 1 && (
+                              <button onClick={() => {
+                                const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                                locs.splice(li, 1);
+                                setVendorEdits({ ...vendorEdits, locations: locs });
+                              }} className="text-cta-alt hover:text-red-700"><Trash2 size={12} /></button>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={loc.name}
+                            onChange={(e) => {
+                              const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                              locs[li] = { ...locs[li], name: e.target.value };
+                              setVendorEdits({ ...vendorEdits, locations: locs });
+                            }}
+                            placeholder="Location name"
+                            className="w-full border border-gray-200 rounded px-2 py-1 text-xs outline-none focus:border-primary mb-1"
+                          />
+                          <AddressSearch
+                            placeholder="Search address..."
+                            initialValue={loc.area}
+                            onSelect={(result) => {
+                              const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                              locs[li] = { ...locs[li], area: result.area || result.displayName.split(",").slice(1, 3).join(",").trim(), lat: result.lat, lng: result.lng };
+                              setVendorEdits({ ...vendorEdits, locations: locs });
+                            }}
+                          />
+                          {loc.lat !== 0 && loc.lng !== 0 && (
+                            <p className="text-[10px] text-text-secondary font-mono mt-1">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</p>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => {
+                          const locs = [...(vendorEdits.locations ?? vendor.locations)];
+                          locs.push({ id: `${vendor.id}-loc${locs.length + 1}`, name: "", area: "", lat: 0, lng: 0 });
+                          setVendorEdits({ ...vendorEdits, locations: locs });
+                        }}
+                        className="text-primary text-[10px] font-semibold flex items-center gap-1 mt-1"
+                      >
+                        <Plus size={10} /> Add Location
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Locations display (non-edit mode) */}
+                  {editingVendor !== vendor.id && vendor.locations.length > 0 && (
+                    <div className="pt-2 border-t border-gray-100">
+                      <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Locations</p>
+                      {vendor.locations.map((loc, li) => (
+                        <div key={li} className="text-xs text-text-primary mb-0.5 flex items-center gap-1">
+                          <MapPin size={10} className="text-primary flex-shrink-0" />
+                          <span>{loc.name}</span>
+                          {loc.area && <span className="text-text-secondary">({loc.area})</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Edit/Save buttons */}
                   <div className="pt-2 border-t border-gray-100 flex gap-2">
                     {editingVendor === vendor.id ? (

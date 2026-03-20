@@ -2,7 +2,8 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useCallback } from "react";
-import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones, Calendar } from "lucide-react";
+import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones, Calendar, Navigation } from "lucide-react";
+import AddressSearch from "@/components/AddressSearch";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -35,7 +36,7 @@ export default function VendorPortalPage() {
   const [settingsBusinessReg, setSettingsBusinessReg] = useState("");
   const [settingsMpesaNumber, setSettingsMpesaNumber] = useState("");
   const [settingsPhoneNumbers, setSettingsPhoneNumbers] = useState<string[]>([""]);
-  const [settingsLocations, setSettingsLocations] = useState<Array<{ name: string; area: string }>>([{ name: "", area: "" }]);
+  const [settingsLocations, setSettingsLocations] = useState<Array<{ name: string; area: string; address: string; lat: number; lng: number }>>([{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
   const [settingsHours, setSettingsHours] = useState("7:00 AM - 8:00 PM");
   const [settingsRadius, setSettingsRadius] = useState(10);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -70,7 +71,7 @@ export default function VendorPortalPage() {
           setSettingsBusinessReg(saved.businessReg || "");
           setSettingsMpesaNumber(saved.mpesaNumber || "");
           setSettingsPhoneNumbers(saved.phoneNumbers?.length > 0 ? saved.phoneNumbers : [""]);
-          setSettingsLocations(saved.locations?.length > 0 ? saved.locations : [{ name: "", area: "" }]);
+          setSettingsLocations(saved.locations?.length > 0 ? saved.locations.map((l: Record<string, unknown>) => ({ name: (l.name as string) || "", area: (l.area as string) || "", address: (l.address as string) || "", lat: (l.lat as number) || 0, lng: (l.lng as number) || 0 })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
           if (saved.hours) setSettingsHours(saved.hours);
           if (saved.radius) setSettingsRadius(saved.radius);
         } catch { /* fall through to mock */ }
@@ -81,7 +82,7 @@ export default function VendorPortalPage() {
           setSettingsBusinessReg(vendor.businessRegNo);
           setSettingsMpesaNumber(vendor.mpesaNumber);
           setSettingsPhoneNumbers(vendor.phoneNumbers.length > 0 ? [...vendor.phoneNumbers] : [""]);
-          setSettingsLocations(vendor.locations.map((l) => ({ name: l.name, area: l.area })));
+          setSettingsLocations(vendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })));
           setSelectedStoreId(vendor.locations[0]?.id || "");
         }
       }
@@ -230,10 +231,26 @@ export default function VendorPortalPage() {
               )}
             </div>
             <input type="text" value={loc.name} onChange={(e) => { const updated = [...settingsLocations]; updated[i] = { ...updated[i], name: e.target.value }; setSettingsLocations(updated); }} placeholder="Store name" className="w-full h-9 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-white mb-2" />
-            <input type="text" value={loc.area} onChange={(e) => { const updated = [...settingsLocations]; updated[i] = { ...updated[i], area: e.target.value }; setSettingsLocations(updated); }} placeholder="Area, City" className="w-full h-9 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-white" />
+            <div className="mb-2">
+              <AddressSearch
+                placeholder="Search store address..."
+                initialValue={loc.address || loc.area}
+                onSelect={(result) => {
+                  const updated = [...settingsLocations];
+                  updated[i] = { ...updated[i], area: result.area || result.displayName.split(",").slice(1, 3).join(",").trim(), address: result.displayName, lat: result.lat, lng: result.lng };
+                  setSettingsLocations(updated);
+                }}
+              />
+            </div>
+            {loc.lat !== 0 && loc.lng !== 0 && (
+              <div className="flex items-center gap-1 text-[10px] text-text-secondary mt-1">
+                <Navigation size={10} className="text-primary" />
+                <span className="font-mono">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</span>
+              </div>
+            )}
           </div>
         ))}
-        <button onClick={() => setSettingsLocations([...settingsLocations, { name: "", area: "" }])} className="text-primary text-xs font-semibold flex items-center gap-1 mt-1"><Plus size={14} /> Add Location</button>
+        <button onClick={() => setSettingsLocations([...settingsLocations, { name: "", area: "", address: "", lat: 0, lng: 0 }])} className="text-primary text-xs font-semibold flex items-center gap-1 mt-1"><Plus size={14} /> Add Location</button>
       </div>
       <div>
         <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Operating Hours</label>
@@ -648,12 +665,19 @@ export default function VendorPortalPage() {
                       {settingsLocations.filter((l) => l.name).map((loc, i) => (
                         <div key={i} className="bg-white rounded-lg p-3 border border-[#E0E0E0]">
                           <p className="font-semibold text-sm text-text-primary">{loc.name}</p>
-                          {loc.area ? (
+                          {loc.lat !== 0 && loc.lng !== 0 ? (
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`} target="_blank" rel="noopener noreferrer" className="text-primary text-xs flex items-center gap-1 hover:underline">
+                              <MapPin size={10} /> {loc.address || loc.area}
+                            </a>
+                          ) : loc.area ? (
                             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.area)}`} target="_blank" rel="noopener noreferrer" className="text-primary text-xs flex items-center gap-1 hover:underline">
                               <MapPin size={10} /> {loc.area}
                             </a>
                           ) : (
                             <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={10} /> Area not set</p>
+                          )}
+                          {loc.lat !== 0 && loc.lng !== 0 && (
+                            <p className="text-[10px] text-text-secondary font-mono mt-0.5">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</p>
                           )}
                         </div>
                       ))}
