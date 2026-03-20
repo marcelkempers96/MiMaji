@@ -265,6 +265,10 @@ function MobileFooter() {
           <Droplets size={16} />
           Order Water
         </Link>
+        <Link href="/products" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+          <ShoppingCart size={16} />
+          Our Products
+        </Link>
         <AuthLink href="/orders" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <FileText size={16} />
           My Orders
@@ -299,6 +303,10 @@ function MobileFooter() {
         <Link href="/water-guide" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Droplets size={16} />
           Water Guide
+        </Link>
+        <Link href="/blog" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+          <FileText size={16} />
+          Blog
         </Link>
         <Link href="/contact" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Phone size={16} />

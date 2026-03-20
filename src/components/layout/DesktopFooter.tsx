@@ -60,6 +60,7 @@ export default function DesktopFooter() {
             <h4 className="font-bold text-sm mb-4 uppercase tracking-wide text-white/80">Quick Links</h4>
             <div className="flex flex-col gap-2">
               <Link href="/buy" className="text-white/60 text-sm hover:text-white transition-colors">Order Water</Link>
+              <Link href="/products" className="text-white/60 text-sm hover:text-white transition-colors">Our Products</Link>
               <Link href="/orders" className="text-white/60 text-sm hover:text-white transition-colors">My Orders</Link>
               <Link href="/subscriptions" className="text-white/60 text-sm hover:text-white transition-colors">Subscriptions</Link>
               <Link href="/rewards" className="text-white/60 text-sm hover:text-white transition-colors">Water Warriors Rewards</Link>
@@ -72,6 +73,7 @@ export default function DesktopFooter() {
               <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
               <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
               <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
+              <Link href="/blog" className="text-white/60 text-sm hover:text-white transition-colors">Blog</Link>
               <Link href="/corporate" className="text-white/60 text-sm hover:text-white transition-colors">Corporate Solutions</Link>
               <Link href="/contact" className="text-white/60 text-sm hover:text-white transition-colors">Contact Us</Link>
               <Link href="/support" className="text-white/60 text-sm hover:text-white transition-colors">Help & Support</Link>
