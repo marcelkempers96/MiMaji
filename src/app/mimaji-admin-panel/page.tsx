@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS } from "@/lib/vendor";
 import {
@@ -344,11 +344,11 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-gray-100">
                     {orders
                       .sort(
-                        (a, b) =>
+                        (a: OrderRecord, b: OrderRecord) =>
                           new Date(b.created_at).getTime() -
                           new Date(a.created_at).getTime()
                       )
-                      .map((order) => (
+                      .map((order: OrderRecord) => (
                         <tr
                           key={order.id}
                           className="hover:bg-gray-50/50 transition-colors"
@@ -365,7 +365,7 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3">
                             {order.order_items && order.order_items.length > 0
                               ? order.order_items
-                                  .map((i) => `${i.quantity}x ${i.name}`)
+                                  .map((i: { name: string; quantity: number; price: number }) => `${i.quantity}x ${i.name}`)
                                   .join(", ")
                               : order.product_name || "—"}
                           </td>
@@ -415,7 +415,7 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3 relative">
                             <div className="relative">
                               <button
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation();
                                   setStatusDropdown(
                                     statusDropdown === order.id
@@ -431,7 +431,7 @@ export default function AdminDashboard() {
                               {statusDropdown === order.id && (
                                 <div
                                   className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-40 py-1 min-w-[170px]"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 >
                                   {STATUS_OPTIONS.filter(
                                     (s) => s !== order.status
