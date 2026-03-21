@@ -382,7 +382,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error("Signup error:", { message: error.message, status: error.status, code: (error as Record<string, unknown>).code });
+        console.error("Signup error:", { message: error.message, status: error.status, code: (error as unknown as Record<string, unknown>).code });
         if (error.message.includes("already registered")) {
           // Account exists — try to log them in directly
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
