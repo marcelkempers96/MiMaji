@@ -347,6 +347,9 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       if (error.message.includes("Invalid login credentials")) {
         return { error: "Invalid phone number or PIN" };
       }
+      if (error.message.toLowerCase().includes("rate limit")) {
+        return { error: "Too many login attempts. Please wait a few minutes and try again." };
+      }
       return { error: error.message };
     }
     return {};
@@ -367,6 +370,9 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       if (error.message.includes("already registered")) {
         return { error: "This phone number is already registered. Please log in." };
+      }
+      if (error.message.toLowerCase().includes("rate limit")) {
+        return { error: "Too many signup attempts. Please wait a few minutes and try again." };
       }
       // Handle "Database error saving new user" by retrying profile creation
       if (error.message.includes("Database error")) {
