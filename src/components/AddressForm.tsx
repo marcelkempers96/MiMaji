@@ -140,7 +140,7 @@ export default function AddressForm({
     }
 
     if (autocompleteServiceRef.current) {
-      // Use Google Maps
+      // Use Google Maps, with Nominatim fallback if no results
       autocompleteServiceRef.current.getPlacePredictions(
         {
           input: value,
@@ -153,14 +153,16 @@ export default function AddressForm({
             setShowPredictions(true);
           } else {
             setPredictions([]);
-            setShowPredictions(false);
+            // Fallback to Nominatim when Google returns no results
+            if (nominatimTimerRef.current) clearTimeout(nominatimTimerRef.current);
+            nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 300);
           }
         }
       );
     } else {
       // Fallback to Nominatim (debounced to respect rate limits)
       if (nominatimTimerRef.current) clearTimeout(nominatimTimerRef.current);
-      nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 500);
+      nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 300);
     }
   }, [searchNominatim]);
 
@@ -351,7 +353,7 @@ export default function AddressForm({
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={mapsLoaded ? "Search for area, street, or building..." : "Type area or street name..."}
             className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-secondary"
-            onFocus={() => predictions.length > 0 && setShowPredictions(true)}
+            onFocus={() => (predictions.length > 0 || nominatimResults.length > 0) && setShowPredictions(true)}
           />
           <button
             onClick={handleGetCurrentLocation}

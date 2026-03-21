@@ -287,17 +287,20 @@ export default function AccountSettingsPage() {
               />
             </div>
             <button
-              onClick={async () => {
+              onClick={() => {
                 if (!user?.id) return;
-                if (hasSupabaseConfig) {
-                  await supabase.from("profiles").update({ business_name: corpBusinessName, business_reg_no: corpBusinessReg, is_corporate: true }).eq("id", user.id);
-                } else {
-                  const profileKey = `mimaji_profile_${user.id}`;
+                // Save to localStorage immediately for instant feedback
+                const profileKey = `mimaji_profile_${user.id}`;
+                try {
                   const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
                   localStorage.setItem(profileKey, JSON.stringify({ ...existing, businessName: corpBusinessName, businessRegNo: corpBusinessReg, isCorporate: true }));
-                }
+                } catch {}
                 setCorpSaved(true);
                 setTimeout(() => setCorpSaved(false), 2500);
+                // Supabase update in background (non-blocking)
+                if (hasSupabaseConfig) {
+                  Promise.resolve(supabase.from("profiles").update({ business_name: corpBusinessName, business_reg_no: corpBusinessReg, is_corporate: true }).eq("id", user.id)).catch(() => {});
+                }
               }}
               className="w-full bg-primary text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-[#1a5a9a] transition-colors"
             >

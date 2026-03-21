@@ -88,16 +88,18 @@ export default function ConfirmOrderPage() {
   const cartTotal = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
 
   // Auth guard: redirect to login if not authenticated (after loading completes)
-  if (!authLoading && !user && paymentStatus === "idle") {
-    router.push("/login?redirect=/delivery");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !user && paymentStatus === "idle") {
+      router.push("/login?redirect=/delivery");
+    }
+  }, [authLoading, user, paymentStatus, router]);
 
-  // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
-  if (!authLoading && user && items.length === 0 && paymentStatus === "idle") {
-    router.push("/buy");
-    return null;
-  }
+  // Empty cart guard: redirect to shop if cart is empty (only when idle, not during payment)
+  useEffect(() => {
+    if (!authLoading && user && items.length === 0 && paymentStatus === "idle" && !confirmedOrderRef.current) {
+      router.push("/buy");
+    }
+  }, [authLoading, user, items.length, paymentStatus, router]);
 
   // Scheduled delivery
   const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(null);
@@ -381,14 +383,15 @@ export default function ConfirmOrderPage() {
     setErrorMsg("");
     try {
       await finalizeOrder(mpesaCode.trim().toUpperCase());
-      setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
       setPaymentStatus("error");
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
-    } finally {
       setCreatingOrder(false);
+      return;
     }
+    setCreatingOrder(false);
+    setPaymentStatus("confirmed");
   };
 
   const handleMpesaSkip = async () => {
@@ -396,14 +399,15 @@ export default function ConfirmOrderPage() {
     setErrorMsg("");
     try {
       await finalizeOrder(null);
-      setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
       setPaymentStatus("error");
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
-    } finally {
       setCreatingOrder(false);
+      return;
     }
+    setCreatingOrder(false);
+    setPaymentStatus("confirmed");
   };
 
   // ── M-PESA Code Entry Screen (order not yet created) ──
