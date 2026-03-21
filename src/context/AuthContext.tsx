@@ -431,6 +431,12 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Populate the top-level phone column and display_name in auth.users
+      await sb.auth.updateUser({
+        phone: cleaned,
+        data: { full_name: name, phone: cleaned, display_name: name },
+      });
+
       // Initialize rewards and referral relationship in Supabase
       const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
       if (userId) {
