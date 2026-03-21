@@ -149,12 +149,13 @@ function getLast7Days(): string[] {
 // ── Admin API helpers (bypass RLS via service role) ──
 const ADMIN_CODE = "5566";
 
-async function adminFetch(type: string): Promise<unknown[]> {
+async function adminFetch(type: string): Promise<{ data: unknown[]; ok: boolean }> {
   try {
     const res = await fetch(`/api/admin?code=${ADMIN_CODE}&type=${type}`);
-    if (!res.ok) { console.error(`Admin API ${type} error:`, res.status); return []; }
-    return await res.json();
-  } catch (e) { console.error(`Admin API ${type} fetch error:`, e); return []; }
+    if (!res.ok) { console.error(`Admin API ${type} error:`, res.status); return { data: [], ok: false }; }
+    const data = await res.json();
+    return { data: Array.isArray(data) ? data : [], ok: true };
+  } catch (e) { console.error(`Admin API ${type} fetch error:`, e); return { data: [], ok: false }; }
 }
 
 async function adminPost(body: Record<string, unknown>): Promise<{ success?: boolean; error?: string }> {
@@ -276,70 +277,70 @@ function AdminDashboardInner() {
   const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
 
   async function loadVendors() {
-    if (hasSupabaseConfig) {
-      try {
-        const raw = await adminFetch("vendors") as Record<string, unknown>[];
-        setCustomVendors(raw.map((v) => ({
-          id: v.id as string,
-          name: v.name as string,
-          area: (v.area as string) || "",
-          distance: "",
-          rating: Number(v.rating) || 0,
-          reviews: Number(v.reviews) || 0,
-          hours: (v.hours as string) || "7AM - 8PM",
-          products: (v.products as string[]) || [],
-          brands: (v.brands as string[]) || [],
-          areasServed: (v.areas_served as string[]) || [],
-          businessRegNo: (v.business_reg_no as string) || "",
-          mpesaNumber: (v.mpesa_number as string) || "",
-          phoneNumbers: (v.phone_numbers as string[]) || [],
-          locations: ((v.vendor_locations as Array<Record<string, unknown>>) || []).map((l) => ({
-            id: l.id as string,
-            name: l.name as string,
-            area: (l.area as string) || "",
-            lat: Number(l.lat),
-            lng: Number(l.lng),
-          })),
-        })));
-        return;
-      } catch {}
+    // Always try server API first
+    const { data: raw, ok } = await adminFetch("vendors");
+    if (ok && raw.length > 0) {
+      setCustomVendors((raw as Record<string, unknown>[]).map((v) => ({
+        id: v.id as string,
+        name: (v.name as string) || "",
+        area: (v.area as string) || "",
+        distance: "",
+        rating: Number(v.rating) || 0,
+        reviews: Number(v.reviews) || 0,
+        hours: (v.hours as string) || "7AM - 8PM",
+        products: (v.products as string[]) || [],
+        brands: (v.brands as string[]) || [],
+        areasServed: (v.areas_served as string[]) || [],
+        businessRegNo: (v.business_reg_no as string) || "",
+        mpesaNumber: (v.mpesa_number as string) || "",
+        phoneNumbers: (v.phone_numbers as string[]) || [],
+        locations: ((v.vendor_locations as Array<Record<string, unknown>>) || []).map((l) => ({
+          id: l.id as string,
+          name: l.name as string,
+          area: (l.area as string) || "",
+          lat: Number(l.lat),
+          lng: Number(l.lng),
+        })),
+      })));
+      return;
     }
+    // Fallback: mock vendors from localStorage
     setCustomVendors(loadCustomVendors());
   }
 
   async function handleAddVendor() {
-    if (hasSupabaseConfig) {
-      const locations = [];
-      if (newVendor.locationName) {
-        locations.push({
-          name: newVendor.locationName,
-          area: newVendor.locationArea || newVendor.area,
-          lat: parseFloat(newVendor.locationLat) || -1.2864,
-          lng: parseFloat(newVendor.locationLng) || 36.8172,
-        });
-      }
-      for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
-        locations.push({
-          name: loc.name,
-          area: loc.area || newVendor.area,
-          lat: parseFloat(loc.lat) || -1.2864,
-          lng: parseFloat(loc.lng) || 36.8172,
-        });
-      }
-      await adminPost({
-        action: "add_vendor",
-        name: newVendor.name,
-        area: newVendor.area,
-        rating: parseFloat(newVendor.rating) || 4.5,
-        reviews: parseInt(newVendor.reviews) || 0,
-        hours: newVendor.hours,
-        products: newVendor.products,
-        businessRegNo: newVendor.businessRegNo,
-        mpesaNumber: newVendor.mpesaNumber,
-        phoneNumbers: newVendor.phoneNumbers.split(",").map((p: string) => p.trim()).filter(Boolean),
-        deliveryRadius: parseInt(newVendor.deliveryRadius) || 10,
-        locations,
+    const locations = [];
+    if (newVendor.locationName) {
+      locations.push({
+        name: newVendor.locationName,
+        area: newVendor.locationArea || newVendor.area,
+        lat: parseFloat(newVendor.locationLat) || -1.2864,
+        lng: parseFloat(newVendor.locationLng) || 36.8172,
       });
+    }
+    for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
+      locations.push({
+        name: loc.name,
+        area: loc.area || newVendor.area,
+        lat: parseFloat(loc.lat) || -1.2864,
+        lng: parseFloat(loc.lng) || 36.8172,
+      });
+    }
+    const result = await adminPost({
+      action: "add_vendor",
+      name: newVendor.name,
+      area: newVendor.area,
+      rating: parseFloat(newVendor.rating) || 4.5,
+      reviews: parseInt(newVendor.reviews) || 0,
+      hours: newVendor.hours,
+      products: newVendor.products,
+      businessRegNo: newVendor.businessRegNo,
+      mpesaNumber: newVendor.mpesaNumber,
+      phoneNumbers: newVendor.phoneNumbers.split(",").map((p: string) => p.trim()).filter(Boolean),
+      deliveryRadius: parseInt(newVendor.deliveryRadius) || 10,
+      locations,
+    });
+    if (result.success) {
       await loadVendors();
     } else {
       const id = `cv-${Date.now()}`;
@@ -392,8 +393,8 @@ function AdminDashboardInner() {
   }
 
   async function handleDeleteCustomVendor(vendorId: string) {
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "delete_vendor", vendorId });
+    const result = await adminPost({ action: "delete_vendor", vendorId });
+    if (result.success) {
       await loadVendors();
     } else {
       const remaining = deleteCustomVendor(vendorId);
@@ -406,17 +407,16 @@ function AdminDashboardInner() {
   const DEMO_IDS = ["d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d"];
 
   async function loadUsers() {
-    if (hasSupabaseConfig) {
-      try {
-        const raw = await adminFetch("users") as Record<string, unknown>[];
-        setUsers(raw.map((p) => ({
-          id: p.id as string,
-          phone: (p.phone as string) || "",
-          name: (p.full_name as string) || "",
-          role: (p.role as string) || "customer",
-        })));
-        return;
-      } catch {}
+    // Always try server API first
+    const { data: raw, ok } = await adminFetch("users");
+    if (ok && raw.length > 0) {
+      setUsers((raw as Record<string, unknown>[]).map((p) => ({
+        id: p.id as string,
+        phone: (p.phone as string) || "",
+        name: (p.full_name as string) || "",
+        role: (p.role as string) || "customer",
+      })));
+      return;
     }
 
     // Fallback: localStorage mock
@@ -445,8 +445,8 @@ function AdminDashboardInner() {
   }
 
   async function updateUser(userId: string, updates: Partial<MockUser>) {
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "update_user", userId, name: updates.name, role: updates.role, phone: updates.phone });
+    const result = await adminPost({ action: "update_user", userId, name: updates.name, role: updates.role, phone: updates.phone });
+    if (result.success) {
       await loadUsers();
     } else {
       try {
@@ -467,8 +467,8 @@ function AdminDashboardInner() {
   }
 
   async function deleteUser(userId: string) {
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "delete_user", userId });
+    const result = await adminPost({ action: "delete_user", userId });
+    if (result.success) {
       await loadUsers();
     } else {
       try {
@@ -496,11 +496,11 @@ function AdminDashboardInner() {
     }
     if (!phone || !newUser.name || !newUser.password) return;
 
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "create_user", phone, name: newUser.name, password: newUser.password, role: newUser.role });
+    const result = await adminPost({ action: "create_user", phone, name: newUser.name, password: newUser.password, role: newUser.role });
+    if (result.success) {
       await loadUsers();
     } else {
-      // Mock: save to signups localStorage
+      // Fallback: save to signups localStorage
       const id = `admin-created-${Date.now()}`;
       const mockUser = { id, phone, name: newUser.name, role: newUser.role };
       try {
@@ -520,10 +520,10 @@ function AdminDashboardInner() {
 
   const loadOrders = useCallback(async () => {
     try {
-      let data: OrderRecord[];
-      if (hasSupabaseConfig) {
-        const raw = await adminFetch("orders") as Record<string, unknown>[];
-        data = raw.map((row) => ({
+      // Always try server API first (bypasses RLS), fall back to direct client fetch
+      const { data: raw, ok } = await adminFetch("orders");
+      if (ok) {
+        const data = (raw as Record<string, unknown>[]).map((row) => ({
           id: (row.id as string) || "",
           customer_id: (row.customer_id as string) || "",
           delivery_address: (row.delivery_address as string) || "",
@@ -550,10 +550,12 @@ function AdminDashboardInner() {
           customer_name: (row.customer_name as string) || undefined,
           customer_phone: (row.customer_phone as string) || undefined,
         }));
+        setOrders(data);
       } else {
-        data = await fetchAllOrders();
+        // Fallback: direct client fetch (works in mock/demo mode)
+        const data = await fetchAllOrders();
+        setOrders(data);
       }
-      setOrders(data);
       setLastRefresh(new Date());
     } catch (e) {
       console.error("loadOrders error:", e);
@@ -640,9 +642,8 @@ function AdminDashboardInner() {
         return;
       }
     }
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "update_order_status", orderId, status: newStatus });
-    } else {
+    const result = await adminPost({ action: "update_order_status", orderId, status: newStatus });
+    if (!result.success) {
       await updateOrderStatus(orderId, newStatus);
     }
     loadOrders();
@@ -651,9 +652,8 @@ function AdminDashboardInner() {
 
   async function confirmCancel() {
     if (!cancelConfirm) return;
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "update_order_status", orderId: cancelConfirm.orderId, status: "cancelled" });
-    } else {
+    const result = await adminPost({ action: "update_order_status", orderId: cancelConfirm.orderId, status: "cancelled" });
+    if (!result.success) {
       await updateOrderStatus(cancelConfirm.orderId, "cancelled");
     }
     loadOrders();
@@ -663,15 +663,14 @@ function AdminDashboardInner() {
   async function reassignVendor(orderId: string, vendorId: string) {
     const vendor = allVendors.find(v => v.id === vendorId);
     if (!vendor) return;
-    if (hasSupabaseConfig) {
-      await adminPost({
-        action: "reassign_vendor",
-        orderId,
-        vendorId,
-        vendorName: vendor.name,
-        vendorLocation: vendor.locations?.[0]?.name || vendor.area || "",
-      });
-    } else {
+    const result = await adminPost({
+      action: "reassign_vendor",
+      orderId,
+      vendorId,
+      vendorName: vendor.name,
+      vendorLocation: vendor.locations?.[0]?.name || vendor.area || "",
+    });
+    if (!result.success) {
       const { updateOrder } = await import("@/lib/orders");
       await updateOrder(orderId, {
         vendor_id: vendorId,
@@ -693,24 +692,23 @@ function AdminDashboardInner() {
   const [deleteSubConfirm, setDeleteSubConfirm] = useState<string | null>(null);
 
   async function loadSubscriptions() {
-    if (hasSupabaseConfig) {
-      try {
-        const raw = await adminFetch("subscriptions") as Record<string, unknown>[];
-        setSubscriptions(raw.map((s) => ({
-          id: s.id as string,
-          userId: (s.user_id as string) || "",
-          userName: (s.user_name as string) || "",
-          userPhone: (s.user_phone as string) || "",
-          planId: (s.plan_id as string) || "custom",
-          planName: (s.plan_name as string) || "Custom",
-          jugsPerMonth: Number(s.jugs_per_month) || 0,
-          pricePerJug: Number(s.price_per_jug) || 0,
-          monthlyTotal: Number(s.monthly_total) || 0,
-          status: (s.status as string) || "active",
-          startDate: (s.created_at as string) || new Date().toISOString(),
-        })));
-        return;
-      } catch {}
+    // Always try server API first
+    const { data: raw, ok } = await adminFetch("subscriptions");
+    if (ok) {
+      setSubscriptions((raw as Record<string, unknown>[]).map((s) => ({
+        id: s.id as string,
+        userId: (s.user_id as string) || "",
+        userName: (s.user_name as string) || "",
+        userPhone: (s.user_phone as string) || "",
+        planId: (s.plan_id as string) || "custom",
+        planName: (s.plan_name as string) || "Custom",
+        jugsPerMonth: Number(s.jugs_per_month) || 0,
+        pricePerJug: Number(s.price_per_jug) || 0,
+        monthlyTotal: Number(s.monthly_total) || 0,
+        status: (s.status as string) || "active",
+        startDate: (s.created_at as string) || new Date().toISOString(),
+      })));
+      return;
     }
     // Fallback: localStorage
     try {
@@ -735,20 +733,20 @@ function AdminDashboardInner() {
       status: "active",
       startDate: new Date().toISOString(),
     };
-    if (hasSupabaseConfig) {
-      await adminPost({
-        action: "add_subscription",
-        subscription: {
-          user_name: sub.userName,
-          user_phone: sub.userPhone,
-          plan_id: sub.planId,
-          plan_name: sub.planName,
-          jugs_per_month: sub.jugsPerMonth,
-          price_per_jug: sub.pricePerJug,
-          monthly_total: sub.monthlyTotal,
-          status: "active",
-        },
-      });
+    const result = await adminPost({
+      action: "add_subscription",
+      subscription: {
+        user_name: sub.userName,
+        user_phone: sub.userPhone,
+        plan_id: sub.planId,
+        plan_name: sub.planName,
+        jugs_per_month: sub.jugsPerMonth,
+        price_per_jug: sub.pricePerJug,
+        monthly_total: sub.monthlyTotal,
+        status: "active",
+      },
+    });
+    if (result.success) {
       await loadSubscriptions();
     } else {
       const all = [...subscriptions, sub];
@@ -760,8 +758,8 @@ function AdminDashboardInner() {
   }
 
   async function toggleSubscriptionStatus(subId: string, newStatus: string) {
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "update_subscription", subId, status: newStatus });
+    const result = await adminPost({ action: "update_subscription", subId, status: newStatus });
+    if (result.success) {
       await loadSubscriptions();
     } else {
       const all = subscriptions.map((s) => s.id === subId ? { ...s, status: newStatus } : s);
@@ -771,8 +769,8 @@ function AdminDashboardInner() {
   }
 
   async function deleteSubscription(subId: string) {
-    if (hasSupabaseConfig) {
-      await adminPost({ action: "delete_subscription", subId });
+    const result = await adminPost({ action: "delete_subscription", subId });
+    if (result.success) {
       await loadSubscriptions();
     } else {
       const all = subscriptions.filter((s) => s.id !== subId);

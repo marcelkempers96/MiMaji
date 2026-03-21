@@ -7,6 +7,15 @@ function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 
+function notConfigured() {
+  return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
+}
+
+const hasServiceKey =
+  !!process.env.SUPABASE_SERVICE_ROLE_KEY &&
+  process.env.SUPABASE_SERVICE_ROLE_KEY !== "" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://placeholder.supabase.co";
+
 /**
  * Admin API — uses service role client to bypass RLS.
  * GET /api/admin?code=5566&type=orders|users|vendors|subscriptions
@@ -14,6 +23,7 @@ function unauthorized() {
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   if (code !== ADMIN_CODE) return unauthorized();
+  if (!hasServiceKey) return notConfigured();
 
   const type = req.nextUrl.searchParams.get("type") || "orders";
   const sb = createServiceClient();
@@ -91,6 +101,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
   if (body.code !== ADMIN_CODE) return unauthorized();
+  if (!hasServiceKey) return notConfigured();
 
   const sb = createServiceClient();
   const { action } = body;
