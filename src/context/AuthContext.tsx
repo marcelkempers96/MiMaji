@@ -346,93 +346,103 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSupabase, mapUser, loadProfile]);
 
   const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
-    const sb = await getSupabase();
-    const email = formatPhoneEmail(phone);
-    const password = padPin(pin);
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (error.message.includes("Invalid login credentials")) {
-        return { error: "Invalid phone number or PIN" };
+    try {
+      const sb = await getSupabase();
+      const email = formatPhoneEmail(phone);
+      const password = padPin(pin);
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          return { error: "Invalid phone number or PIN" };
+        }
+        if (error.message.toLowerCase().includes("rate limit")) {
+          return { error: "Too many login attempts. Please wait a few minutes and try again." };
+        }
+        return { error: error.message };
       }
-      if (error.message.toLowerCase().includes("rate limit")) {
-        return { error: "Too many login attempts. Please wait a few minutes and try again." };
-      }
-      return { error: error.message };
+      return {};
+    } catch (err) {
+      console.error("Auth login error:", err);
+      return { error: err instanceof Error ? err.message : "Login failed unexpectedly." };
     }
-    return {};
   }, [getSupabase]);
 
   const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
-    const sb = await getSupabase();
-    const cleaned = normalizePhone(phone);
-    const email = formatPhoneEmail(phone);
-    const password = padPin(pin);
+    try {
+      const sb = await getSupabase();
+      const cleaned = normalizePhone(phone);
+      const email = formatPhoneEmail(phone);
+      const password = padPin(pin);
 
-    const { data: signUpData, error } = await sb.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name, phone: cleaned } },
-    });
+      const { data: signUpData, error } = await sb.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name, phone: cleaned } },
+      });
 
-    if (error) {
-      if (error.message.includes("already registered")) {
-        // Account exists — try to log them in directly
-        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-        if (!loginErr) return {};
-        return { error: "This phone number is already registered. Please log in." };
-      }
-      if (error.message.toLowerCase().includes("rate limit") || error.status === 429) {
-        // Rate-limited — the account may have been created in a prior attempt; try logging in
-        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-        if (!loginErr) return {};
-        return { error: "Too many attempts. Please wait a few minutes and try again." };
-      }
-      // Handle "Database error saving new user" by retrying profile creation
-      if (error.message.includes("Database error")) {
-        // Try signing in — the user may have been created but the profile trigger failed
-        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-        if (!loginErr) {
-          // User was created, just profile failed — create profile manually
-          const sess = (await sb.auth.getSession()).data.session;
-          if (sess?.user) {
-            const delivPin = Math.abs([...sess.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
-            await sb.from("profiles").upsert({
-              id: sess.user.id,
-              phone: cleaned,
-              full_name: name,
-              role: "customer",
-              delivery_pin: delivPin,
-            }, { onConflict: "id" });
+      if (error) {
+        if (error.message.includes("already registered")) {
+          // Account exists — try to log them in directly
+          const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+          if (!loginErr) return {};
+          return { error: "This phone number is already registered. Please log in." };
+        }
+        if (error.message.toLowerCase().includes("rate limit") || error.status === 429) {
+          // Rate-limited — the account may have been created in a prior attempt; try logging in
+          const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+          if (!loginErr) return {};
+          return { error: "Too many attempts. Please wait a few minutes and try again." };
+        }
+        // Handle "Database error saving new user" by retrying profile creation
+        if (error.message.includes("Database error")) {
+          // Try signing in — the user may have been created but the profile trigger failed
+          const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+          if (!loginErr) {
+            // User was created, just profile failed — create profile manually
+            const sess = (await sb.auth.getSession()).data.session;
+            if (sess?.user) {
+              const delivPin = Math.abs([...sess.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
+              await sb.from("profiles").upsert({
+                id: sess.user.id,
+                phone: cleaned,
+                full_name: name,
+                role: "customer",
+                delivery_pin: delivPin,
+              }, { onConflict: "id" });
+            }
+            return {};
           }
-          return {};
+          return { error: "Account creation failed. Please try again." };
         }
-        return { error: "Account creation failed. Please try again." };
+        return { error: error.message };
       }
-      return { error: error.message };
-    }
 
-    // If Supabase didn't auto-login (email confirmation enabled), sign in now
-    if (!signUpData?.session) {
-      const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-      if (loginErr) {
-        // If email not confirmed error, the user was created but can't log in
-        if (loginErr.message.includes("Email not confirmed")) {
-          return { error: "Account created but email confirmation is required. Please disable email confirmation in Supabase Auth settings for phone-based auth." };
+      // If Supabase didn't auto-login (email confirmation enabled), sign in now
+      if (!signUpData?.session) {
+        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+        if (loginErr) {
+          // If email not confirmed error, the user was created but can't log in
+          if (loginErr.message.includes("Email not confirmed")) {
+            return { error: "Account created but email confirmation is required. Please disable email confirmation in Supabase Auth settings for phone-based auth." };
+          }
+          return { error: loginErr.message };
         }
-        return { error: loginErr.message };
       }
-    }
 
-    // Initialize rewards and referral relationship in Supabase
-    const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
-    if (userId) {
-      try {
-        const { initRewardsAsync } = await import("@/lib/rewards");
-        await initRewardsAsync(userId, name, referralCode);
-      } catch {}
-    }
+      // Initialize rewards and referral relationship in Supabase
+      const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
+      if (userId) {
+        try {
+          const { initRewardsAsync } = await import("@/lib/rewards");
+          await initRewardsAsync(userId, name, referralCode);
+        } catch {}
+      }
 
-    return {};
+      return {};
+    } catch (err) {
+      console.error("Auth signup error:", err);
+      return { error: err instanceof Error ? err.message : "Signup failed unexpectedly." };
+    }
   }, [getSupabase]);
 
   const logout = useCallback(async () => {
