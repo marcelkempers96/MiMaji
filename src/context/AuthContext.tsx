@@ -431,11 +431,21 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Store phone in auth.users phone column and name in user metadata
-      await sb.auth.updateUser({
-        phone: cleaned,
-        data: { full_name: name, phone: cleaned, display_name: name },
-      });
+      // Best-effort: store phone in auth.users phone column and name in metadata
+      // This may fail if phone provider is not enabled — don't block signup
+      try {
+        await sb.auth.updateUser({
+          phone: cleaned,
+          data: { full_name: name, phone: cleaned, display_name: name },
+        });
+      } catch {
+        // Fallback: update only metadata (no top-level phone)
+        try {
+          await sb.auth.updateUser({
+            data: { full_name: name, phone: cleaned, display_name: name },
+          });
+        } catch {}
+      }
 
       // Initialize rewards and referral relationship in Supabase
       const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
