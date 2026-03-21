@@ -244,18 +244,29 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addSavedLocation = useCallback((location: SavedLocation) => {
-    setSavedLocations((prev) => [...prev, location]);
-  }, []);
+    setSavedLocations((prev) => {
+      const next = [...prev, location];
+      // Persist immediately to localStorage (don't wait for effect)
+      persistLocations(next, user?.id);
+      return next;
+    });
+  }, [user?.id]);
 
   const removeSavedLocation = useCallback((id: string) => {
-    setSavedLocations((prev) => prev.filter((loc) => loc.id !== id));
-  }, []);
+    setSavedLocations((prev) => {
+      const next = prev.filter((loc) => loc.id !== id);
+      persistLocations(next, user?.id);
+      return next;
+    });
+  }, [user?.id]);
 
   const updateSavedLocation = useCallback((id: string, updates: Partial<SavedLocation>) => {
-    setSavedLocations((prev) =>
-      prev.map((loc) => (loc.id === id ? { ...loc, ...updates } : loc))
-    );
-  }, []);
+    setSavedLocations((prev) => {
+      const next = prev.map((loc) => (loc.id === id ? { ...loc, ...updates } : loc));
+      persistLocations(next, user?.id);
+      return next;
+    });
+  }, [user?.id]);
 
   return (
     <LocationContext.Provider

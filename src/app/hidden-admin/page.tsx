@@ -960,13 +960,23 @@ function AdminDashboardInner() {
                               <span className="text-xs text-text-secondary">{order.product_name || "—"}</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-text-secondary max-w-[200px]">
-                            <span title={order.delivery_address}>
-                              {truncate(order.delivery_address, 25)}
-                            </span>
+                          <td className="px-4 py-3 text-text-secondary max-w-[260px]">
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline font-medium" title={order.delivery_address}>
+                              {order.delivery_address}
+                            </a>
+                            {order.delivery_address_details?.neighbourhood && (
+                              <p className="text-[11px] text-text-secondary mt-0.5">{order.delivery_address_details.neighbourhood}</p>
+                            )}
+                            {order.delivery_address_details?.buildingName && (
+                              <p className="text-[11px] text-text-secondary mt-0.5">
+                                {order.delivery_address_details.buildingName}
+                                {order.delivery_address_details.floor ? `, Floor ${order.delivery_address_details.floor}` : ""}
+                                {order.delivery_address_details.unitNumber ? `, Unit ${order.delivery_address_details.unitNumber}` : ""}
+                              </p>
+                            )}
                             {order.delivery_address_details?.additionalDirections && (
-                              <p className="text-[11px] italic truncate" title={order.delivery_address_details.additionalDirections}>
-                                {truncate(order.delivery_address_details.additionalDirections, 30)}
+                              <p className="text-[11px] italic text-text-secondary mt-0.5" title={order.delivery_address_details.additionalDirections}>
+                                &quot;{order.delivery_address_details.additionalDirections}&quot;
                               </p>
                             )}
                           </td>
@@ -1033,7 +1043,15 @@ function AdminDashboardInner() {
                           </td>
                           <td className="px-4 py-3 text-xs">
                             {order.vendor_name ? (
-                              <span className="font-medium text-text-primary">{order.vendor_name}</span>
+                              <div>
+                                <span className="font-medium text-text-primary">{order.vendor_name}</span>
+                                {(order.status === "confirmed" || order.status === "out_for_delivery") && (
+                                  <p className="text-[10px] text-green-600 font-semibold mt-0.5">Accepted — Delivery in Progress</p>
+                                )}
+                                {order.status === "delivered" && (
+                                  <p className="text-[10px] text-green-600 mt-0.5">Delivered</p>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-text-secondary italic">Unassigned</span>
                             )}

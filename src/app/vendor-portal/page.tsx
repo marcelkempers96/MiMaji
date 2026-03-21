@@ -745,6 +745,37 @@ export default function VendorPortalPage() {
                       </div>
                     </div>
                   )}
+                  {/* Customer Info */}
+                  {(order.customer_name || order.customer_phone) && (
+                    <div className="bg-gray-50 rounded-lg p-2.5 mt-2">
+                      <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide mb-1">Customer</p>
+                      {order.customer_name && <p className="text-xs font-medium text-text-primary">{order.customer_name}</p>}
+                      {order.customer_phone && (
+                        <a href={`tel:+${order.customer_phone.replace(/^0/, "254")}`} className="text-xs text-primary hover:underline">
+                          {order.customer_phone.startsWith("254") ? `0${order.customer_phone.slice(3)}` : order.customer_phone}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {/* Payment Confirmation */}
+                  {order.mpesa_ref && (
+                    <div className="bg-green-50 rounded-lg p-2.5 mt-2 flex items-center gap-2">
+                      <div>
+                        <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Payment Confirmed</p>
+                        <p className="text-xs font-bold text-green-700 font-mono">{order.mpesa_ref}</p>
+                      </div>
+                    </div>
+                  )}
+                  {!order.mpesa_ref && order.payment_method === "mpesa-app" && (
+                    <div className="bg-yellow-50 rounded-lg p-2.5 mt-2">
+                      <p className="text-[10px] text-yellow-700 font-semibold">Awaiting M-PESA code</p>
+                    </div>
+                  )}
+                  {order.payment_method === "cash" && (
+                    <div className="bg-orange-50 rounded-lg p-2.5 mt-2">
+                      <p className="text-[10px] text-orange-700 font-semibold">Cash on Delivery</p>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-3">
                     <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
                     <span className="text-text-secondary text-[10px]">{formatOrderDateTime(order.created_at)}</span>
@@ -947,9 +978,11 @@ export default function VendorPortalPage() {
                     <thead>
                       <tr className="border-b border-[#F0F0F0]">
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Order</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Customer</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Items</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Address</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Total</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Payment</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Delivery</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Status</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Action</th>
@@ -961,6 +994,14 @@ export default function VendorPortalPage() {
                           <td className="px-6 py-4">
                             <p className="text-sm font-bold text-text-primary">{formatOrderId(order.id)}</p>
                             <p className="text-[10px] text-text-secondary">{formatOrderDateTime(order.created_at)}</p>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            {order.customer_name && <span className="font-medium text-text-primary block">{order.customer_name}</span>}
+                            {order.customer_phone && (
+                              <a href={`tel:+${order.customer_phone.replace(/^0/, "254")}`} className="text-[11px] text-primary hover:underline block mt-0.5">
+                                {order.customer_phone.startsWith("254") ? `0${order.customer_phone.slice(3)}` : order.customer_phone}
+                              </a>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             {order.order_items && order.order_items.length > 0 ? (
@@ -984,6 +1025,17 @@ export default function VendorPortalPage() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-sm font-bold text-text-primary">KES {order.price_total.toLocaleString()}</td>
+                          <td className="px-6 py-4">
+                            {order.mpesa_ref ? (
+                              <span className="text-xs font-mono bg-green-50 text-green-700 px-2 py-0.5 rounded font-bold">{order.mpesa_ref}</span>
+                            ) : order.payment_method === "cash" ? (
+                              <span className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded font-medium">Cash</span>
+                            ) : order.payment_method === "mpesa-app" ? (
+                              <span className="text-xs text-yellow-600 font-medium">Awaiting code</span>
+                            ) : (
+                              <span className="text-xs text-text-secondary">{"\u2014"}</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4">
                             {order.scheduled_date && order.scheduled_time ? (
                               <div className="flex items-center gap-1">

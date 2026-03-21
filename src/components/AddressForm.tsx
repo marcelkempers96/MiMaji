@@ -298,7 +298,7 @@ export default function AddressForm({
     if (!isValid) return;
 
     const loc: SavedLocation = {
-      id: initial?.id || `loc-${Date.now()}`,
+      id: initial?.id || `loc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       label: label.trim() || (addressType === "home" ? "Home" : "Office"),
       address: buildDisplayAddress({
         streetName: streetName.trim(),
