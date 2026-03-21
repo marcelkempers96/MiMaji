@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User, ChevronRight, MapPin, CreditCard, Bell, Shield, HelpCircle, LogOut, FileText, Star, Settings, Edit2, KeyRound } from "lucide-react";
 
 import Link from "next/link";
@@ -28,18 +28,32 @@ export default function ProfilePage() {
   const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
-
-  // Redirect unauthenticated users to login
-  if (!authLoading && !user) {
-    router.push("/login?redirect=/profile");
-    return null;
-  }
   const [editName, setEditName] = useState(user?.name || "");
+  const loggingOutRef = useRef(false);
+
+  // Redirect unauthenticated users to login (must be in useEffect, not during render)
+  useEffect(() => {
+    if (!authLoading && !user && !loggingOutRef.current) {
+      router.push("/login?redirect=/profile");
+    }
+  }, [authLoading, user, router]);
 
   const handleLogout = async () => {
-    await logout();
+    loggingOutRef.current = true;
+    try {
+      await logout();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
     router.push("/");
   };
+
+  if (authLoading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -233,6 +247,7 @@ function DesktopNav({ isLoggedIn }: { isLoggedIn: boolean }) {
           <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
+          <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Products</Link>
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
           <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
           <Link href="/subscriptions" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Subscriptions</Link>

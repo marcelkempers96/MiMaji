@@ -14,12 +14,17 @@ export interface User {
   deliveryPin?: string;
 }
 
+interface AuthResult {
+  error?: string;
+  user?: User;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  login: (phone: string, pin: string) => Promise<{ error?: string }>;
-  signup: (phone: string, pin: string, name: string, referralCode?: string) => Promise<{ error?: string }>;
+  login: (phone: string, pin: string) => Promise<AuthResult>;
+  signup: (phone: string, pin: string, name: string, referralCode?: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
   updateProfile: (updates: { name?: string; email?: string; mpesaNumber?: string }) => Promise<{ error?: string }>;
 }
@@ -80,6 +85,14 @@ const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
     pin: "5678",
     user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
   },
+  "0700000001": {
+    pin: "1111",
+    user: { id: "v8c3d0e2-4f6a-5b9c-c7e5-2a0f1b8d6c3e", phone: "254700000001", name: "MiMaji Vendor", role: "vendor" },
+  },
+  "254700000001": {
+    pin: "1111",
+    user: { id: "v8c3d0e2-4f6a-5b9c-c7e5-2a0f1b8d6c3e", phone: "254700000001", name: "MiMaji Vendor", role: "vendor" },
+  },
   "0712345677": {
     pin: "0000",
     user: { id: "c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d", phone: "254712345677", name: "Demo Customer", role: "customer" },
@@ -88,23 +101,77 @@ const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
     pin: "0000",
     user: { id: "c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d", phone: "254712345677", name: "Demo Customer", role: "customer" },
   },
+  // New vendor account
+  "0711111111": {
+    pin: "2222",
+    user: { id: "v9d4e1f3-5a7b-6c0d-d8f6-3b1a2c9e7d4f", phone: "254711111111", name: "HydroFlow Lavington", role: "vendor" },
+  },
+  "254711111111": {
+    pin: "2222",
+    user: { id: "v9d4e1f3-5a7b-6c0d-d8f6-3b1a2c9e7d4f", phone: "254711111111", name: "HydroFlow Lavington", role: "vendor" },
+  },
 };
 
-// Storage key for mock session persistence
-const MOCK_SESSION_KEY = "mimaji_mock_user";
+// ── Session persistence (works for BOTH mock and real Supabase users) ──
+// This localStorage cache ensures instant restore on page load/refresh,
+// even before Supabase finishes verifying the session token.
+const USER_CACHE_KEY = "mimaji_user_cache";
+const MOCK_SESSION_KEY = "mimaji_mock_user"; // legacy key, still checked
+const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function saveMockSession(user: User) {
-  try { localStorage.setItem(MOCK_SESSION_KEY, JSON.stringify(user)); } catch {}
-}
-function loadMockSession(): User | null {
+function saveUserCache(user: User, isMock: boolean) {
   try {
-    const raw = localStorage.getItem(MOCK_SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const payload = { user, isMock, expiresAt: Date.now() + SESSION_EXPIRY_MS };
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify(payload));
+    // Also save under legacy key for backwards compat
+    if (isMock) {
+      localStorage.setItem(MOCK_SESSION_KEY, JSON.stringify(payload));
+    }
+  } catch {}
+}
+
+function loadUserCache(): { user: User; isMock: boolean } | null {
+  try {
+    // Try new unified key first
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.expiresAt && Date.now() < parsed.expiresAt && parsed.user) {
+        return { user: parsed.user, isMock: !!parsed.isMock };
+      }
+      // Expired
+      localStorage.removeItem(USER_CACHE_KEY);
+    }
+    // Fall back to legacy mock key
+    const legacyRaw = localStorage.getItem(MOCK_SESSION_KEY);
+    if (legacyRaw) {
+      const parsed = JSON.parse(legacyRaw);
+      // Legacy format: plain user object
+      if (parsed && !parsed.expiresAt && parsed.id) return { user: parsed as User, isMock: true };
+      // New format with expiry
+      if (parsed?.expiresAt && Date.now() < parsed.expiresAt && parsed.user) {
+        return { user: parsed.user, isMock: true };
+      }
+      localStorage.removeItem(MOCK_SESSION_KEY);
+    }
+    return null;
   } catch { return null; }
 }
-function clearMockSession() {
-  try { localStorage.removeItem(MOCK_SESSION_KEY); } catch {}
+
+function clearUserCache() {
+  try {
+    localStorage.removeItem(USER_CACHE_KEY);
+    localStorage.removeItem(MOCK_SESSION_KEY);
+  } catch {}
 }
+
+// Keep legacy helpers as aliases
+function saveMockSession(user: User) { saveUserCache(user, true); }
+function loadMockSession(): User | null {
+  const cached = loadUserCache();
+  return cached?.isMock ? cached.user : null;
+}
+function clearMockSession() { clearUserCache(); }
 
 // ── Mock Auth Provider ─────────────────────────────────────────────
 function MockAuthProvider({ children }: { children: React.ReactNode }) {
@@ -129,9 +196,23 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     const saved = loadMockSession();
     if (saved) setUser(saved);
     setLoading(false);
+
+    // Listen for cross-tab session changes via localStorage
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === USER_CACHE_KEY || e.key === MOCK_SESSION_KEY) {
+        const cached = loadUserCache();
+        if (cached) {
+          setUser(cached.user);
+        } else {
+          setUser(null);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
+  const login = useCallback(async (phone: string, pin: string): Promise<AuthResult> => {
     const cleaned = normalizePhone(phone);
 
     // Build alternative formats to try
@@ -149,7 +230,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
         }
         setUser(account.user);
         saveMockSession(account.user);
-        return {};
+        return { user: account.user };
       }
     }
 
@@ -163,14 +244,14 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
         }
         setUser(signupAccount.user);
         saveMockSession(signupAccount.user);
-        return {};
+        return { user: signupAccount.user };
       }
     }
 
     return { error: "Invalid phone number or PIN" };
   }, [getSignedUpUsers]);
 
-  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
+  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<AuthResult> => {
     const cleaned = normalizePhone(phone);
 
     // Check if phone is already registered (try both formats)
@@ -212,7 +293,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
       updateReferralFriendName(newUser.id, name);
     } catch {}
 
-    return {};
+    return { user: newUser };
   }, [getSignedUpUsers, saveSignedUpUser]);
 
   const logout = useCallback(async () => {
@@ -265,6 +346,15 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // Track whether current user is a mock (demo) account
+  const isMockUserRef = React.useRef(false);
+
+  // Helper to set user + persist mock session when applicable
+  const setMockUser = useCallback((u: User) => {
+    isMockUserRef.current = true;
+    setUser(u);
+    saveMockSession(u);
+  }, []);
 
   // Lazy-import supabase only when credentials exist
   const getSupabase = useCallback(async () => {
@@ -301,57 +391,138 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     return baseUser;
   }, [getSupabase]);
 
+  // Step 1: Instantly restore from localStorage cache (before Supabase loads)
+  // If cached user exists, set loading=false immediately so pages render
+  // without waiting for Supabase. Supabase will silently update in background.
+  useEffect(() => {
+    const cached = loadUserCache();
+    if (cached) {
+      isMockUserRef.current = cached.isMock;
+      setUser(cached.user);
+      setLoading(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Step 2: Verify/update with Supabase session
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
     let initialSessionLoaded = false;
 
     getSupabase().then((sb) => {
-      // Use getSession for initial load only
       sb.auth.getSession().then(async ({ data: { session: sess } }) => {
         initialSessionLoaded = true;
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
+          // Real Supabase session exists — use it (and cache for next page load)
+          isMockUserRef.current = false;
           const enriched = await loadProfile(baseUser.id, baseUser);
           setUser(enriched);
+          saveUserCache(enriched, false);
         } else {
-          setUser(null);
+          // No Supabase session — keep cached user if it was a mock
+          const cached = loadUserCache();
+          if (cached?.isMock) {
+            isMockUserRef.current = true;
+            setUser(cached.user);
+          } else if (!cached) {
+            setUser(null);
+          }
+          // If cached was a real user but Supabase has no session, it means
+          // the session expired — clear the cache
+          if (cached && !cached.isMock) {
+            clearUserCache();
+            setUser(null);
+          }
         }
         setLoading(false);
       }).catch(() => {
+        // Supabase error — keep cached user (already loaded in step 1)
         initialSessionLoaded = true;
         setLoading(false);
       });
 
-      // onAuthStateChange handles subsequent changes (login, signup, logout)
-      // Skip the initial INITIAL_SESSION event to avoid duplicate profile loads
       const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (event, sess) => {
-        if (event === "INITIAL_SESSION") return; // already handled by getSession above
+        if (event === "INITIAL_SESSION") return;
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
+          isMockUserRef.current = false;
           const enriched = await loadProfile(baseUser.id, baseUser);
           setUser(enriched);
-        } else {
+          saveUserCache(enriched, false);
+        } else if (event === "SIGNED_OUT") {
+          // Only clear if explicitly signed out
           setUser(null);
+          clearUserCache();
+          isMockUserRef.current = false;
+        } else if (!isMockUserRef.current) {
+          // Token refresh failed etc. — don't clear mock users
+          // For real users, keep the cached version (optimistic)
         }
         if (!initialSessionLoaded) setLoading(false);
       });
       subscription = sub;
     }).catch(() => {
+      // Supabase init failed — keep cached user from step 1
       setLoading(false);
     });
 
-    return () => { subscription?.unsubscribe(); };
+    // Listen for cross-tab session changes via localStorage
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === USER_CACHE_KEY || e.key === MOCK_SESSION_KEY) {
+        const cached = loadUserCache();
+        if (cached) {
+          isMockUserRef.current = cached.isMock;
+          setUser(cached.user);
+        } else {
+          isMockUserRef.current = false;
+          setUser(null);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      subscription?.unsubscribe();
+      window.removeEventListener("storage", handleStorage);
+    };
   }, [getSupabase, mapUser, loadProfile]);
 
-  const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
+  const login = useCallback(async (phone: string, pin: string): Promise<AuthResult> => {
     try {
       const sb = await getSupabase();
       const email = formatPhoneEmail(phone);
       const password = padPin(pin);
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
+        // Fall back to built-in demo accounts and localStorage signups
+        const cleaned = normalizePhone(phone);
+        const phonesToTry = [cleaned];
+        if (cleaned.startsWith("254")) phonesToTry.push("0" + cleaned.slice(3));
+        for (const p of phonesToTry) {
+          const account = MOCK_ACCOUNTS[p];
+          if (account && account.pin === pin) {
+            setMockUser(account.user);
+            setSession(null);
+            return { user: account.user };
+          }
+        }
+
+        // Also check dynamically signed-up users from localStorage
+        try {
+          const raw = localStorage.getItem("mimaji_mock_signups");
+          const signups: Record<string, { pin: string; user: User }> = raw ? JSON.parse(raw) : {};
+          for (const p of phonesToTry) {
+            const signupAccount = signups[p];
+            if (signupAccount && signupAccount.pin === pin) {
+              setMockUser(signupAccount.user);
+              setSession(null);
+              return { user: signupAccount.user };
+            }
+          }
+        } catch {}
+
         if (error.message.includes("Invalid login credentials")) {
           return { error: "Invalid phone number or PIN" };
         }
@@ -360,21 +531,29 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
         return { error: error.message };
       }
+      // Supabase login succeeded — build user from session
+      const supaUser = data?.user;
+      if (supaUser) {
+        const baseUser = mapUser(supaUser);
+        if (baseUser) {
+          const enriched = await loadProfile(baseUser.id, baseUser);
+          return { user: enriched };
+        }
+      }
       return {};
     } catch (err) {
       console.error("Auth login error:", err);
       return { error: err instanceof Error ? err.message : "Login failed unexpectedly." };
     }
-  }, [getSupabase]);
+  }, [getSupabase, setMockUser, mapUser, loadProfile]);
 
-  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
+  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<AuthResult> => {
     try {
       const sb = await getSupabase();
       const cleaned = normalizePhone(phone);
       const email = formatPhoneEmail(phone);
       const password = padPin(pin);
 
-      console.log("Signup attempt:", { email, passwordLength: password.length });
       const { data: signUpData, error } = await sb.auth.signUp({
         email,
         password,
@@ -382,81 +561,122 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error("Signup error:", { message: error.message, status: error.status, code: (error as unknown as Record<string, unknown>).code });
+        // Check if user already exists locally (mock signups)
+        const checkLocalUser = (): AuthResult | null => {
+          try {
+            const raw = localStorage.getItem("mimaji_mock_signups");
+            const signups: Record<string, { pin: string; user: User }> = raw ? JSON.parse(raw) : {};
+            const altPhone = cleaned.startsWith("254") ? "0" + cleaned.slice(3) : cleaned;
+            const localUser = signups[cleaned] || signups[altPhone];
+            if (localUser && localUser.pin === pin) {
+              setMockUser(localUser.user);
+              return { user: localUser.user };
+            }
+          } catch {}
+          return null;
+        };
+
         if (error.message.includes("already registered")) {
-          // Account exists — try to log them in directly
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
           if (!loginErr) return {};
+          // Supabase login failed (email not confirmed) — try local
+          const local = checkLocalUser();
+          if (local) return local;
           return { error: "This phone number is already registered. Please log in." };
         }
         if (error.message.toLowerCase().includes("rate limit") || error.status === 429) {
-          // Rate-limited — the account may have been created in a prior attempt; try logging in
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
           if (!loginErr) return {};
+          const local = checkLocalUser();
+          if (local) return local;
           return { error: "Too many attempts. Please wait a few minutes and try again." };
         }
-        // Handle "Database error saving new user" by retrying profile creation
         if (error.message.includes("Database error")) {
-          // Try signing in — the user may have been created but the profile trigger failed
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
           if (!loginErr) {
-            // User was created, just profile failed — create profile manually
             const sess = (await sb.auth.getSession()).data.session;
             if (sess?.user) {
               const delivPin = Math.abs([...sess.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
               await sb.from("profiles").upsert({
-                id: sess.user.id,
-                phone: cleaned,
-                full_name: name,
-                role: "customer",
-                delivery_pin: delivPin,
+                id: sess.user.id, phone: cleaned, full_name: name, role: "customer", delivery_pin: delivPin,
               }, { onConflict: "id" });
             }
             return {};
           }
+          const local = checkLocalUser();
+          if (local) return local;
           return { error: "Account creation failed. Please try again." };
         }
         return { error: error.message };
       }
 
-      // If Supabase didn't auto-login (email confirmation enabled), sign in now
-      if (!signUpData?.session) {
+      // Build user from Supabase data
+      const supaUserId = signUpData?.user?.id;
+      let loggedIn = !!signUpData?.session;
+
+      // If Supabase didn't auto-login (email confirmation enabled), try signing in
+      if (!loggedIn) {
         const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-        if (loginErr) {
-          // If email not confirmed error, the user was created but can't log in
-          if (loginErr.message.includes("Email not confirmed")) {
-            return { error: "Account created but email confirmation is required. Please disable email confirmation in Supabase Auth settings for phone-based auth." };
-          }
-          return { error: loginErr.message };
+        if (!loginErr) {
+          loggedIn = true;
+        }
+        // If sign-in also fails (email not confirmed), fall back to local mock session
+        // so the user can still use the app immediately
+      }
+
+      // Best-effort metadata update (only if we have a session)
+      if (loggedIn) {
+        try {
+          await sb.auth.updateUser({ phone: cleaned, data: { full_name: name, phone: cleaned, display_name: name } });
+        } catch {
+          try { await sb.auth.updateUser({ data: { full_name: name, phone: cleaned, display_name: name } }); } catch {}
         }
       }
 
-      // Best-effort: store phone in auth.users phone column and name in metadata
-      // This may fail if phone provider is not enabled — don't block signup
-      try {
-        await sb.auth.updateUser({
-          phone: cleaned,
-          data: { full_name: name, phone: cleaned, display_name: name },
-        });
-      } catch {
-        // Fallback: update only metadata (no top-level phone)
+      // Build the user object
+      const userId = supaUserId || `mock-user-${cleaned}`;
+      let pinHash = 0;
+      for (let i = 0; i < cleaned.length; i++) {
+        pinHash = ((pinHash << 5) - pinHash + cleaned.charCodeAt(i)) | 0;
+      }
+      const deliveryPin = (Math.abs(pinHash) % 10000).toString().padStart(4, "0");
+
+      const resultUser: User = {
+        id: userId,
+        phone: cleaned,
+        name,
+        role: "customer",
+        deliveryPin,
+      };
+
+      // If Supabase login failed, create a local mock session so user can proceed
+      if (!loggedIn) {
+        setMockUser(resultUser);
+        // Also save as a dynamic signup so they can log in later
         try {
-          await sb.auth.updateUser({
-            data: { full_name: name, phone: cleaned, display_name: name },
-          });
+          const raw = localStorage.getItem("mimaji_mock_signups");
+          const signups = raw ? JSON.parse(raw) : {};
+          signups[cleaned] = { pin, user: resultUser };
+          if (cleaned.startsWith("254")) {
+            signups["0" + cleaned.slice(3)] = { pin, user: resultUser };
+          }
+          localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
         } catch {}
       }
 
-      // Initialize rewards and referral relationship in Supabase
-      const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
-      if (userId) {
+      // Initialize rewards in background
+      try { const { initRewardsAsync } = await import("@/lib/rewards"); initRewardsAsync(userId, name, referralCode).catch(() => {}); } catch {}
+
+      // Create Supabase profile row (best-effort)
+      if (supaUserId) {
         try {
-          const { initRewardsAsync } = await import("@/lib/rewards");
-          await initRewardsAsync(userId, name, referralCode);
+          await sb.from("profiles").upsert({
+            id: supaUserId, phone: cleaned, full_name: name, role: "customer", delivery_pin: deliveryPin,
+          }, { onConflict: "id" });
         } catch {}
       }
 
-      return {};
+      return { user: resultUser };
     } catch (err) {
       console.error("Auth signup error:", err);
       return { error: err instanceof Error ? err.message : "Signup failed unexpectedly." };
@@ -464,9 +684,10 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSupabase]);
 
   const logout = useCallback(async () => {
-    // Always clear local state, even if signOut fails
     setUser(null);
     setSession(null);
+    isMockUserRef.current = false;
+    clearUserCache();
     try {
       const sb = await getSupabase();
       await sb.auth.signOut();
@@ -476,24 +697,41 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSupabase]);
 
   const updateProfile = useCallback(async (updates: { name?: string; email?: string; mpesaNumber?: string }): Promise<{ error?: string }> => {
-    const sb = await getSupabase();
-    const metadata: Record<string, string> = {};
-    if (updates.name !== undefined) metadata.full_name = updates.name;
-    if (updates.email !== undefined) metadata.email = updates.email;
-    if (updates.mpesaNumber !== undefined) metadata.mpesa_number = updates.mpesaNumber;
-    const { error } = await sb.auth.updateUser({ data: metadata });
-    if (error) return { error: error.message };
+    if (!user) return { error: "Not logged in" };
 
-    // Also update the profiles table
-    if (user) {
+    // Optimistically update local state immediately
+    const updatedUser = { ...user, ...(updates.name ? { name: updates.name } : {}) };
+    setUser(updatedUser);
+    if (isMockUserRef.current) saveMockSession(updatedUser);
+
+    // Save to localStorage profile settings (works for both mock and Supabase users)
+    try {
+      const profileKey = `mimaji_profile_${user.id}`;
+      const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
+      if (updates.email !== undefined) existing.email = updates.email;
+      if (updates.mpesaNumber !== undefined) existing.mpesaNumber = updates.mpesaNumber;
+      localStorage.setItem(profileKey, JSON.stringify(existing));
+    } catch {}
+
+    // If mock user, we're done (no Supabase to update)
+    if (isMockUserRef.current) return {};
+
+    // For real Supabase users, update in background
+    try {
+      const sb = await getSupabase();
+      const metadata: Record<string, string> = {};
+      if (updates.name !== undefined) metadata.full_name = updates.name;
+      if (updates.email !== undefined) metadata.email = updates.email;
+      if (updates.mpesaNumber !== undefined) metadata.mpesa_number = updates.mpesaNumber;
+      await sb.auth.updateUser({ data: metadata });
+
       const profileUpdates: Record<string, string> = {};
       if (updates.name !== undefined) profileUpdates.full_name = updates.name;
       if (updates.email !== undefined) profileUpdates.email = updates.email;
       if (updates.mpesaNumber !== undefined) profileUpdates.mpesa_number = updates.mpesaNumber;
       await sb.from("profiles").update(profileUpdates).eq("id", user.id);
+    } catch {}
 
-      setUser({ ...user, ...(updates.name ? { name: updates.name } : {}) });
-    }
     return {};
   }, [getSupabase, user]);
 

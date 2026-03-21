@@ -48,7 +48,11 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  if (!user) return null;
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -69,6 +73,7 @@ export default function DashboardPage() {
               <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
             </Link>
             <nav className="flex items-center gap-8">
+              <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Products</Link>
               <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
               <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
               <Link href="/subscriptions" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Subscriptions</Link>

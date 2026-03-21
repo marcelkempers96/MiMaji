@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Plus, Home as HomeIcon, Building2, Trash2, Edit2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,12 +17,20 @@ export default function SavedAddressesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  if (!authLoading && !user) {
-    router.push("/login?redirect=/saved-addresses");
-    return null;
-  }
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/saved-addresses");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   const handleSaveAddress = (loc: SavedLocation) => {
     addSavedLocation(loc);
@@ -145,6 +153,7 @@ function DesktopNav() {
           <Image src={logo1.src} alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
+          <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Products</Link>
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
           <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
           <Link href="/profile" className="text-primary font-medium text-sm">Account</Link>

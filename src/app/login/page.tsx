@@ -1,14 +1,13 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Building2 } from "lucide-react";
 
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
-import type { UserRole } from "@/context/AuthContext";
 import { initRewardsAsync } from "@/lib/rewards";
 
 function LoginContent() {
@@ -37,29 +36,6 @@ function LoginContent() {
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
 
-  // Track if we just signed up (to init rewards)
-  const [justSignedUp, setJustSignedUp] = useState(false);
-
-  // Redirect authenticated users based on role
-  useEffect(() => {
-    if (!user) return;
-
-    // If user just signed up, init their rewards
-    if (justSignedUp) {
-      initRewardsAsync(user.id, user.name, referralCode.trim() || undefined).catch(() => {});
-      setJustSignedUp(false);
-    }
-
-    const redirect = searchParams.get("redirect");
-    if (redirect) {
-      router.push(redirect);
-    } else if (user.role === "vendor") {
-      router.push("/vendor-portal");
-    } else {
-      router.push("/dashboard");
-    }
-  }, [user, router, searchParams, justSignedUp, referralCode]);
-
   const getFullPhone = () => {
     let cleaned = phone.replace(/\s/g, "").replace(/^0+/, "");
     // Prepend country code digits (strip +)
@@ -69,6 +45,24 @@ function LoginContent() {
     }
     return cleaned;
   };
+
+  const redirectAfterAuth = useCallback((role?: string) => {
+    const redirect = searchParams.get("redirect");
+    if (redirect) {
+      router.push(redirect);
+    } else if (role === "vendor") {
+      router.push("/vendor-portal");
+    } else {
+      router.push("/dashboard");
+    }
+  }, [router, searchParams]);
+
+  // Redirect if user is already logged in (e.g. navigating to /login while authenticated)
+  useEffect(() => {
+    if (!user) return;
+    setLoading(false);
+    redirectAfterAuth(user.role);
+  }, [user, redirectAfterAuth]);
 
   const handleLogin = async () => {
     const cleaned = getFullPhone();
@@ -88,11 +82,14 @@ function LoginContent() {
       const result = await login(cleaned, pin);
       if (result.error) {
         setError(result.error);
+        setLoading(false);
+      } else {
+        // Redirect directly using returned user data
+        redirectAfterAuth(result.user?.role);
       }
     } catch (err) {
       console.error("Login failed:", err);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -123,13 +120,18 @@ function LoginContent() {
       const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
       if (result.error) {
         setError(result.error);
+        setLoading(false);
         return;
       }
-      setJustSignedUp(true);
+      // Init rewards in background
+      if (result.user) {
+        initRewardsAsync(result.user.id, result.user.name, referralCode.trim() || undefined).catch(() => {});
+      }
+      // Redirect directly to dashboard
+      redirectAfterAuth(result.user?.role);
     } catch (err) {
       console.error("Signup failed:", err);
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };

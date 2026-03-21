@@ -168,11 +168,11 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirect unauthenticated users to login
-  if (!authLoading && !user) {
-    router.push("/login?redirect=/notifications");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/notifications");
+    }
+  }, [authLoading, user, router]);
 
   const refreshNotifications = useCallback(async () => {
     if (!user?.id) return;
@@ -210,6 +210,12 @@ export default function NotificationsPage() {
   useEffect(() => {
     refreshNotifications();
   }, [refreshNotifications]);
+
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   const markAllRead = async () => {
     if (!user?.id) return;

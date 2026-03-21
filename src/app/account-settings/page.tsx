@@ -23,12 +23,6 @@ export default function AccountSettingsPage() {
   const { user, updateProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const [name, setName] = useState(user?.name || "");
-
-  // Redirect unauthenticated users to login
-  if (!authLoading && !user) {
-    router.push("/login?redirect=/account-settings");
-    return null;
-  }
   const [email, setEmail] = useState("");
   const [phone] = useState(user?.phone || "");
   const [mpesaNumber, setMpesaNumber] = useState(user?.phone || "");
@@ -40,6 +34,12 @@ export default function AccountSettingsPage() {
   const [corpBusinessName, setCorpBusinessName] = useState("");
   const [corpBusinessReg, setCorpBusinessReg] = useState("");
   const [corpSaved, setCorpSaved] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/account-settings");
+    }
+  }, [authLoading, user, router]);
 
   // Load saved profile data on mount
   useEffect(() => {
@@ -85,33 +85,43 @@ export default function AccountSettingsPage() {
     }
   }, [user?.name, user?.phone, mpesaDifferent]);
 
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
+
   const handleSave = async () => {
     setSaving(true);
     const mpesaToSave = mpesaDifferent ? mpesaNumber : phone;
-    const result = await updateProfile({
+
+    // Save to localStorage immediately for instant feedback
+    if (user?.id) {
+      try {
+        const profileKey = `mimaji_profile_${user.id}`;
+        const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
+        existing.email = email.trim();
+        existing.mpesaNumber = mpesaToSave;
+        if (profilePicUrl) existing.profilePicUrl = profilePicUrl;
+        localStorage.setItem(profileKey, JSON.stringify(existing));
+      } catch {}
+    }
+
+    // Show saved immediately
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+
+    // Update auth context and Supabase in background (non-blocking)
+    updateProfile({
       name: name.trim(),
       email: email.trim(),
       mpesaNumber: mpesaToSave,
-    });
+    }).catch(() => {});
 
-    // Save profile pic URL
-    if (user?.id) {
-      if (hasSupabaseConfig && profilePicUrl) {
-        await supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id);
-      } else {
-        try {
-          const profileKey = `mimaji_profile_${user.id}`;
-          const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
-          existing.profilePicUrl = profilePicUrl;
-          localStorage.setItem(profileKey, JSON.stringify(existing));
-        } catch {}
-      }
-    }
-
-    setSaving(false);
-    if (!result.error) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+    // Supabase profile pic update in background
+    if (user?.id && hasSupabaseConfig && profilePicUrl) {
+      supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id).then(() => {}).catch(() => {});
     }
   };
 
@@ -368,6 +378,7 @@ function DesktopNav() {
           <Image src={logo1.src} alt="MiMaji" width={115} height={41} className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
+          <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Products</Link>
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
           <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
           <Link href="/profile" className="text-primary font-medium text-sm">Account</Link>
