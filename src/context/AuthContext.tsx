@@ -377,7 +377,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   const loadProfile = useCallback(async (userId: string, baseUser: User): Promise<User> => {
     try {
       const sb = await getSupabase();
-      const { data } = await sb.from("profiles").select("role, delivery_pin, full_name, phone").eq("id", userId).single();
+      const { data } = await sb.from("profiles").select("role, delivery_pin, full_name, phone").eq("id", userId).maybeSingle();
       if (data) {
         return {
           ...baseUser,

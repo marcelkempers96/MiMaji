@@ -258,7 +258,7 @@ export async function createOrder(params: {
     .from("profiles")
     .select("id")
     .eq("id", params.customerId)
-    .single();
+    .maybeSingle();
 
   if (!profile || profileCheckErr) {
     // Profile missing or unreadable — create a minimal one so the order can proceed
@@ -275,7 +275,7 @@ export async function createOrder(params: {
       .from("profiles")
       .select("id")
       .eq("id", params.customerId)
-      .single();
+      .maybeSingle();
 
     if (!verifyProfile) {
       console.error("Profile still missing after upsert for customer:", params.customerId);

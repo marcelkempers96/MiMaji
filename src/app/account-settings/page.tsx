@@ -47,7 +47,7 @@ export default function AccountSettingsPage() {
 
     if (hasSupabaseConfig) {
       // Load from Supabase profiles table
-      supabase.from("profiles").select("email, mpesa_number, avatar_url").eq("id", user.id).single().then(({ data }) => {
+      supabase.from("profiles").select("email, mpesa_number, avatar_url").eq("id", user.id).maybeSingle().then(({ data }) => {
         if (data) {
           if (data.email) setEmail(data.email);
           if (data.mpesa_number) {

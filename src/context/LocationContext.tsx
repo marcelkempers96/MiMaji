@@ -102,7 +102,7 @@ async function loadLocationsFromSupabase(userId: string): Promise<SavedLocation[
       .from("profiles")
       .select("saved_locations")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
     if (error) {
       console.warn("Failed to load locations from Supabase:", error.message);
       return null;
