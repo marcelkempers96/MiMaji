@@ -121,7 +121,7 @@ export default function AccountSettingsPage() {
 
     // Supabase profile pic update in background
     if (user?.id && hasSupabaseConfig && profilePicUrl) {
-      supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id).then(() => {}).catch(() => {});
+      Promise.resolve(supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id)).catch(() => {});
     }
   };
 
