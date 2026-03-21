@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useCallback } from "react";
-import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones, Calendar, Navigation } from "lucide-react";
+import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones, Calendar, Navigation, Lock, Eye } from "lucide-react";
 import AddressSearch from "@/components/AddressSearch";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,9 +13,82 @@ import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, gener
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
 
+// ── Vendor Access Code System ──
+// Two access levels: "delivery" (orders only) and "admin" (full access)
+// Each saved for 24 hours in localStorage
+const VENDOR_DELIVERY_CODE = "2024";
+const VENDOR_ADMIN_CODE = "8080";
+const ACCESS_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+type VendorAccessLevel = "none" | "delivery" | "admin";
+
+function getStoredAccess(userId: string): VendorAccessLevel {
+  try {
+    const raw = localStorage.getItem(`mimaji_vendor_access_${userId}`);
+    if (!raw) return "none";
+    const data = JSON.parse(raw);
+    if (Date.now() > data.expiresAt) {
+      localStorage.removeItem(`mimaji_vendor_access_${userId}`);
+      return "none";
+    }
+    return data.level as VendorAccessLevel;
+  } catch {
+    return "none";
+  }
+}
+
+function saveAccess(userId: string, level: VendorAccessLevel) {
+  try {
+    localStorage.setItem(`mimaji_vendor_access_${userId}`, JSON.stringify({
+      level,
+      expiresAt: Date.now() + ACCESS_EXPIRY_MS,
+    }));
+  } catch {}
+}
+
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
+
+  // ── Access Code Gate ──
+  const [accessLevel, setAccessLevel] = useState<VendorAccessLevel>("none");
+  const [accessCodeInput, setAccessCodeInput] = useState("");
+  const [accessCodeError, setAccessCodeError] = useState("");
+  const [accessLoaded, setAccessLoaded] = useState(false);
+
+  // Load saved access on mount
+  useEffect(() => {
+    if (user?.id) {
+      const saved = getStoredAccess(user.id);
+      setAccessLevel(saved);
+      setAccessLoaded(true);
+    }
+  }, [user?.id]);
+
+  const handleAccessCodeSubmit = () => {
+    const code = accessCodeInput.trim();
+    if (code === VENDOR_ADMIN_CODE) {
+      setAccessLevel("admin");
+      if (user?.id) saveAccess(user.id, "admin");
+      setAccessCodeError("");
+      setAccessCodeInput("");
+    } else if (code === VENDOR_DELIVERY_CODE) {
+      setAccessLevel("delivery");
+      if (user?.id) saveAccess(user.id, "delivery");
+      setAccessCodeError("");
+      setAccessCodeInput("");
+    } else {
+      setAccessCodeError("Invalid access code. Please try again.");
+    }
+  };
+
+  const handleSwitchAccess = () => {
+    setAccessLevel("none");
+    setAccessCodeInput("");
+    setAccessCodeError("");
+    if (user?.id) localStorage.removeItem(`mimaji_vendor_access_${user.id}`);
+  };
+
   const [activeTab, setActiveTab] = useState<"orders" | "stats" | "profile">("orders");
   const [activeDesktopTab, setActiveDesktopTab] = useState<"dashboard" | "orders" | "analytics" | "notifications" | "settings">("dashboard");
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -250,6 +323,81 @@ export default function VendorPortalPage() {
   };
 
   if (!user || user.role !== "vendor") return null;
+
+  // ── Access Code Gate Screen ──
+  if (accessLoaded && accessLevel === "none") {
+    return (
+      <div className="min-h-screen bg-background pb-16">
+        <TopBar title="Vendor Portal" showBack={true} />
+        <div className="max-w-md mx-auto px-4 pt-8">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center mb-3">
+              <Lock size={28} className="text-primary" />
+            </div>
+            <h2 className="text-lg font-bold text-text-primary">Enter Access Code</h2>
+            <p className="text-text-secondary text-sm text-center mt-1">
+              Welcome, {user.name}. Enter your access code to continue.
+            </p>
+          </div>
+
+          <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={accessCodeInput}
+              onChange={(e) => { setAccessCodeInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setAccessCodeError(""); }}
+              placeholder="4-digit code"
+              className="w-full h-14 px-4 rounded-xl bg-background border-2 border-[#E0E0E0] text-text-primary text-2xl font-extrabold tracking-[0.5em] text-center focus:outline-none focus:border-primary transition-colors"
+              onKeyDown={(e) => { if (e.key === "Enter" && accessCodeInput.length === 4) handleAccessCodeSubmit(); }}
+              autoFocus
+            />
+            {accessCodeError && <p className="text-cta-alt text-xs text-center mt-2 font-semibold">{accessCodeError}</p>}
+          </div>
+
+          <button
+            onClick={handleAccessCodeSubmit}
+            disabled={accessCodeInput.length < 4}
+            className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
+              accessCodeInput.length >= 4
+                ? "bg-primary text-white hover:bg-[#1a5a9a]"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            <Lock size={16} /> Unlock Portal
+          </button>
+
+          <div className="mt-6 bg-primary-light rounded-xl p-4">
+            <p className="text-primary text-xs font-bold mb-2">Two access levels:</p>
+            <div className="flex items-start gap-2 mb-2">
+              <Eye size={14} className="text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Delivery Code</p>
+                <p className="text-text-secondary text-xs">View ongoing deliveries and manage orders</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Settings size={14} className="text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Admin Code</p>
+                <p className="text-text-secondary text-xs">Full access: analytics, settings, notifications, and orders</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              router.push("/");
+              try { await logout(); } catch {}
+            }}
+            className="w-full mt-4 text-cta-alt text-sm font-medium text-center hover:text-red-700 transition-colors"
+          >
+            Log Out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const pendingOrders = orders.filter((o) => o.status === "paid" && !o.vendor_id);
   const activeOrders = orders.filter((o) => o.status === "confirmed" || o.status === "out_for_delivery");
@@ -693,10 +841,26 @@ export default function VendorPortalPage() {
           })}
         </div>
 
+        {/* Access Level Badge */}
+        <div className="flex items-center justify-between mb-3">
+          <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${
+            accessLevel === "admin" ? "bg-[#E8F5E9] text-[#2ECC71]" : "bg-primary-light text-primary"
+          }`}>
+            {accessLevel === "admin" ? "Full Admin Access" : "Delivery View"}
+          </span>
+          <button onClick={handleSwitchAccess} className="text-text-secondary text-xs hover:text-primary transition-colors flex items-center gap-1">
+            <Lock size={12} /> Switch
+          </button>
+        </div>
+
         <div className="flex gap-2 mb-4">
           <button onClick={() => setActiveTab("orders")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "orders" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Orders</button>
-          <button onClick={() => setActiveTab("stats")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "stats" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Analytics</button>
-          <button onClick={() => setActiveTab("profile")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "profile" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Profile</button>
+          {accessLevel === "admin" && (
+            <>
+              <button onClick={() => setActiveTab("stats")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "stats" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Analytics</button>
+              <button onClick={() => setActiveTab("profile")} className={`rounded-full px-5 py-2 text-sm font-semibold transition-colors ${activeTab === "profile" ? "bg-primary text-white" : "bg-white text-text-secondary"}`}>Profile</button>
+            </>
+          )}
         </div>
 
         {activeTab === "orders" && (
@@ -763,11 +927,11 @@ export default function VendorPortalPage() {
           </div>
         )}
 
-        {activeTab === "stats" && stats && (
+        {activeTab === "stats" && stats && accessLevel === "admin" && (
           <VendorAnalytics stats={stats} orders={orders} pendingOrders={pendingOrders} activeOrders={activeOrders} completedOrders={completedOrders} cancelledOrders={cancelledOrders} />
         )}
 
-        {activeTab === "profile" && (
+        {activeTab === "profile" && accessLevel === "admin" && (
           <div className="flex flex-col gap-4">
             <div className="bg-surface shadow-card rounded-xl p-5">
               <h3 className="font-bold text-sm text-text-primary mb-4 flex items-center gap-2"><Settings size={16} className="text-primary" /> Vendor Settings</h3>
@@ -785,26 +949,38 @@ export default function VendorPortalPage() {
 
       {/* Desktop */}
       <div className="hidden md:block">
-        <DesktopVendorNav onLogout={handleLogout} activeTab={activeDesktopTab} setActiveTab={setActiveDesktopTab} />
+        <DesktopVendorNav onLogout={handleLogout} activeTab={activeDesktopTab} setActiveTab={setActiveDesktopTab} accessLevel={accessLevel} onSwitchAccess={handleSwitchAccess} />
         <div className="max-w-6xl mx-auto px-8 py-8">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-extrabold text-text-primary">Vendor Dashboard</h1>
               <p className="text-text-secondary">{user.name} \u2014 Welcome back</p>
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setActiveDesktopTab("notifications")} className={`bg-surface shadow-card rounded-xl px-4 py-2 text-sm font-medium text-text-primary hover:shadow-card-hover transition-shadow flex items-center gap-2 ${activeDesktopTab === "notifications" ? "ring-2 ring-primary" : ""}`}>
-                <Bell size={16} /> Notifications
-                {pendingOrders.length > 0 && <span className="bg-cta-alt text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{pendingOrders.length}</span>}
+            <div className="flex gap-3 items-center">
+              <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${
+                accessLevel === "admin" ? "bg-[#E8F5E9] text-[#2ECC71]" : "bg-primary-light text-primary"
+              }`}>
+                {accessLevel === "admin" ? "Admin" : "Delivery"}
+              </span>
+              <button onClick={handleSwitchAccess} className="text-text-secondary text-xs hover:text-primary transition-colors flex items-center gap-1">
+                <Lock size={12} /> Switch
               </button>
-              <button onClick={() => setActiveDesktopTab("settings")} className={`bg-surface shadow-card rounded-xl px-4 py-2 text-sm font-medium text-text-primary hover:shadow-card-hover transition-shadow flex items-center gap-2 ${activeDesktopTab === "settings" ? "ring-2 ring-primary" : ""}`}>
-                <Settings size={16} /> Settings
-              </button>
+              {accessLevel === "admin" && (
+                <>
+                  <button onClick={() => setActiveDesktopTab("notifications")} className={`bg-surface shadow-card rounded-xl px-4 py-2 text-sm font-medium text-text-primary hover:shadow-card-hover transition-shadow flex items-center gap-2 ${activeDesktopTab === "notifications" ? "ring-2 ring-primary" : ""}`}>
+                    <Bell size={16} /> Notifications
+                    {pendingOrders.length > 0 && <span className="bg-cta-alt text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{pendingOrders.length}</span>}
+                  </button>
+                  <button onClick={() => setActiveDesktopTab("settings")} className={`bg-surface shadow-card rounded-xl px-4 py-2 text-sm font-medium text-text-primary hover:shadow-card-hover transition-shadow flex items-center gap-2 ${activeDesktopTab === "settings" ? "ring-2 ring-primary" : ""}`}>
+                    <Settings size={16} /> Settings
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
           {/* Notifications */}
-          {activeDesktopTab === "notifications" && (
+          {activeDesktopTab === "notifications" && accessLevel === "admin" && (
             <div className="bg-surface shadow-card rounded-xl p-6 mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-lg text-text-primary">Notifications</h2>
@@ -849,7 +1025,7 @@ export default function VendorPortalPage() {
           )}
 
           {/* Settings */}
-          {activeDesktopTab === "settings" && (
+          {activeDesktopTab === "settings" && accessLevel === "admin" && (
             <>
               <div className="bg-surface shadow-card rounded-xl p-6 mb-8">
                 <div className="flex items-center justify-between mb-4">
@@ -1055,7 +1231,7 @@ export default function VendorPortalPage() {
           )}
 
           {/* Analytics */}
-          {activeDesktopTab === "analytics" && stats && (
+          {activeDesktopTab === "analytics" && stats && accessLevel === "admin" && (
             <VendorAnalytics stats={stats} orders={orders} pendingOrders={pendingOrders} activeOrders={activeOrders} completedOrders={completedOrders} cancelledOrders={cancelledOrders} />
           )}
         </div>
@@ -1369,7 +1545,7 @@ function OrderStatusBadge({ status }: { status: string }) {
   return <span className={`${c.bg} ${c.text} text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wide`}>{c.label}</span>;
 }
 
-function DesktopVendorNav({ onLogout, activeTab, setActiveTab }: { onLogout: () => void; activeTab: string; setActiveTab: (t: "dashboard" | "orders" | "analytics" | "notifications" | "settings") => void }) {
+function DesktopVendorNav({ onLogout, activeTab, setActiveTab, accessLevel, onSwitchAccess }: { onLogout: () => void; activeTab: string; setActiveTab: (t: "dashboard" | "orders" | "analytics" | "notifications" | "settings") => void; accessLevel: VendorAccessLevel; onSwitchAccess: () => void }) {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
@@ -1380,7 +1556,9 @@ function DesktopVendorNav({ onLogout, activeTab, setActiveTab }: { onLogout: () 
         <nav className="flex items-center gap-6">
           <button onClick={() => setActiveTab("dashboard")} className={`font-medium text-sm transition-colors ${activeTab === "dashboard" ? "text-primary" : "text-text-secondary hover:text-primary"}`}>Dashboard</button>
           <button onClick={() => setActiveTab("orders")} className={`font-medium text-sm transition-colors ${activeTab === "orders" ? "text-primary" : "text-text-secondary hover:text-primary"}`}>Orders</button>
-          <button onClick={() => setActiveTab("analytics")} className={`font-medium text-sm transition-colors ${activeTab === "analytics" ? "text-primary" : "text-text-secondary hover:text-primary"}`}>Analytics</button>
+          {accessLevel === "admin" && (
+            <button onClick={() => setActiveTab("analytics")} className={`font-medium text-sm transition-colors ${activeTab === "analytics" ? "text-primary" : "text-text-secondary hover:text-primary"}`}>Analytics</button>
+          )}
           <button onClick={onLogout} className="text-text-secondary hover:text-cta-alt font-medium text-sm transition-colors flex items-center gap-1"><LogOut size={16} /> Logout</button>
         </nav>
       </div>
