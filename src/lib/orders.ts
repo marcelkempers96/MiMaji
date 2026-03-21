@@ -226,19 +226,31 @@ export async function createOrder(params: {
   }
 
   // Ensure the customer has a profile (foreign key requirement)
-  const { data: profile } = await supabase
+  const { data: profile, error: profileCheckErr } = await supabase
     .from("profiles")
     .select("id")
     .eq("id", params.customerId)
     .single();
 
-  if (!profile) {
-    // Profile missing — create a minimal one so the order can proceed
+  if (!profile || profileCheckErr) {
+    // Profile missing or unreadable — create a minimal one so the order can proceed
     const { error: profileErr } = await supabase
       .from("profiles")
       .upsert({ id: params.customerId, role: "customer" }, { onConflict: "id" });
     if (profileErr) {
       console.error("Error ensuring profile exists:", profileErr);
+      return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
+    }
+
+    // Verify the profile was actually created (upsert can silently fail under RLS)
+    const { data: verifyProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", params.customerId)
+      .single();
+
+    if (!verifyProfile) {
+      console.error("Profile still missing after upsert for customer:", params.customerId);
       return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
     }
   }
@@ -273,7 +285,11 @@ export async function createOrder(params: {
 
   if (error) {
     console.error("Error creating order:", error);
-    return { orderId: null, error: error.message };
+    // Return a user-friendly message instead of raw DB errors
+    if (error.message?.includes("foreign key constraint")) {
+      return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
+    }
+    return { orderId: null, error: "Failed to place order. Please try again." };
   }
   return { orderId: data.id, error: null };
 }
