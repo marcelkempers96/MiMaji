@@ -364,12 +364,14 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSupabase]);
 
   // Step 1: Instantly restore from localStorage cache (before Supabase loads)
+  // If cached user exists, set loading=false immediately so pages render
+  // without waiting for Supabase. Supabase will silently update in background.
   useEffect(() => {
     const cached = loadUserCache();
     if (cached) {
       isMockUserRef.current = cached.isMock;
       setUser(cached.user);
-      // Don't set loading=false yet — wait for Supabase to confirm/update
+      setLoading(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
