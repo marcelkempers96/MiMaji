@@ -34,12 +34,19 @@ const AuthContext = createContext<AuthContextType>({
   updateProfile: async () => ({}),
 });
 
-function formatPhoneEmail(phone: string): string {
+function normalizePhone(phone: string): string {
   let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
   if (cleaned.startsWith("0")) {
     cleaned = "254" + cleaned.slice(1);
+  } else if (!cleaned.startsWith("254") && cleaned.length <= 9) {
+    // Bare number like 758434076 — prepend Kenya country code
+    cleaned = "254" + cleaned;
   }
-  return `${cleaned}@mimaji.app`;
+  return cleaned;
+}
+
+function formatPhoneEmail(phone: string): string {
+  return `${normalizePhone(phone)}@mimaji.co.ke`;
 }
 
 // Check if real Supabase credentials are configured
@@ -112,11 +119,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (phone: string, password: string): Promise<{ error?: string }> => {
-    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
-    // Normalize leading 0 → 254 (same as signup)
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.slice(1);
-    }
+    const cleaned = normalizePhone(phone);
 
     // Build alternative formats to try
     const phonesToTry = [cleaned];
@@ -156,10 +159,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSignedUpUsers]);
 
   const signup = useCallback(async (phone: string, password: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
-    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.slice(1);
-    }
+    const cleaned = normalizePhone(phone);
 
     // Check if phone is already registered (try both formats)
     const altPhone = cleaned.startsWith("254") ? "0" + cleaned.slice(3) : cleaned;
@@ -265,7 +265,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     const meta = supaUser.user_metadata || {};
     return {
       id: supaUser.id,
-      phone: meta.phone || supaUser.email?.replace("@mimaji.app", "") || "",
+      phone: meta.phone || supaUser.email?.replace(/@mimaji\.(app|co\.ke)$/, "") || "",
       name: meta.full_name || meta.name || "",
       role: (meta.role as UserRole) || "customer",
     };
@@ -341,11 +341,8 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = useCallback(async (phone: string, password: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
     const sb = await getSupabase();
+    const cleaned = normalizePhone(phone);
     const email = formatPhoneEmail(phone);
-    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.slice(1);
-    }
 
     const { data: signUpData, error } = await sb.auth.signUp({
       email,
