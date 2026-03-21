@@ -9,7 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { getRewardsSummary, initRewards, type ReferralRecord } from "@/lib/rewards";
+import { getRewardsSummaryAsync, type ReferralRecord } from "@/lib/rewards";
 
 export default function RewardsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -36,9 +36,7 @@ export default function RewardsPage() {
 
   useEffect(() => {
     if (user?.id) {
-      // Ensure rewards record exists
-      initRewards(user.id);
-      setSummary(getRewardsSummary(user.id));
+      getRewardsSummaryAsync(user.id).then(setSummary);
     }
   }, [user?.id]);
 
@@ -119,7 +117,7 @@ function RewardsContent({
   onShare,
 }: {
   user: { name: string };
-  summary: ReturnType<typeof getRewardsSummary>;
+  summary: Awaited<ReturnType<typeof getRewardsSummaryAsync>>;
   referralProgress: number;
   referralCapLitres: number;
   copied: boolean;

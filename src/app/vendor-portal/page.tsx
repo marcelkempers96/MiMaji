@@ -49,7 +49,7 @@ export default function VendorPortalPage() {
   const [settingsCustomProduct, setSettingsCustomProduct] = useState("");
   const [settingsSaved, setSettingsSaved] = useState(false);
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     try {
       const vendorSettings = {
         businessName: settingsBusinessName,
@@ -63,6 +63,24 @@ export default function VendorPortalPage() {
         products: settingsProducts,
         areasServed: settingsAreasServed,
       };
+      // Save to Supabase if available
+      if (user?.id) {
+        try {
+          const { supabase } = await import("@/lib/supabase");
+          await supabase.from("vendors").update({
+            name: settingsBusinessName,
+            business_reg_no: settingsBusinessReg,
+            mpesa_number: settingsMpesaNumber,
+            phone_numbers: settingsPhoneNumbers.filter(Boolean),
+            hours: settingsHours,
+            delivery_radius_km: settingsRadius,
+            brands: settingsBrands,
+            products: settingsProducts,
+            areas_served: settingsAreasServed,
+          }).eq("profile_id", user.id);
+        } catch {}
+      }
+      // Also save to localStorage as cache
       localStorage.setItem(`mimaji_vendor_settings_${user?.id || "default"}`, JSON.stringify(vendorSettings));
       setSettingsSaved(true);
       setTimeout(() => setSettingsSaved(false), 2500);
@@ -71,9 +89,45 @@ export default function VendorPortalPage() {
     }
   };
 
-  // Load vendor settings from localStorage (or fall back to mock data)
+  // Load vendor settings from Supabase or localStorage
   useEffect(() => {
-    if (user?.id) {
+    if (!user?.id) return;
+
+    const loadFromSupabase = async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: vendor } = await supabase
+          .from("vendors")
+          .select("*, vendor_locations(*)")
+          .eq("profile_id", user.id)
+          .single();
+        if (vendor) {
+          setSettingsBusinessName(vendor.name || "");
+          setSettingsBusinessReg(vendor.business_reg_no || "");
+          setSettingsMpesaNumber(vendor.mpesa_number || "");
+          setSettingsPhoneNumbers(vendor.phone_numbers?.length > 0 ? vendor.phone_numbers : [""]);
+          if (vendor.vendor_locations?.length > 0) {
+            setSettingsLocations(vendor.vendor_locations.map((l: Record<string, unknown>) => ({
+              name: (l.name as string) || "", area: (l.area as string) || "",
+              address: (l.address as string) || `${l.name}, ${l.area}`,
+              lat: (l.lat as number) || 0, lng: (l.lng as number) || 0,
+            })));
+            setSelectedStoreId((vendor.vendor_locations[0] as Record<string, string>).id || "");
+          }
+          if (vendor.hours) setSettingsHours(vendor.hours);
+          if (vendor.delivery_radius_km) setSettingsRadius(vendor.delivery_radius_km);
+          if (vendor.brands) setSettingsBrands(vendor.brands);
+          if (vendor.products) setSettingsProducts(vendor.products);
+          if (vendor.areas_served) setSettingsAreasServed(vendor.areas_served);
+          return true;
+        }
+      } catch {}
+      return false;
+    };
+
+    loadFromSupabase().then((loaded) => {
+      if (loaded) return;
+      // Fallback: localStorage
       const savedRaw = localStorage.getItem(`mimaji_vendor_settings_${user.id}`);
       if (savedRaw) {
         try {
@@ -103,7 +157,7 @@ export default function VendorPortalPage() {
           setSettingsAreasServed(vendor.areasServed || []);
         }
       }
-    }
+    });
   }, [user?.id]);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound, Calendar, Gift, Info } from "lucide-react";
 import Link from "next/link";
@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
 import { createOrder, updateOrderStatus, formatOrderId, generateDeliveryCode, DeliveryAddressDetails } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
-import { processOrderRewards, initRewards, getRewardsSummary, useFreeLitres, calculateOrderLitres } from "@/lib/rewards";
+import { processOrderRewards, getRewardsSummaryAsync, useFreeLitresAsync } from "@/lib/rewards";
 import { getProductImage, products } from "@/data/products";
 
 // ── Discount tier logic (same as cart page) ──
@@ -115,13 +115,13 @@ export default function ConfirmOrderPage() {
   const [claimRewards, setClaimRewards] = useState(false);
   const [rewardsApplied, setRewardsApplied] = useState(0);
 
-  useState(() => {
+  useEffect(() => {
     if (user?.id) {
-      initRewards(user.id);
-      const summary = getRewardsSummary(user.id);
-      setFreeLitres(summary.freeLitres);
+      getRewardsSummaryAsync(user.id).then((summary) => {
+        setFreeLitres(summary.freeLitres);
+      });
     }
-  });
+  }, [user?.id]);
 
   const orderLitres = items.reduce((acc, item) => {
     const match = item.name.match(/(\d+)L/i);
@@ -233,10 +233,9 @@ export default function ConfirmOrderPage() {
 
     // Process referral rewards
     try {
-      initRewards(user.id);
       processOrderRewards(user.id, pending.orderItems);
       if (claimRewards && rewardsApplied > 0) {
-        useFreeLitres(user.id, rewardsApplied);
+        await useFreeLitresAsync(user.id, rewardsApplied);
       }
     } catch (e) {
       console.error("Rewards processing failed:", e);

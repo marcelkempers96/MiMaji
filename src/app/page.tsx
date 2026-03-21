@@ -9,7 +9,7 @@ import DesktopFooter from "@/components/layout/DesktopFooter";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
-import { getRewardsSummary, initRewards } from "@/lib/rewards";
+import { getRewardsSummaryAsync } from "@/lib/rewards";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -17,9 +17,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user?.id) {
-      initRewards(user.id);
-      const summary = getRewardsSummary(user.id);
-      setFreeLitres(summary.freeLitres);
+      getRewardsSummaryAsync(user.id).then((summary) => {
+        setFreeLitres(summary.freeLitres);
+      });
     }
   }, [user?.id]);
 

@@ -23,7 +23,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
-import { initRewards, getRewardsSummary } from "@/lib/rewards";
+import { getRewardsSummaryAsync } from "@/lib/rewards";
 import { fetchUserOrders, mapOrderStatus } from "@/lib/orders";
 
 const shortcuts = [
@@ -118,9 +118,9 @@ function DashboardContent({ user, desktop }: { user: { id: string; phone: string
 
   useEffect(() => {
     if (user?.id) {
-      initRewards(user.id);
-      const summary = getRewardsSummary(user.id);
-      setFreeLitres(summary.freeLitres);
+      getRewardsSummaryAsync(user.id).then((summary) => {
+        setFreeLitres(summary.freeLitres);
+      });
 
       // Fetch active orders count
       fetchUserOrders(user.id).then((orders) => {
@@ -276,30 +276,26 @@ function DashboardContent({ user, desktop }: { user: { id: string; phone: string
 }
 
 function YourImpact() {
+  const { user } = useAuth();
   const [totalLitres, setTotalLitres] = useState(0);
 
   useEffect(() => {
-    // Load total litres from localStorage order history
-    try {
-      const raw = localStorage.getItem("mimaji_orders");
-      if (raw) {
-        const orders = JSON.parse(raw);
-        let litres = 0;
-        for (const order of orders) {
-          if (order.status !== "cancelled") {
-            // Parse litres from order items
-            for (const item of order.items || []) {
-              const sizeMatch = item.name?.match(/(\d+)L/i);
-              if (sizeMatch) {
-                litres += parseInt(sizeMatch[1]) * (item.quantity || 1);
-              }
+    if (!user?.id) return;
+    fetchUserOrders(user.id).then((orders) => {
+      let litres = 0;
+      for (const order of orders) {
+        if (order.status !== "cancelled") {
+          for (const item of order.order_items || []) {
+            const sizeMatch = item.name?.match(/(\d+)L/i);
+            if (sizeMatch) {
+              litres += parseInt(sizeMatch[1]) * (item.quantity || 1);
             }
           }
         }
-        setTotalLitres(litres);
       }
-    } catch {}
-  }, []);
+      setTotalLitres(litres);
+    });
+  }, [user?.id]);
 
   const donatedLitres = Math.floor(totalLitres * 0.1); // 10% goes to rural communities
 
