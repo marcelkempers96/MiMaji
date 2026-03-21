@@ -80,29 +80,22 @@ function persistLocations(locations: SavedLocation[], userId?: string | null) {
   } catch {}
 }
 
-/** Check if there is a real Supabase auth session (not a mock user) */
-async function hasActiveSupabaseSession(): Promise<boolean> {
-  if (!hasSupabaseConfig) return false;
-  try {
-    const { supabase } = await import("@/lib/supabase");
-    const { data } = await supabase.auth.getSession();
-    return !!data.session;
-  } catch {
-    return false;
-  }
+/** Check if there is a real Supabase auth session using the session object from AuthContext */
+function hasActiveSession(session: unknown): boolean {
+  return !!hasSupabaseConfig && !!session;
 }
 
-async function loadLocationsFromSupabase(userId: string): Promise<SavedLocation[] | null> {
+async function loadLocationsFromSupabase(userId: string, session: unknown): Promise<SavedLocation[] | null> {
   if (!hasSupabaseConfig) return null;
   // Only attempt if there's an active Supabase session (RLS requires auth.uid())
-  if (!(await hasActiveSupabaseSession())) return null;
+  if (!hasActiveSession(session)) return null;
   try {
     const { supabase } = await import("@/lib/supabase");
     const { data, error } = await supabase
       .from("profiles")
       .select("saved_locations")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
     if (error) {
       console.warn("Failed to load locations from Supabase:", error.message);
       return null;
@@ -117,10 +110,10 @@ async function loadLocationsFromSupabase(userId: string): Promise<SavedLocation[
   }
 }
 
-async function persistLocationsToSupabase(userId: string, locations: SavedLocation[]): Promise<boolean> {
+async function persistLocationsToSupabase(userId: string, locations: SavedLocation[], session: unknown): Promise<boolean> {
   if (!hasSupabaseConfig) return false;
   // Only attempt if there's an active Supabase session (RLS requires auth.uid())
-  if (!(await hasActiveSupabaseSession())) return false;
+  if (!hasActiveSession(session)) return false;
   try {
     const { supabase } = await import("@/lib/supabase");
     const { error } = await supabase
@@ -191,20 +184,20 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
     // Step 2: If Supabase is configured and user has a real session, fetch and merge
     if (userId && hasSupabaseConfig) {
-      loadLocationsFromSupabase(userId).then((supaLocs) => {
+      loadLocationsFromSupabase(userId, session).then((supaLocs) => {
         if (cancelled) return;
         if (supaLocs && supaLocs.length > 0) {
           setSavedLocations(supaLocs);
           persistLocations(supaLocs, userId); // sync to localStorage as cache
         } else if (localLocs.length > 0) {
           // Supabase has nothing — push local data up as backup
-          persistLocationsToSupabase(userId, localLocs);
+          persistLocationsToSupabase(userId, localLocs, session);
         }
       });
     }
 
     return () => { cancelled = true; };
-  }, [user?.id, loaded]);
+  }, [user?.id, session, loaded]);
 
   // Persist whenever savedLocations changes (only after initial load)
   // localStorage: immediate. Supabase: debounced (500ms) to avoid excessive writes.
@@ -217,11 +210,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     // Debounce Supabase writes
     if (user?.id && hasSupabaseConfig) {
       if (supabaseSaveTimerRef.current) clearTimeout(supabaseSaveTimerRef.current);
+      const currentSession = session;
       supabaseSaveTimerRef.current = setTimeout(() => {
-        persistLocationsToSupabase(user.id, savedLocations);
+        persistLocationsToSupabase(user.id, savedLocations, currentSession);
       }, 500);
     }
-  }, [savedLocations, loaded, user?.id]);
+  }, [savedLocations, loaded, user?.id, session]);
 
   // When a real Supabase session appears (e.g. after login), push any local addresses to Supabase
   useEffect(() => {
@@ -229,7 +223,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     // User just got a real Supabase session — sync local addresses up
     const localLocs = loadSavedLocations(user.id);
     if (localLocs.length > 0) {
-      persistLocationsToSupabase(user.id, localLocs);
+      persistLocationsToSupabase(user.id, localLocs, session);
     }
   }, [session, user?.id, loaded]);
 

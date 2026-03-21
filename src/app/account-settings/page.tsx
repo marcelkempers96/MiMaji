@@ -47,7 +47,7 @@ export default function AccountSettingsPage() {
 
     if (hasSupabaseConfig) {
       // Load from Supabase profiles table
-      supabase.from("profiles").select("email, mpesa_number, avatar_url").eq("id", user.id).single().then(({ data }) => {
+      supabase.from("profiles").select("email, mpesa_number, avatar_url").eq("id", user.id).maybeSingle().then(({ data }) => {
         if (data) {
           if (data.email) setEmail(data.email);
           if (data.mpesa_number) {
@@ -121,7 +121,7 @@ export default function AccountSettingsPage() {
 
     // Supabase profile pic update in background
     if (user?.id && hasSupabaseConfig && profilePicUrl) {
-      supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id).then(() => {}).catch(() => {});
+      Promise.resolve(supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id)).catch(() => {});
     }
   };
 

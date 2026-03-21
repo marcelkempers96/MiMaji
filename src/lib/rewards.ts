@@ -81,7 +81,7 @@ export async function findUserByReferralCodeAsync(code: string): Promise<string 
     .from("profiles")
     .select("id")
     .eq("referral_code", code.toUpperCase().trim())
-    .single();
+    .maybeSingle();
 
   return data?.id || null;
 }
@@ -99,13 +99,13 @@ export async function getRewardsAsync(userId: string): Promise<UserRewards | nul
     .from("rewards")
     .select("*")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("referral_code, referred_by")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
   const { data: referrals } = await supabase
     .from("referrals")
@@ -303,10 +303,10 @@ async function processOrderRewardsAsync(
   if (litres < 10) return;
 
   // Check if user was referred and hasn't qualified yet
-  const { data: reward } = await supabase.from("rewards").select("referral_qualified").eq("user_id", userId).single();
+  const { data: reward } = await supabase.from("rewards").select("referral_qualified").eq("user_id", userId).maybeSingle();
   if (!reward || reward.referral_qualified) return;
 
-  const { data: profile } = await supabase.from("profiles").select("referred_by").eq("id", userId).single();
+  const { data: profile } = await supabase.from("profiles").select("referred_by").eq("id", userId).maybeSingle();
   if (!profile?.referred_by) return;
 
   const referrerId = profile.referred_by;
@@ -314,7 +314,7 @@ async function processOrderRewardsAsync(
   // Award 5L to friend (this user)
   await supabase.rpc("increment_free_litres", { target_user_id: userId, amount: 5 }).then(() => {});
   // Fallback if RPC doesn't exist: direct update
-  const { data: userReward } = await supabase.from("rewards").select("free_litres").eq("user_id", userId).single();
+  const { data: userReward } = await supabase.from("rewards").select("free_litres").eq("user_id", userId).maybeSingle();
   if (userReward) {
     await supabase.from("rewards").update({
       free_litres: Number(userReward.free_litres) + 5,
@@ -323,7 +323,7 @@ async function processOrderRewardsAsync(
   }
 
   // Award 5L to referrer (if under cap)
-  const { data: referrerReward } = await supabase.from("rewards").select("*").eq("user_id", referrerId).single();
+  const { data: referrerReward } = await supabase.from("rewards").select("*").eq("user_id", referrerId).maybeSingle();
   if (referrerReward && Number(referrerReward.total_earned_from_referrals) < 50) {
     const newTotal = Number(referrerReward.total_earned_from_referrals) + 5;
     let bonusLitres = 5;
@@ -362,7 +362,7 @@ export function useFreeLitres(userId: string, litres: number): number {
 export async function useFreeLitresAsync(userId: string, litres: number): Promise<number> {
   if (!hasSupabaseConfig) return useFreeLitres(userId, litres);
 
-  const { data } = await supabase.from("rewards").select("free_litres").eq("user_id", userId).single();
+  const { data } = await supabase.from("rewards").select("free_litres").eq("user_id", userId).maybeSingle();
   if (!data || Number(data.free_litres) <= 0) return 0;
 
   const used = Math.min(litres, Number(data.free_litres));
