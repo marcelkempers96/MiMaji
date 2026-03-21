@@ -40,12 +40,20 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     loggingOutRef.current = true;
-    await logout();
+    try {
+      await logout();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
     router.push("/");
   };
 
-  if (authLoading) return null;
-  if (!user && !loggingOutRef.current) return null;
+  if (authLoading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background pb-16">

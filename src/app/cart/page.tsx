@@ -216,6 +216,7 @@ function DesktopNav() {
           <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
+          <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Products</Link>
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
           <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
           <Link href="/cart" className="text-primary font-medium text-sm">Cart</Link>

@@ -231,25 +231,25 @@ function BuyContent({
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setActiveCategory("soft")}
-            className={`rounded-xl p-3 text-center transition-all border-2 ${
+            className={`rounded-xl p-3 flex items-center justify-center transition-all border-2 ${
               activeCategory === "soft"
                 ? "border-primary bg-primary-light"
                 : "border-gray-200 bg-white"
             }`}
           >
-            <span className={`text-base font-bold block ${activeCategory === "soft" ? "text-primary" : "text-text-primary"}`}>
+            <span className={`text-base font-bold ${activeCategory === "soft" ? "text-primary" : "text-text-primary"}`}>
               Soft Bottle
             </span>
           </button>
           <button
             onClick={() => setActiveCategory("hard")}
-            className={`rounded-xl p-3 text-center transition-all border-2 ${
+            className={`rounded-xl p-3 flex items-center justify-center transition-all border-2 ${
               activeCategory === "hard"
                 ? "border-primary bg-primary-light"
                 : "border-gray-200 bg-white"
             }`}
           >
-            <span className={`text-base font-bold block ${activeCategory === "hard" ? "text-primary" : "text-text-primary"}`}>
+            <span className={`text-base font-bold ${activeCategory === "hard" ? "text-primary" : "text-text-primary"}`}>
               Hard Jug
             </span>
           </button>
@@ -266,13 +266,13 @@ function BuyContent({
               <button
                 key={size}
                 onClick={() => setActiveSize(size)}
-                className={`flex-1 rounded-xl py-3 text-center transition-all border-2 ${
+                className={`flex-1 rounded-xl py-3 flex items-center justify-center transition-all border-2 ${
                   activeSize === size
                     ? "border-[#1a5a9a] bg-[#1a5a9a] text-white"
                     : "border-gray-200 bg-white text-text-primary"
                 }`}
               >
-                <span className="text-lg font-extrabold block">{litres}L</span>
+                <span className="text-lg font-extrabold">{litres}L</span>
               </button>
             );
           })}

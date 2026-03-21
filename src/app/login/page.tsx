@@ -8,7 +8,6 @@ import { Eye, EyeOff, Building2 } from "lucide-react";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
-import type { UserRole } from "@/context/AuthContext";
 import { initRewardsAsync } from "@/lib/rewards";
 
 function LoginContent() {
@@ -37,9 +36,6 @@ function LoginContent() {
   const [businessName, setBusinessName] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
 
-  // Track if we just signed up (to init rewards)
-  const [justSignedUp, setJustSignedUp] = useState(false);
-
   const getFullPhone = () => {
     let cleaned = phone.replace(/\s/g, "").replace(/^0+/, "");
     // Prepend country code digits (strip +)
@@ -61,20 +57,12 @@ function LoginContent() {
     }
   }, [router, searchParams]);
 
-  // Redirect authenticated users based on role
+  // Redirect if user is already logged in (e.g. navigating to /login while authenticated)
   useEffect(() => {
     if (!user) return;
-
-    // If user just signed up, init their rewards
-    if (justSignedUp) {
-      initRewardsAsync(user.id, user.name, referralCode.trim() || undefined).catch(() => {});
-      setJustSignedUp(false);
-    }
-
-    // Clear loading state and redirect
     setLoading(false);
     redirectAfterAuth(user.role);
-  }, [user, justSignedUp, referralCode, redirectAfterAuth]);
+  }, [user, redirectAfterAuth]);
 
   const handleLogin = async () => {
     const cleaned = getFullPhone();
@@ -95,8 +83,10 @@ function LoginContent() {
       if (result.error) {
         setError(result.error);
         setLoading(false);
+      } else {
+        // Redirect directly using returned user data
+        redirectAfterAuth(result.user?.role);
       }
-      // Redirect is handled by the useEffect watching `user`
     } catch (err) {
       console.error("Login failed:", err);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
@@ -133,7 +123,12 @@ function LoginContent() {
         setLoading(false);
         return;
       }
-      setJustSignedUp(true);
+      // Init rewards in background
+      if (result.user) {
+        initRewardsAsync(result.user.id, result.user.name, referralCode.trim() || undefined).catch(() => {});
+      }
+      // Redirect directly to dashboard
+      redirectAfterAuth(result.user?.role);
     } catch (err) {
       console.error("Signup failed:", err);
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");

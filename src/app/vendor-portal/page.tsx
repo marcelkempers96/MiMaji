@@ -241,7 +241,11 @@ export default function VendorPortalPage() {
   };
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      await logout();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
     router.push("/");
   };
 

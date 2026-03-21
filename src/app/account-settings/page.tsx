@@ -94,30 +94,34 @@ export default function AccountSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     const mpesaToSave = mpesaDifferent ? mpesaNumber : phone;
-    const result = await updateProfile({
+
+    // Save to localStorage immediately for instant feedback
+    if (user?.id) {
+      try {
+        const profileKey = `mimaji_profile_${user.id}`;
+        const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
+        existing.email = email.trim();
+        existing.mpesaNumber = mpesaToSave;
+        if (profilePicUrl) existing.profilePicUrl = profilePicUrl;
+        localStorage.setItem(profileKey, JSON.stringify(existing));
+      } catch {}
+    }
+
+    // Show saved immediately
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+
+    // Update auth context and Supabase in background (non-blocking)
+    updateProfile({
       name: name.trim(),
       email: email.trim(),
       mpesaNumber: mpesaToSave,
-    });
+    }).catch(() => {});
 
-    // Save profile pic URL
-    if (user?.id) {
-      if (hasSupabaseConfig && profilePicUrl) {
-        await supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id);
-      } else {
-        try {
-          const profileKey = `mimaji_profile_${user.id}`;
-          const existing = JSON.parse(localStorage.getItem(profileKey) || "{}");
-          existing.profilePicUrl = profilePicUrl;
-          localStorage.setItem(profileKey, JSON.stringify(existing));
-        } catch {}
-      }
-    }
-
-    setSaving(false);
-    if (!result.error) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+    // Supabase profile pic update in background
+    if (user?.id && hasSupabaseConfig && profilePicUrl) {
+      supabase.from("profiles").update({ avatar_url: profilePicUrl }).eq("id", user.id).then(() => {}).catch(() => {});
     }
   };
 

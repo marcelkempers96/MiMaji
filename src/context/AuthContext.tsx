@@ -14,12 +14,17 @@ export interface User {
   deliveryPin?: string;
 }
 
+interface AuthResult {
+  error?: string;
+  user?: User;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  login: (phone: string, pin: string) => Promise<{ error?: string }>;
-  signup: (phone: string, pin: string, name: string, referralCode?: string) => Promise<{ error?: string }>;
+  login: (phone: string, pin: string) => Promise<AuthResult>;
+  signup: (phone: string, pin: string, name: string, referralCode?: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
   updateProfile: (updates: { name?: string; email?: string; mpesaNumber?: string }) => Promise<{ error?: string }>;
 }
@@ -95,6 +100,15 @@ const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
   "254712345677": {
     pin: "0000",
     user: { id: "c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d", phone: "254712345677", name: "Demo Customer", role: "customer" },
+  },
+  // New vendor account
+  "0711111111": {
+    pin: "2222",
+    user: { id: "v9d4e1f3-5a7b-6c0d-d8f6-3b1a2c9e7d4f", phone: "254711111111", name: "HydroFlow Lavington", role: "vendor" },
+  },
+  "254711111111": {
+    pin: "2222",
+    user: { id: "v9d4e1f3-5a7b-6c0d-d8f6-3b1a2c9e7d4f", phone: "254711111111", name: "HydroFlow Lavington", role: "vendor" },
   },
 };
 
@@ -182,9 +196,23 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     const saved = loadMockSession();
     if (saved) setUser(saved);
     setLoading(false);
+
+    // Listen for cross-tab session changes via localStorage
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === USER_CACHE_KEY || e.key === MOCK_SESSION_KEY) {
+        const cached = loadUserCache();
+        if (cached) {
+          setUser(cached.user);
+        } else {
+          setUser(null);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
+  const login = useCallback(async (phone: string, pin: string): Promise<AuthResult> => {
     const cleaned = normalizePhone(phone);
 
     // Build alternative formats to try
@@ -202,7 +230,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
         }
         setUser(account.user);
         saveMockSession(account.user);
-        return {};
+        return { user: account.user };
       }
     }
 
@@ -216,14 +244,14 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
         }
         setUser(signupAccount.user);
         saveMockSession(signupAccount.user);
-        return {};
+        return { user: signupAccount.user };
       }
     }
 
     return { error: "Invalid phone number or PIN" };
   }, [getSignedUpUsers]);
 
-  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
+  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<AuthResult> => {
     const cleaned = normalizePhone(phone);
 
     // Check if phone is already registered (try both formats)
@@ -265,7 +293,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
       updateReferralFriendName(newUser.id, name);
     } catch {}
 
-    return {};
+    return { user: newUser };
   }, [getSignedUpUsers, saveSignedUpUser]);
 
   const logout = useCallback(async () => {
@@ -461,12 +489,12 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [getSupabase, mapUser, loadProfile]);
 
-  const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
+  const login = useCallback(async (phone: string, pin: string): Promise<AuthResult> => {
     try {
       const sb = await getSupabase();
       const email = formatPhoneEmail(phone);
       const password = padPin(pin);
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
         // Fall back to built-in demo accounts and localStorage signups
         const cleaned = normalizePhone(phone);
@@ -477,7 +505,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
           if (account && account.pin === pin) {
             setMockUser(account.user);
             setSession(null);
-            return {};
+            return { user: account.user };
           }
         }
 
@@ -490,7 +518,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
             if (signupAccount && signupAccount.pin === pin) {
               setMockUser(signupAccount.user);
               setSession(null);
-              return {};
+              return { user: signupAccount.user };
             }
           }
         } catch {}
@@ -503,14 +531,23 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
         return { error: error.message };
       }
+      // Supabase login succeeded — build user from session
+      const supaUser = data?.user;
+      if (supaUser) {
+        const baseUser = mapUser(supaUser);
+        if (baseUser) {
+          const enriched = await loadProfile(baseUser.id, baseUser);
+          return { user: enriched };
+        }
+      }
       return {};
     } catch (err) {
       console.error("Auth login error:", err);
       return { error: err instanceof Error ? err.message : "Login failed unexpectedly." };
     }
-  }, [getSupabase, setMockUser]);
+  }, [getSupabase, setMockUser, mapUser, loadProfile]);
 
-  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
+  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<AuthResult> => {
     try {
       const sb = await getSupabase();
       const cleaned = normalizePhone(phone);
@@ -575,7 +612,14 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         try { const { initRewardsAsync } = await import("@/lib/rewards"); await initRewardsAsync(userId, name, referralCode); } catch {}
       }
 
-      return {};
+      // Return user for immediate redirect
+      const resultUser: User = {
+        id: userId || `mock-user-${cleaned}`,
+        phone: cleaned,
+        name,
+        role: "customer",
+      };
+      return { user: resultUser };
     } catch (err) {
       console.error("Auth signup error:", err);
       return { error: err instanceof Error ? err.message : "Signup failed unexpectedly." };
