@@ -80,6 +80,14 @@ const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
     pin: "5678",
     user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
   },
+  "0712345677": {
+    pin: "0000",
+    user: { id: "c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d", phone: "254712345677", name: "Demo Customer", role: "customer" },
+  },
+  "254712345677": {
+    pin: "0000",
+    user: { id: "c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d", phone: "254712345677", name: "Demo Customer", role: "customer" },
+  },
 };
 
 // Storage key for mock session persistence
