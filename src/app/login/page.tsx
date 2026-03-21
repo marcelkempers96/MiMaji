@@ -84,13 +84,17 @@ function LoginContent() {
     setError("");
     setLoading(true);
 
-    const result = await login(cleaned, pin);
-    setLoading(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await login(cleaned, pin);
+      if (result.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    // Redirect is handled by the useEffect once user state updates
   };
 
   const handleSignup = async () => {
@@ -115,19 +119,24 @@ function LoginContent() {
     setError("");
     setLoading(true);
 
-    const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
-    setLoading(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setJustSignedUp(true);
+    } catch (err) {
+      console.error("Signup failed:", err);
+      setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setJustSignedUp(true);
   };
 
-  const handleSubmit = () => {
-    if (mode === "login") handleLogin();
-    else handleSignup();
+  const handleSubmit = async () => {
+    if (mode === "login") await handleLogin();
+    else await handleSignup();
   };
 
   return (
