@@ -209,6 +209,8 @@ export default function ConfirmOrderPage() {
     try {
       const result = await createOrder({
         customerId: user.id,
+        customerName: user.name,
+        customerPhone: user.phone,
         deliveryAddress: pending.address,
         deliveryAddressDetails: addressDetails,
         quantity: Math.min(totalItems || pending.savedItems.length, 10),

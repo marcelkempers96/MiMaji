@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
-import { supabase } from "@/lib/supabase";
 
 const hasSupabaseConfig =
   typeof process !== "undefined" &&
@@ -147,8 +146,30 @@ function getLast7Days(): string[] {
   return days;
 }
 
-// ── Admin Login Gate ──
+// ── Admin API helpers (bypass RLS via service role) ──
 const ADMIN_CODE = "5566";
+
+async function adminFetch(type: string): Promise<{ data: unknown[]; ok: boolean }> {
+  try {
+    const res = await fetch(`/api/admin?code=${ADMIN_CODE}&type=${type}`);
+    if (!res.ok) { console.error(`Admin API ${type} error:`, res.status); return { data: [], ok: false }; }
+    const data = await res.json();
+    return { data: Array.isArray(data) ? data : [], ok: true };
+  } catch (e) { console.error(`Admin API ${type} fetch error:`, e); return { data: [], ok: false }; }
+}
+
+async function adminPost(body: Record<string, unknown>): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: ADMIN_CODE, ...body }),
+    });
+    return await res.json();
+  } catch (e) { console.error("Admin API post error:", e); return { error: "Network error" }; }
+}
+
+// ── Admin Login Gate ──
 
 function AdminLoginGate({ children }: { children: React.ReactNode }) {
   const [code, setCode] = React.useState("");
@@ -256,56 +277,70 @@ function AdminDashboardInner() {
   const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
 
   async function loadVendors() {
-    if (hasSupabaseConfig) {
-      const vendors = await fetchVendors();
-      setCustomVendors(vendors);
-    } else {
-      setCustomVendors(loadCustomVendors());
+    // Always try server API first
+    const { data: raw, ok } = await adminFetch("vendors");
+    if (ok && raw.length > 0) {
+      setCustomVendors((raw as Record<string, unknown>[]).map((v) => ({
+        id: v.id as string,
+        name: (v.name as string) || "",
+        area: (v.area as string) || "",
+        distance: "",
+        rating: Number(v.rating) || 0,
+        reviews: Number(v.reviews) || 0,
+        hours: (v.hours as string) || "7AM - 8PM",
+        products: (v.products as string[]) || [],
+        brands: (v.brands as string[]) || [],
+        areasServed: (v.areas_served as string[]) || [],
+        businessRegNo: (v.business_reg_no as string) || "",
+        mpesaNumber: (v.mpesa_number as string) || "",
+        phoneNumbers: (v.phone_numbers as string[]) || [],
+        locations: ((v.vendor_locations as Array<Record<string, unknown>>) || []).map((l) => ({
+          id: l.id as string,
+          name: l.name as string,
+          area: (l.area as string) || "",
+          lat: Number(l.lat),
+          lng: Number(l.lng),
+        })),
+      })));
+      return;
     }
+    // Fallback: mock vendors from localStorage
+    setCustomVendors(loadCustomVendors());
   }
 
   async function handleAddVendor() {
-    if (hasSupabaseConfig) {
-      // Insert vendor into Supabase
-      const { data: vendorData, error } = await supabase.from("vendors").insert({
-        name: newVendor.name,
-        area: newVendor.area,
-        rating: parseFloat(newVendor.rating) || 4.5,
-        reviews: parseInt(newVendor.reviews) || 0,
-        hours: newVendor.hours,
-        products: newVendor.products,
-        business_reg_no: newVendor.businessRegNo,
-        mpesa_number: newVendor.mpesaNumber,
-        phone_numbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
-        delivery_radius_km: parseInt(newVendor.deliveryRadius) || 10,
-        active: true,
-      }).select("id").single();
-
-      if (!error && vendorData) {
-        // Insert locations
-        const locations = [];
-        if (newVendor.locationName) {
-          locations.push({
-            vendor_id: vendorData.id,
-            name: newVendor.locationName,
-            area: newVendor.locationArea || newVendor.area,
-            lat: parseFloat(newVendor.locationLat) || -1.2864,
-            lng: parseFloat(newVendor.locationLng) || 36.8172,
-          });
-        }
-        for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
-          locations.push({
-            vendor_id: vendorData.id,
-            name: loc.name,
-            area: loc.area || newVendor.area,
-            lat: parseFloat(loc.lat) || -1.2864,
-            lng: parseFloat(loc.lng) || 36.8172,
-          });
-        }
-        if (locations.length > 0) {
-          await supabase.from("vendor_locations").insert(locations);
-        }
-      }
+    const locations = [];
+    if (newVendor.locationName) {
+      locations.push({
+        name: newVendor.locationName,
+        area: newVendor.locationArea || newVendor.area,
+        lat: parseFloat(newVendor.locationLat) || -1.2864,
+        lng: parseFloat(newVendor.locationLng) || 36.8172,
+      });
+    }
+    for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
+      locations.push({
+        name: loc.name,
+        area: loc.area || newVendor.area,
+        lat: parseFloat(loc.lat) || -1.2864,
+        lng: parseFloat(loc.lng) || 36.8172,
+      });
+    }
+    const result = await adminPost({
+      action: "add_vendor",
+      name: newVendor.name,
+      area: newVendor.area,
+      rating: parseFloat(newVendor.rating) || 4.5,
+      reviews: parseInt(newVendor.reviews) || 0,
+      hours: newVendor.hours,
+      products: newVendor.products,
+      businessRegNo: newVendor.businessRegNo,
+      mpesaNumber: newVendor.mpesaNumber,
+      phoneNumbers: newVendor.phoneNumbers.split(",").map((p: string) => p.trim()).filter(Boolean),
+      deliveryRadius: parseInt(newVendor.deliveryRadius) || 10,
+      locations,
+    });
+    if (result.success) {
       await loadVendors();
     } else {
       const id = `cv-${Date.now()}`;
@@ -358,8 +393,8 @@ function AdminDashboardInner() {
   }
 
   async function handleDeleteCustomVendor(vendorId: string) {
-    if (hasSupabaseConfig) {
-      await supabase.from("vendors").update({ active: false }).eq("id", vendorId);
+    const result = await adminPost({ action: "delete_vendor", vendorId });
+    if (result.success) {
       await loadVendors();
     } else {
       const remaining = deleteCustomVendor(vendorId);
@@ -372,19 +407,16 @@ function AdminDashboardInner() {
   const DEMO_IDS = ["d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d"];
 
   async function loadUsers() {
-    if (hasSupabaseConfig) {
-      try {
-        const { data, error } = await supabase.from("profiles").select("id, phone, full_name, role").order("created_at", { ascending: false });
-        if (!error && data) {
-          setUsers(data.map((p: Record<string, unknown>) => ({
-            id: p.id as string,
-            phone: (p.phone as string) || "",
-            name: (p.full_name as string) || "",
-            role: (p.role as string) || "customer",
-          })));
-          return;
-        }
-      } catch {}
+    // Always try server API first
+    const { data: raw, ok } = await adminFetch("users");
+    if (ok && raw.length > 0) {
+      setUsers((raw as Record<string, unknown>[]).map((p) => ({
+        id: p.id as string,
+        phone: (p.phone as string) || "",
+        name: (p.full_name as string) || "",
+        role: (p.role as string) || "customer",
+      })));
+      return;
     }
 
     // Fallback: localStorage mock
@@ -413,11 +445,8 @@ function AdminDashboardInner() {
   }
 
   async function updateUser(userId: string, updates: Partial<MockUser>) {
-    if (hasSupabaseConfig) {
-      const profileUpdates: Record<string, unknown> = {};
-      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
-      if (updates.role !== undefined) profileUpdates.role = updates.role;
-      await supabase.from("profiles").update(profileUpdates).eq("id", userId);
+    const result = await adminPost({ action: "update_user", userId, name: updates.name, role: updates.role, phone: updates.phone });
+    if (result.success) {
       await loadUsers();
     } else {
       try {
@@ -438,10 +467,8 @@ function AdminDashboardInner() {
   }
 
   async function deleteUser(userId: string) {
-    if (hasSupabaseConfig) {
-      // Note: deleting from profiles will cascade from auth.users FK
-      // We just remove the profile; the auth user remains but is effectively deactivated
-      await supabase.from("profiles").delete().eq("id", userId);
+    const result = await adminPost({ action: "delete_user", userId });
+    if (result.success) {
       await loadUsers();
     } else {
       try {
@@ -469,22 +496,11 @@ function AdminDashboardInner() {
     }
     if (!phone || !newUser.name || !newUser.password) return;
 
-    if (hasSupabaseConfig) {
-      const email = `${phone}@mimaji.co.ke`;
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: newUser.password,
-        options: { data: { full_name: newUser.name, phone } },
-      });
-      if (!error && data?.user) {
-        // Set role if not customer
-        if (newUser.role !== "customer") {
-          await supabase.from("profiles").update({ role: newUser.role }).eq("id", data.user.id);
-        }
-      }
+    const result = await adminPost({ action: "create_user", phone, name: newUser.name, password: newUser.password, role: newUser.role });
+    if (result.success) {
       await loadUsers();
     } else {
-      // Mock: save to signups localStorage
+      // Fallback: save to signups localStorage
       const id = `admin-created-${Date.now()}`;
       const mockUser = { id, phone, name: newUser.name, role: newUser.role };
       try {
@@ -502,11 +518,48 @@ function AdminDashboardInner() {
     setShowCreateUser(false);
   }
 
-  const loadOrders = useCallback(() => {
-    fetchAllOrders().then((data) => {
-      setOrders(data);
+  const loadOrders = useCallback(async () => {
+    try {
+      // Always try server API first (bypasses RLS), fall back to direct client fetch
+      const { data: raw, ok } = await adminFetch("orders");
+      if (ok) {
+        const data = (raw as Record<string, unknown>[]).map((row) => ({
+          id: (row.id as string) || "",
+          customer_id: (row.customer_id as string) || "",
+          delivery_address: (row.delivery_address as string) || "",
+          delivery_address_details: (row.delivery_address_details as OrderRecord["delivery_address_details"]) || null,
+          quantity: Number(row.quantity) || 0,
+          price_total: Number(row.price_total) || 0,
+          status: (row.status as string) || "pending_payment",
+          mpesa_ref: (row.mpesa_ref as string) || null,
+          product_name: (row.product_name as string) || null,
+          order_items: (row.order_items as OrderRecord["order_items"]) || [],
+          estimated_delivery_minutes: row.estimated_delivery_minutes != null ? Number(row.estimated_delivery_minutes) : null,
+          created_at: (row.created_at as string) || new Date().toISOString(),
+          updated_at: (row.updated_at as string) || new Date().toISOString(),
+          vendor_id: (row.vendor_id as string) || null,
+          vendor_name: (row.vendor_name as string) || null,
+          vendor_location: (row.vendor_location as string) || null,
+          vendors_tried: (row.vendors_tried as string[]) || [],
+          current_vendor_offer: (row.current_vendor_offer as string) || null,
+          scheduled_date: (row.scheduled_date as string) || null,
+          scheduled_time: (row.scheduled_time as string) || null,
+          delivery_code: (row.delivery_code as string) || null,
+          payment_method: (row.payment_method as string) || null,
+          brand_preference: (row.brand_preference as string[]) || [],
+          customer_name: (row.customer_name as string) || undefined,
+          customer_phone: (row.customer_phone as string) || undefined,
+        }));
+        setOrders(data);
+      } else {
+        // Fallback: direct client fetch (works in mock/demo mode)
+        const data = await fetchAllOrders();
+        setOrders(data);
+      }
       setLastRefresh(new Date());
-    });
+    } catch (e) {
+      console.error("loadOrders error:", e);
+    }
   }, []);
 
   // Initial load + polling
@@ -589,15 +642,20 @@ function AdminDashboardInner() {
         return;
       }
     }
-    await updateOrderStatus(orderId, newStatus);
-    // Refresh from source of truth
+    const result = await adminPost({ action: "update_order_status", orderId, status: newStatus });
+    if (!result.success) {
+      await updateOrderStatus(orderId, newStatus);
+    }
     loadOrders();
     setStatusDropdown(null);
   }
 
   async function confirmCancel() {
     if (!cancelConfirm) return;
-    await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    const result = await adminPost({ action: "update_order_status", orderId: cancelConfirm.orderId, status: "cancelled" });
+    if (!result.success) {
+      await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    }
     loadOrders();
     setCancelConfirm(null);
   }
@@ -605,13 +663,22 @@ function AdminDashboardInner() {
   async function reassignVendor(orderId: string, vendorId: string) {
     const vendor = allVendors.find(v => v.id === vendorId);
     if (!vendor) return;
-    const { updateOrder } = await import("@/lib/orders");
-    await updateOrder(orderId, {
-      vendor_id: vendorId,
-      vendor_name: vendor.name,
-      vendor_location: vendor.locations?.[0]?.name || vendor.area || "",
-      current_vendor_offer: vendorId,
+    const result = await adminPost({
+      action: "reassign_vendor",
+      orderId,
+      vendorId,
+      vendorName: vendor.name,
+      vendorLocation: vendor.locations?.[0]?.name || vendor.area || "",
     });
+    if (!result.success) {
+      const { updateOrder } = await import("@/lib/orders");
+      await updateOrder(orderId, {
+        vendor_id: vendorId,
+        vendor_name: vendor.name,
+        vendor_location: vendor.locations?.[0]?.name || vendor.area || "",
+        current_vendor_offer: vendorId,
+      });
+    }
     loadOrders();
     setVendorDropdown(null);
   }
@@ -625,26 +692,23 @@ function AdminDashboardInner() {
   const [deleteSubConfirm, setDeleteSubConfirm] = useState<string | null>(null);
 
   async function loadSubscriptions() {
-    if (hasSupabaseConfig) {
-      try {
-        const { data, error } = await supabase.from("subscriptions").select("*").order("created_at", { ascending: false });
-        if (!error && data) {
-          setSubscriptions(data.map((s: Record<string, unknown>) => ({
-            id: s.id as string,
-            userId: (s.user_id as string) || "",
-            userName: (s.user_name as string) || "",
-            userPhone: (s.user_phone as string) || "",
-            planId: (s.plan_id as string) || "custom",
-            planName: (s.plan_name as string) || "Custom",
-            jugsPerMonth: Number(s.jugs_per_month) || 0,
-            pricePerJug: Number(s.price_per_jug) || 0,
-            monthlyTotal: Number(s.monthly_total) || 0,
-            status: (s.status as string) || "active",
-            startDate: (s.created_at as string) || new Date().toISOString(),
-          })));
-          return;
-        }
-      } catch {}
+    // Always try server API first
+    const { data: raw, ok } = await adminFetch("subscriptions");
+    if (ok) {
+      setSubscriptions((raw as Record<string, unknown>[]).map((s) => ({
+        id: s.id as string,
+        userId: (s.user_id as string) || "",
+        userName: (s.user_name as string) || "",
+        userPhone: (s.user_phone as string) || "",
+        planId: (s.plan_id as string) || "custom",
+        planName: (s.plan_name as string) || "Custom",
+        jugsPerMonth: Number(s.jugs_per_month) || 0,
+        pricePerJug: Number(s.price_per_jug) || 0,
+        monthlyTotal: Number(s.monthly_total) || 0,
+        status: (s.status as string) || "active",
+        startDate: (s.created_at as string) || new Date().toISOString(),
+      })));
+      return;
     }
     // Fallback: localStorage
     try {
@@ -669,8 +733,9 @@ function AdminDashboardInner() {
       status: "active",
       startDate: new Date().toISOString(),
     };
-    if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").insert({
+    const result = await adminPost({
+      action: "add_subscription",
+      subscription: {
         user_name: sub.userName,
         user_phone: sub.userPhone,
         plan_id: sub.planId,
@@ -679,7 +744,9 @@ function AdminDashboardInner() {
         price_per_jug: sub.pricePerJug,
         monthly_total: sub.monthlyTotal,
         status: "active",
-      });
+      },
+    });
+    if (result.success) {
       await loadSubscriptions();
     } else {
       const all = [...subscriptions, sub];
@@ -691,8 +758,8 @@ function AdminDashboardInner() {
   }
 
   async function toggleSubscriptionStatus(subId: string, newStatus: string) {
-    if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").update({ status: newStatus }).eq("id", subId);
+    const result = await adminPost({ action: "update_subscription", subId, status: newStatus });
+    if (result.success) {
       await loadSubscriptions();
     } else {
       const all = subscriptions.map((s) => s.id === subId ? { ...s, status: newStatus } : s);
@@ -702,8 +769,8 @@ function AdminDashboardInner() {
   }
 
   async function deleteSubscription(subId: string) {
-    if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").delete().eq("id", subId);
+    const result = await adminPost({ action: "delete_subscription", subId });
+    if (result.success) {
       await loadSubscriptions();
     } else {
       const all = subscriptions.filter((s) => s.id !== subId);
@@ -862,11 +929,22 @@ function AdminDashboardInner() {
                           </td>
                           <td className="px-4 py-3 text-xs">
                             {(() => {
-                              const u = users.find((u) => u.id === order.customer_id);
-                              return u ? (
-                                <span className="font-medium text-text-primary">{u.name}</span>
-                              ) : (
-                                <span className="font-mono text-text-secondary">{truncate(order.customer_id, 12)}</span>
+                              // Try order-level customer info first (from profiles join), then fall back to users list
+                              const name = order.customer_name || users.find((u) => u.id === order.customer_id)?.name;
+                              const phone = order.customer_phone || users.find((u) => u.id === order.customer_id)?.phone;
+                              return (
+                                <div>
+                                  {name ? (
+                                    <span className="font-medium text-text-primary block">{name}</span>
+                                  ) : (
+                                    <span className="font-mono text-text-secondary block">{truncate(order.customer_id, 12)}</span>
+                                  )}
+                                  {phone && (
+                                    <a href={`tel:+${phone.replace(/^0/, "254")}`} className="text-[11px] text-primary hover:underline block mt-0.5">
+                                      {phone.startsWith("254") ? `0${phone.slice(3)}` : phone}
+                                    </a>
+                                  )}
+                                </div>
                               );
                             })()}
                           </td>
@@ -2086,7 +2164,7 @@ function AdminDashboardInner() {
                     {users.map((u) => (
                       <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">USR-{u.id.slice(0, 6).toUpperCase()}</td>
-                        <td className="px-4 py-3 font-mono text-xs">+{u.phone.replace(/^254/, "254 ")}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{u.phone ? `+${u.phone.replace(/^254/, "254 ")}` : "—"}</td>
                         <td className="px-4 py-3">
                           {editingUser?.id === u.id ? (
                             <input
@@ -2096,7 +2174,7 @@ function AdminDashboardInner() {
                               className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-full max-w-[180px] outline-none focus:border-primary"
                             />
                           ) : (
-                            <span className="font-medium text-text-primary">{u.name}</span>
+                            <span className="font-medium text-text-primary">{u.name || <span className="text-text-secondary italic">No name</span>}</span>
                           )}
                         </td>
                         {showPasswords && (
