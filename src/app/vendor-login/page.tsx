@@ -12,7 +12,7 @@ export default function VendorLoginPage() {
   const router = useRouter();
   const { login, user } = useAuth();
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,8 +30,12 @@ export default function VendorLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password) {
+    if (!phone || !pin) {
       setError("Please fill in all fields");
+      return;
+    }
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      setError("Please enter a 4-digit PIN");
       return;
     }
     setError("");
@@ -43,7 +47,7 @@ export default function VendorLoginPage() {
       cleaned = "254" + cleaned.slice(1);
     }
 
-    const result = await login(cleaned, password);
+    const result = await login(cleaned, pin);
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -78,13 +82,15 @@ export default function VendorLoginPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-text-primary mb-1 block">Password</label>
+            <label className="text-sm font-medium text-text-primary mb-1 block">4-Digit PIN</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(""); }}
-              placeholder="Enter your password"
-              className="w-full h-12 px-4 rounded-xl bg-surface border border-[#E0E0E0] text-text-primary text-sm focus:outline-none focus:border-primary transition-colors"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 4); setPin(v); setError(""); }}
+              placeholder="Enter your PIN"
+              className="w-full h-12 px-4 rounded-xl bg-surface border border-[#E0E0E0] text-text-primary text-sm focus:outline-none focus:border-primary transition-colors tracking-[0.5em] text-center text-lg"
             />
           </div>
 

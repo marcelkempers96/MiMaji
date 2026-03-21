@@ -22,9 +22,9 @@ function LoginContent() {
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [countryCode, setCountryCode] = useState("+254");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
   const [name, setName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPin, setShowPin] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -77,15 +77,15 @@ function LoginContent() {
       setError("Please enter a valid phone number");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      setError("Please enter a 4-digit PIN");
       return;
     }
 
     setError("");
     setLoading(true);
 
-    const result = await login(cleaned, password);
+    const result = await login(cleaned, pin);
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -104,8 +104,8 @@ function LoginContent() {
       setError("Please enter your name");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      setError("Please enter a 4-digit PIN");
       return;
     }
     if (isCorporate && businessName.trim().length < 2) {
@@ -116,7 +116,7 @@ function LoginContent() {
     setError("");
     setLoading(true);
 
-    const result = await signup(cleaned, password, name.trim(), referralCode.trim() || undefined);
+    const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -211,25 +211,27 @@ function LoginContent() {
             </>
           )}
 
-          {/* Password */}
+          {/* 4-Digit PIN */}
           <label className="block text-sm font-medium text-text-primary mb-2 mt-4">
-            Password
+            4-Digit PIN
           </label>
           <div className="relative">
             <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(""); }}
-              placeholder={mode === "signup" ? "Create a password (min 6 chars)" : "Enter your password"}
-              className="rounded-xl border border-gray-200 h-12 px-4 pr-12 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary"
+              type={showPin ? "text" : "password"}
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 4); setPin(v); setError(""); }}
+              placeholder={mode === "signup" ? "Create a 4-digit PIN" : "Enter your PIN"}
+              className="rounded-xl border border-gray-200 h-12 px-4 pr-12 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary tracking-[0.5em] text-center text-lg"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() => setShowPin(!showPin)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary"
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
 
@@ -309,7 +311,7 @@ function LoginContent() {
             </div>
           )}
 
-          {/* Remember Me & Forgot Password */}
+          {/* Remember Me & Forgot PIN */}
           {mode === "login" && (
             <div className="flex items-center justify-between mt-3">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -326,15 +328,15 @@ function LoginContent() {
                 onClick={() => {
                   const cleaned = getFullPhone();
                   if (cleaned.length < 9) {
-                    setError("Enter your phone number first, then tap Forgot Password");
+                    setError("Enter your phone number first, then tap Forgot PIN");
                     return;
                   }
                   setError("");
-                  alert(`A password reset link has been sent to the phone number ending in ...${cleaned.slice(-4)}. Please check your SMS.`);
+                  alert(`A PIN reset link has been sent to the phone number ending in ...${cleaned.slice(-4)}. Please check your SMS.`);
                 }}
                 className="text-sm text-primary font-semibold hover:underline"
               >
-                Forgot Password?
+                Forgot PIN?
               </button>
             </div>
           )}
