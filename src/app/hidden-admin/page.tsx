@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
-import { supabase } from "@/lib/supabase";
+import { fetchAdminData, adminAction } from "@/lib/adminApi";
 
 const hasSupabaseConfig =
   typeof process !== "undefined" &&
@@ -217,6 +217,7 @@ export default function AdminDashboard() {
 }
 
 function AdminDashboardInner() {
+  interface SubscriptionRecord { id: string; userId: string; userName: string; userPhone: string; planId: string; planName: string; jugsPerMonth: number; pricePerJug: number; monthlyTotal: number; status: string; startDate: string; }
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [kenyaTime, setKenyaTime] = useState(getKenyaTime());
@@ -256,57 +257,50 @@ function AdminDashboardInner() {
   const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
 
   async function loadVendors() {
-    if (hasSupabaseConfig) {
-      const vendors = await fetchVendors();
-      setCustomVendors(vendors);
-    } else {
+    // Vendor loading is handled by loadAllData when Supabase is configured
+    if (!hasSupabaseConfig) {
       setCustomVendors(loadCustomVendors());
     }
   }
 
   async function handleAddVendor() {
     if (hasSupabaseConfig) {
-      // Insert vendor into Supabase
-      const { data: vendorData, error } = await supabase.from("vendors").insert({
-        name: newVendor.name,
-        area: newVendor.area,
-        rating: parseFloat(newVendor.rating) || 4.5,
-        reviews: parseInt(newVendor.reviews) || 0,
-        hours: newVendor.hours,
-        products: newVendor.products,
-        business_reg_no: newVendor.businessRegNo,
-        mpesa_number: newVendor.mpesaNumber,
-        phone_numbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
-        delivery_radius_km: parseInt(newVendor.deliveryRadius) || 10,
-        active: true,
-      }).select("id").single();
-
-      if (!error && vendorData) {
-        // Insert locations
-        const locations = [];
-        if (newVendor.locationName) {
-          locations.push({
-            vendor_id: vendorData.id,
-            name: newVendor.locationName,
-            area: newVendor.locationArea || newVendor.area,
-            lat: parseFloat(newVendor.locationLat) || -1.2864,
-            lng: parseFloat(newVendor.locationLng) || 36.8172,
-          });
-        }
-        for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
-          locations.push({
-            vendor_id: vendorData.id,
-            name: loc.name,
-            area: loc.area || newVendor.area,
-            lat: parseFloat(loc.lat) || -1.2864,
-            lng: parseFloat(loc.lng) || 36.8172,
-          });
-        }
-        if (locations.length > 0) {
-          await supabase.from("vendor_locations").insert(locations);
-        }
+      const locations = [];
+      if (newVendor.locationName) {
+        locations.push({
+          name: newVendor.locationName,
+          area: newVendor.locationArea || newVendor.area,
+          lat: parseFloat(newVendor.locationLat) || -1.2864,
+          lng: parseFloat(newVendor.locationLng) || 36.8172,
+        });
       }
-      await loadVendors();
+      for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
+        locations.push({
+          name: loc.name,
+          area: loc.area || newVendor.area,
+          lat: parseFloat(loc.lat) || -1.2864,
+          lng: parseFloat(loc.lng) || 36.8172,
+        });
+      }
+
+      await adminAction({
+        action: "add_vendor",
+        vendor: {
+          name: newVendor.name,
+          area: newVendor.area,
+          rating: parseFloat(newVendor.rating) || 4.5,
+          reviews: parseInt(newVendor.reviews) || 0,
+          hours: newVendor.hours,
+          products: newVendor.products,
+          business_reg_no: newVendor.businessRegNo,
+          mpesa_number: newVendor.mpesaNumber,
+          phone_numbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
+          delivery_radius_km: parseInt(newVendor.deliveryRadius) || 10,
+          active: true,
+        },
+        locations,
+      });
+      await loadAllData();
     } else {
       const id = `cv-${Date.now()}`;
       const vendor: VendorInfo = {
@@ -359,8 +353,8 @@ function AdminDashboardInner() {
 
   async function handleDeleteCustomVendor(vendorId: string) {
     if (hasSupabaseConfig) {
-      await supabase.from("vendors").update({ active: false }).eq("id", vendorId);
-      await loadVendors();
+      await adminAction({ action: "delete_vendor", vendorId });
+      await loadAllData();
     } else {
       const remaining = deleteCustomVendor(vendorId);
       setCustomVendors(remaining);
@@ -372,53 +366,36 @@ function AdminDashboardInner() {
   const DEMO_IDS = ["d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d"];
 
   async function loadUsers() {
-    if (hasSupabaseConfig) {
+    // User loading is handled by loadAllData when Supabase is configured
+    if (!hasSupabaseConfig) {
+      const builtIn: MockUser[] = [
+        { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin", password: "admin123" },
+        { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor", password: "vendor123" },
+      ];
+      const seenIds = new Set(builtIn.map((u) => u.id));
+      const allUsers: MockUser[] = [...builtIn];
+
       try {
-        const { data, error } = await supabase.from("profiles").select("id, phone, full_name, role").order("created_at", { ascending: false });
-        if (!error && data) {
-          setUsers(data.map((p: Record<string, unknown>) => ({
-            id: p.id as string,
-            phone: (p.phone as string) || "",
-            name: (p.full_name as string) || "",
-            role: (p.role as string) || "customer",
-          })));
-          return;
+        const raw = localStorage.getItem("mimaji_mock_signups");
+        const signups = raw ? JSON.parse(raw) : {};
+        const seenPhones = new Set<string>();
+        for (const entry of Object.values(signups)) {
+          const e = entry as { password: string; user: MockUser };
+          if (!seenIds.has(e.user.id) && !seenPhones.has(e.user.phone)) {
+            allUsers.push({ ...e.user, password: e.password });
+            seenIds.add(e.user.id);
+            seenPhones.add(e.user.phone);
+          }
         }
       } catch {}
+
+      setUsers(allUsers);
     }
-
-    // Fallback: localStorage mock
-    const builtIn: MockUser[] = [
-      { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin", password: "admin123" },
-      { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor", password: "vendor123" },
-    ];
-    const seenIds = new Set(builtIn.map((u) => u.id));
-    const allUsers: MockUser[] = [...builtIn];
-
-    try {
-      const raw = localStorage.getItem("mimaji_mock_signups");
-      const signups = raw ? JSON.parse(raw) : {};
-      const seenPhones = new Set<string>();
-      for (const entry of Object.values(signups)) {
-        const e = entry as { password: string; user: MockUser };
-        if (!seenIds.has(e.user.id) && !seenPhones.has(e.user.phone)) {
-          allUsers.push({ ...e.user, password: e.password });
-          seenIds.add(e.user.id);
-          seenPhones.add(e.user.phone);
-        }
-      }
-    } catch {}
-
-    setUsers(allUsers);
   }
 
   async function updateUser(userId: string, updates: Partial<MockUser>) {
     if (hasSupabaseConfig) {
-      const profileUpdates: Record<string, unknown> = {};
-      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
-      if (updates.role !== undefined) profileUpdates.role = updates.role;
-      await supabase.from("profiles").update(profileUpdates).eq("id", userId);
-      await loadUsers();
+      await adminAction({ action: "update_user", userId, updates });
     } else {
       try {
         const raw = localStorage.getItem("mimaji_mock_signups");
@@ -431,18 +408,15 @@ function AdminDashboardInner() {
           }
         }
         localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-        loadUsers();
       } catch {}
     }
+    await loadAllData();
     setEditingUser(null);
   }
 
   async function deleteUser(userId: string) {
     if (hasSupabaseConfig) {
-      // Note: deleting from profiles will cascade from auth.users FK
-      // We just remove the profile; the auth user remains but is effectively deactivated
-      await supabase.from("profiles").delete().eq("id", userId);
-      await loadUsers();
+      await adminAction({ action: "delete_user", userId });
     } else {
       try {
         const raw = localStorage.getItem("mimaji_mock_signups");
@@ -454,9 +428,9 @@ function AdminDashboardInner() {
           }
         }
         localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-        loadUsers();
       } catch {}
     }
+    await loadAllData();
     setDeleteUserConfirm(null);
   }
 
@@ -470,21 +444,14 @@ function AdminDashboardInner() {
     if (!phone || !newUser.name || !newUser.password) return;
 
     if (hasSupabaseConfig) {
-      const email = `${phone}@mimaji.co.ke`;
-      const { data, error } = await supabase.auth.signUp({
-        email,
+      await adminAction({
+        action: "create_user",
+        phone,
+        name: newUser.name,
         password: newUser.password,
-        options: { data: { full_name: newUser.name, phone } },
+        role: newUser.role,
       });
-      if (!error && data?.user) {
-        // Set role if not customer
-        if (newUser.role !== "customer") {
-          await supabase.from("profiles").update({ role: newUser.role }).eq("id", data.user.id);
-        }
-      }
-      await loadUsers();
     } else {
-      // Mock: save to signups localStorage
       const id = `admin-created-${Date.now()}`;
       const mockUser = { id, phone, name: newUser.name, role: newUser.role };
       try {
@@ -496,32 +463,151 @@ function AdminDashboardInner() {
         }
         localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
       } catch {}
-      loadUsers();
     }
+    await loadAllData();
     setNewUser({ phone: "", name: "", password: "", role: "customer" });
     setShowCreateUser(false);
   }
 
+  // Map raw Supabase order rows to OrderRecord
+  function mapOrderRow(row: Record<string, unknown>): OrderRecord {
+    return {
+      id: row.id as string,
+      customer_id: row.customer_id as string,
+      delivery_address: (row.delivery_address as string) || "",
+      delivery_address_details: (row.delivery_address_details as OrderRecord["delivery_address_details"]) || null,
+      quantity: Number(row.quantity) || 0,
+      price_total: Number(row.price_total) || 0,
+      status: (row.status as string) || "pending_payment",
+      mpesa_ref: (row.mpesa_ref as string) || null,
+      product_name: (row.product_name as string) || null,
+      order_items: (row.order_items as OrderRecord["order_items"]) || [],
+      estimated_delivery_minutes: row.estimated_delivery_minutes != null ? Number(row.estimated_delivery_minutes) : null,
+      created_at: (row.created_at as string) || new Date().toISOString(),
+      updated_at: (row.updated_at as string) || new Date().toISOString(),
+      vendor_id: (row.vendor_id as string) || null,
+      vendor_name: (row.vendor_name as string) || null,
+      vendor_location: (row.vendor_location as string) || null,
+      vendors_tried: (row.vendors_tried as string[]) || [],
+      current_vendor_offer: (row.current_vendor_offer as string) || null,
+      scheduled_date: (row.scheduled_date as string) || null,
+      scheduled_time: (row.scheduled_time as string) || null,
+      delivery_code: (row.delivery_code as string) || null,
+      payment_method: (row.payment_method as string) || null,
+      brand_preference: (row.brand_preference as string[]) || [],
+    };
+  }
+
+  function mapSubscriptionRow(s: Record<string, unknown>): SubscriptionRecord {
+    return {
+      id: s.id as string,
+      userId: (s.user_id as string) || "",
+      userName: (s.user_name as string) || "",
+      userPhone: (s.user_phone as string) || "",
+      planId: (s.plan_id as string) || "custom",
+      planName: (s.plan_name as string) || "Custom",
+      jugsPerMonth: Number(s.jugs_per_month) || 0,
+      pricePerJug: Number(s.price_per_jug) || 0,
+      monthlyTotal: Number(s.monthly_total) || 0,
+      status: (s.status as string) || "active",
+      startDate: (s.created_at as string) || new Date().toISOString(),
+    };
+  }
+
+  // Load ALL admin data via server-side API (bypasses RLS)
+  const loadAllData = useCallback(async () => {
+    if (!hasSupabaseConfig) {
+      // Mock mode: use existing load functions
+      fetchAllOrders().then((data) => { setOrders(data); setLastRefresh(new Date()); });
+      loadUsers();
+      loadVendors();
+      loadSubscriptions();
+      return;
+    }
+
+    const data = await fetchAdminData();
+    if (!data) {
+      // API failed — fall back to direct queries
+      fetchAllOrders().then((d) => { setOrders(d); setLastRefresh(new Date()); });
+      loadUsers();
+      loadVendors();
+      loadSubscriptions();
+      return;
+    }
+
+    // Orders
+    setOrders(data.orders.map(mapOrderRow));
+    setLastRefresh(new Date());
+
+    // Users
+    if (data.users.length > 0) {
+      setUsers(data.users.map((p) => ({
+        id: p.id as string,
+        phone: (p.phone as string) || "",
+        name: (p.full_name as string) || "",
+        role: (p.role as string) || "customer",
+      })));
+    }
+
+    // Vendors
+    if (data.vendors.length > 0) {
+      const mapped: VendorInfo[] = data.vendors.map((v: Record<string, unknown>) => ({
+        id: v.id as string,
+        name: (v.name as string) || "",
+        area: (v.area as string) || "",
+        distance: "",
+        rating: Number(v.rating) || 4.5,
+        reviews: Number(v.reviews) || 0,
+        hours: (v.hours as string) || "7AM - 8PM",
+        products: (v.products as string[]) || [],
+        brands: (v.brands as string[]) || [],
+        areasServed: (v.areas_served as string[]) || [],
+        businessRegNo: (v.business_reg_no as string) || "",
+        mpesaNumber: (v.mpesa_number as string) || "",
+        phoneNumbers: (v.phone_numbers as string[]) || [],
+        locations: ((v.vendor_locations as Record<string, unknown>[]) || []).map((l) => ({
+          id: l.id as string,
+          name: (l.name as string) || "",
+          area: (l.area as string) || "",
+          lat: Number(l.lat) || -1.2864,
+          lng: Number(l.lng) || 36.8172,
+        })),
+      }));
+      setCustomVendors(mapped);
+    }
+
+    // Subscriptions
+    setSubscriptions(data.subscriptions.map(mapSubscriptionRow));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep loadOrders for polling (lighter than full reload)
   const loadOrders = useCallback(() => {
-    fetchAllOrders().then((data) => {
-      setOrders(data);
-      setLastRefresh(new Date());
-    });
+    if (hasSupabaseConfig) {
+      fetchAdminData().then((data) => {
+        if (data) {
+          setOrders(data.orders.map(mapOrderRow));
+          setLastRefresh(new Date());
+        }
+      });
+    } else {
+      fetchAllOrders().then((data) => {
+        setOrders(data);
+        setLastRefresh(new Date());
+      });
+    }
   }, []);
 
   // Initial load + polling
   useEffect(() => {
-    loadOrders();
-    loadUsers();
-    loadVendors();
-    loadSubscriptions();
+    loadAllData();
     const orderInterval = setInterval(loadOrders, 10_000);
     const clockInterval = setInterval(() => setKenyaTime(getKenyaTime()), 1_000);
     return () => {
       clearInterval(orderInterval);
       clearInterval(clockInterval);
     };
-  }, [loadOrders]);
+  }, [loadAllData, loadOrders]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -589,15 +675,22 @@ function AdminDashboardInner() {
         return;
       }
     }
-    await updateOrderStatus(orderId, newStatus);
-    // Refresh from source of truth
+    if (hasSupabaseConfig) {
+      await adminAction({ action: "update_order_status", orderId, status: newStatus });
+    } else {
+      await updateOrderStatus(orderId, newStatus);
+    }
     loadOrders();
     setStatusDropdown(null);
   }
 
   async function confirmCancel() {
     if (!cancelConfirm) return;
-    await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    if (hasSupabaseConfig) {
+      await adminAction({ action: "update_order_status", orderId: cancelConfirm.orderId, status: "cancelled" });
+    } else {
+      await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    }
     loadOrders();
     setCancelConfirm(null);
   }
@@ -605,52 +698,42 @@ function AdminDashboardInner() {
   async function reassignVendor(orderId: string, vendorId: string) {
     const vendor = allVendors.find(v => v.id === vendorId);
     if (!vendor) return;
-    const { updateOrder } = await import("@/lib/orders");
-    await updateOrder(orderId, {
-      vendor_id: vendorId,
-      vendor_name: vendor.name,
-      vendor_location: vendor.locations?.[0]?.name || vendor.area || "",
-      current_vendor_offer: vendorId,
-    });
+    if (hasSupabaseConfig) {
+      await adminAction({
+        action: "reassign_vendor",
+        orderId,
+        vendorId,
+        vendorName: vendor.name,
+        vendorLocation: vendor.locations?.[0]?.name || vendor.area || "",
+      });
+    } else {
+      const { updateOrder } = await import("@/lib/orders");
+      await updateOrder(orderId, {
+        vendor_id: vendorId,
+        vendor_name: vendor.name,
+        vendor_location: vendor.locations?.[0]?.name || vendor.area || "",
+        current_vendor_offer: vendorId,
+      });
+    }
     loadOrders();
     setVendorDropdown(null);
   }
 
   // ── Tab buttons ──
   // Subscriptions state
-  interface SubscriptionRecord { id: string; userId: string; userName: string; userPhone: string; planId: string; planName: string; jugsPerMonth: number; pricePerJug: number; monthlyTotal: number; status: string; startDate: string; }
   const [subscriptions, setSubscriptions] = useState<SubscriptionRecord[]>([]);
   const [showAddSub, setShowAddSub] = useState(false);
   const [newSub, setNewSub] = useState({ phone: "", name: "", planId: "custom", jugs: "4", pricePerJug: "120" });
   const [deleteSubConfirm, setDeleteSubConfirm] = useState<string | null>(null);
 
   async function loadSubscriptions() {
-    if (hasSupabaseConfig) {
+    // Subscription loading is handled by loadAllData when Supabase is configured
+    if (!hasSupabaseConfig) {
       try {
-        const { data, error } = await supabase.from("subscriptions").select("*").order("created_at", { ascending: false });
-        if (!error && data) {
-          setSubscriptions(data.map((s: Record<string, unknown>) => ({
-            id: s.id as string,
-            userId: (s.user_id as string) || "",
-            userName: (s.user_name as string) || "",
-            userPhone: (s.user_phone as string) || "",
-            planId: (s.plan_id as string) || "custom",
-            planName: (s.plan_name as string) || "Custom",
-            jugsPerMonth: Number(s.jugs_per_month) || 0,
-            pricePerJug: Number(s.price_per_jug) || 0,
-            monthlyTotal: Number(s.monthly_total) || 0,
-            status: (s.status as string) || "active",
-            startDate: (s.created_at as string) || new Date().toISOString(),
-          })));
-          return;
-        }
-      } catch {}
+        const raw = localStorage.getItem("mimaji_admin_subscriptions");
+        setSubscriptions(raw ? JSON.parse(raw) : []);
+      } catch { setSubscriptions([]); }
     }
-    // Fallback: localStorage
-    try {
-      const raw = localStorage.getItem("mimaji_admin_subscriptions");
-      setSubscriptions(raw ? JSON.parse(raw) : []);
-    } catch { setSubscriptions([]); }
   }
 
   async function addSubscription() {
@@ -670,17 +753,20 @@ function AdminDashboardInner() {
       startDate: new Date().toISOString(),
     };
     if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").insert({
-        user_name: sub.userName,
-        user_phone: sub.userPhone,
-        plan_id: sub.planId,
-        plan_name: sub.planName,
-        jugs_per_month: sub.jugsPerMonth,
-        price_per_jug: sub.pricePerJug,
-        monthly_total: sub.monthlyTotal,
-        status: "active",
+      await adminAction({
+        action: "add_subscription",
+        subscription: {
+          user_name: sub.userName,
+          user_phone: sub.userPhone,
+          plan_id: sub.planId,
+          plan_name: sub.planName,
+          jugs_per_month: sub.jugsPerMonth,
+          price_per_jug: sub.pricePerJug,
+          monthly_total: sub.monthlyTotal,
+          status: "active",
+        },
       });
-      await loadSubscriptions();
+      await loadAllData();
     } else {
       const all = [...subscriptions, sub];
       localStorage.setItem("mimaji_admin_subscriptions", JSON.stringify(all));
@@ -692,8 +778,8 @@ function AdminDashboardInner() {
 
   async function toggleSubscriptionStatus(subId: string, newStatus: string) {
     if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").update({ status: newStatus }).eq("id", subId);
-      await loadSubscriptions();
+      await adminAction({ action: "update_subscription", subscriptionId: subId, updates: { status: newStatus } });
+      await loadAllData();
     } else {
       const all = subscriptions.map((s) => s.id === subId ? { ...s, status: newStatus } : s);
       localStorage.setItem("mimaji_admin_subscriptions", JSON.stringify(all));
@@ -703,8 +789,8 @@ function AdminDashboardInner() {
 
   async function deleteSubscription(subId: string) {
     if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").delete().eq("id", subId);
-      await loadSubscriptions();
+      await adminAction({ action: "delete_subscription", subscriptionId: subId });
+      await loadAllData();
     } else {
       const all = subscriptions.filter((s) => s.id !== subId);
       localStorage.setItem("mimaji_admin_subscriptions", JSON.stringify(all));
