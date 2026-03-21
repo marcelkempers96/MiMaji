@@ -49,9 +49,9 @@ function formatPhoneEmail(phone: string): string {
   return `${normalizePhone(phone)}@mimaji.co.ke`;
 }
 
-/** Pad a 4-digit PIN to meet Supabase's 6-char password minimum */
+/** Pad a 4-digit PIN to meet Supabase's password minimum (8 chars) */
 function padPin(pin: string): string {
-  return `MJ${pin}`;
+  return `MiMaji${pin}`;
 }
 
 // Check if real Supabase credentials are configured
@@ -374,6 +374,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       const email = formatPhoneEmail(phone);
       const password = padPin(pin);
 
+      console.log("Signup attempt:", { email, passwordLength: password.length });
       const { data: signUpData, error } = await sb.auth.signUp({
         email,
         password,
@@ -381,6 +382,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        console.error("Signup error:", { message: error.message, status: error.status, code: (error as Record<string, unknown>).code });
         if (error.message.includes("already registered")) {
           // Account exists — try to log them in directly
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
