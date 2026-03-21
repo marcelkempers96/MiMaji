@@ -2164,7 +2164,7 @@ function AdminDashboardInner() {
                     {users.map((u) => (
                       <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">USR-{u.id.slice(0, 6).toUpperCase()}</td>
-                        <td className="px-4 py-3 font-mono text-xs">+{u.phone.replace(/^254/, "254 ")}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{u.phone ? `+${u.phone.replace(/^254/, "254 ")}` : "—"}</td>
                         <td className="px-4 py-3">
                           {editingUser?.id === u.id ? (
                             <input
@@ -2174,7 +2174,7 @@ function AdminDashboardInner() {
                               className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-full max-w-[180px] outline-none focus:border-primary"
                             />
                           ) : (
-                            <span className="font-medium text-text-primary">{u.name}</span>
+                            <span className="font-medium text-text-primary">{u.name || <span className="text-text-secondary italic">No name</span>}</span>
                           )}
                         </td>
                         {showPasswords && (

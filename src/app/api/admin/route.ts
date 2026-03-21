@@ -50,18 +50,18 @@ export async function GET(req: NextRequest) {
       const customerMap = new Map<string, { name: string; phone: string }>();
 
       if (customerIds.length > 0) {
-        // Fetch auth users in pages
         let page = 1;
         const perPage = 1000;
         while (true) {
           const { data: authPage, error: authErr } = await sb.auth.admin.listUsers({ page, perPage });
-          if (authErr || !authPage?.users?.length) break;
+          if (authErr) { console.error("listUsers error:", authErr); break; }
+          if (!authPage?.users?.length) break;
           for (const u of authPage.users) {
             if (customerIds.includes(u.id)) {
               const meta = (u.user_metadata || {}) as Record<string, string>;
               customerMap.set(u.id, {
                 name: meta.full_name || meta.name || meta.display_name || "",
-                phone: meta.phone || u.email?.replace(/@mimaji\.(app|co\.ke)$/, "") || "",
+                phone: meta.phone || u.phone || u.email?.replace(/@mimaji\.(app|co\.ke)$/, "") || "",
               });
             }
           }
@@ -84,60 +84,50 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === "users") {
-      // Profiles table often has blank name/phone — the real data lives in
-      // auth.users raw_user_meta_data. Fetch both and merge.
-      const { data: profiles } = await sb
-        .from("profiles")
-        .select("id, phone, full_name, role")
-        .order("created_at", { ascending: false });
-
-      // Fetch auth users to get raw_user_meta_data (name, phone)
-      const allAuthUsers: Array<{ id: string; email?: string; phone?: string; user_metadata?: Record<string, string>; raw_user_meta_data?: Record<string, string> }> = [];
+      // Primary source: auth.users (has ALL registered users + raw_user_meta_data).
+      // The profiles table is often incomplete (missing rows, blank fields).
+      const allAuthUsers: Array<{ id: string; email?: string; phone?: string; user_metadata: Record<string, string>; created_at?: string }> = [];
       let page = 1;
       const perPage = 1000;
       while (true) {
         const { data: authPage, error: authErr } = await sb.auth.admin.listUsers({ page, perPage });
-        if (authErr || !authPage?.users?.length) break;
+        if (authErr) { console.error("listUsers error:", authErr); break; }
+        if (!authPage?.users?.length) break;
         allAuthUsers.push(...authPage.users.map((u) => ({
           id: u.id,
           email: u.email,
           phone: u.phone,
-          user_metadata: u.user_metadata as Record<string, string> | undefined,
+          user_metadata: (u.user_metadata || {}) as Record<string, string>,
+          created_at: u.created_at,
         })));
         if (authPage.users.length < perPage) break;
         page++;
       }
 
-      // Build a map of auth user metadata keyed by user ID
-      const authMap = new Map(allAuthUsers.map((u) => [u.id, u]));
+      // Fetch profiles for role info (and as fallback for name/phone)
+      const { data: profiles } = await sb
+        .from("profiles")
+        .select("id, phone, full_name, role");
+      const profileMap = new Map(
+        (profiles || []).map((p: Record<string, unknown>) => [p.id as string, p])
+      );
 
-      // Merge: prefer auth metadata over blank profile fields
-      const merged = (profiles || []).map((p: Record<string, unknown>) => {
-        const auth = authMap.get(p.id as string);
-        const meta = auth?.user_metadata || {};
-        const profileName = (p.full_name as string) || "";
-        const profilePhone = (p.phone as string) || "";
+      // Build merged list — one entry per auth user
+      const merged = allAuthUsers.map((auth) => {
+        const profile = profileMap.get(auth.id) as Record<string, unknown> | undefined;
+        const meta = auth.user_metadata;
         return {
-          id: p.id,
-          full_name: profileName || meta.full_name || meta.name || meta.display_name || "",
-          phone: profilePhone || meta.phone || auth?.email?.replace(/@mimaji\.(app|co\.ke)$/, "") || "",
-          role: p.role || "customer",
+          id: auth.id,
+          full_name:
+            meta.full_name || meta.name || meta.display_name ||
+            (profile?.full_name as string) || "",
+          phone:
+            meta.phone || (profile?.phone as string) ||
+            auth.phone ||
+            auth.email?.replace(/@mimaji\.(app|co\.ke)$/, "") || "",
+          role: (profile?.role as string) || "customer",
         };
       });
-
-      // Also include auth users that have no profile row yet
-      const profileIds = new Set((profiles || []).map((p: Record<string, unknown>) => p.id));
-      for (const auth of allAuthUsers) {
-        if (!profileIds.has(auth.id)) {
-          const meta = auth.user_metadata || {};
-          merged.push({
-            id: auth.id,
-            full_name: meta.full_name || meta.name || meta.display_name || "",
-            phone: meta.phone || auth.email?.replace(/@mimaji\.(app|co\.ke)$/, "") || "",
-            role: "customer",
-          });
-        }
-      }
 
       return NextResponse.json(merged);
     }
