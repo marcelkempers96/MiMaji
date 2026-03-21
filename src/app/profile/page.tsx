@@ -36,8 +36,8 @@ export default function ProfilePage() {
   }
   const [editName, setEditName] = useState(user?.name || "");
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
 

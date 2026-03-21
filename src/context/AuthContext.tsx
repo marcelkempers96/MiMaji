@@ -464,10 +464,15 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSupabase]);
 
   const logout = useCallback(async () => {
-    const sb = await getSupabase();
-    await sb.auth.signOut();
+    // Always clear local state, even if signOut fails
     setUser(null);
     setSession(null);
+    try {
+      const sb = await getSupabase();
+      await sb.auth.signOut();
+    } catch (e) {
+      console.error("Sign out error (non-fatal):", e);
+    }
   }, [getSupabase]);
 
   const updateProfile = useCallback(async (updates: { name?: string; email?: string; mpesaNumber?: string }): Promise<{ error?: string }> => {
