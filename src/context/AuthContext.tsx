@@ -18,8 +18,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  login: (phone: string, password: string) => Promise<{ error?: string }>;
-  signup: (phone: string, password: string, name: string, referralCode?: string) => Promise<{ error?: string }>;
+  login: (phone: string, pin: string) => Promise<{ error?: string }>;
+  signup: (phone: string, pin: string, name: string, referralCode?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: { name?: string; email?: string; mpesaNumber?: string }) => Promise<{ error?: string }>;
 }
@@ -34,12 +34,24 @@ const AuthContext = createContext<AuthContextType>({
   updateProfile: async () => ({}),
 });
 
-function formatPhoneEmail(phone: string): string {
+function normalizePhone(phone: string): string {
   let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
   if (cleaned.startsWith("0")) {
     cleaned = "254" + cleaned.slice(1);
+  } else if (!cleaned.startsWith("254") && cleaned.length <= 9) {
+    // Bare number like 758434076 — prepend Kenya country code
+    cleaned = "254" + cleaned;
   }
-  return `${cleaned}@mimaji.app`;
+  return cleaned;
+}
+
+function formatPhoneEmail(phone: string): string {
+  return `${normalizePhone(phone)}@mimaji.co.ke`;
+}
+
+/** Pad a 4-digit PIN to meet Supabase's 6-char password minimum */
+function padPin(pin: string): string {
+  return `MJ${pin}`;
 }
 
 // Check if real Supabase credentials are configured
@@ -50,23 +62,31 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
-// ── Demo accounts ──────────────────────────────────────────────────
-const MOCK_ACCOUNTS: Record<string, { password: string; user: User }> = {
+// ── Demo accounts (4-digit PIN login) ─────────────────────────────
+const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
   "0758434076": {
-    password: "admin123",
+    pin: "1234",
     user: { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
   },
   "254758434076": {
-    password: "admin123",
+    pin: "1234",
     user: { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
   },
   "0712345678": {
-    password: "vendor123",
+    pin: "5678",
     user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
   },
   "254712345678": {
-    password: "vendor123",
+    pin: "5678",
     user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
+  },
+  "0712345677": {
+    pin: "0000",
+    user: { id: "c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d", phone: "254712345677", name: "Demo Customer", role: "customer" },
+  },
+  "254712345677": {
+    pin: "0000",
+    user: { id: "c3a1b2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d", phone: "254712345677", name: "Demo Customer", role: "customer" },
   },
 };
 
@@ -92,16 +112,16 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // In-memory store for dynamically signed-up users (persists via localStorage)
-  const getSignedUpUsers = useCallback((): Record<string, { password: string; user: User }> => {
+  const getSignedUpUsers = useCallback((): Record<string, { pin: string; user: User }> => {
     try {
       const raw = localStorage.getItem("mimaji_mock_signups");
       return raw ? JSON.parse(raw) : {};
     } catch { return {}; }
   }, []);
 
-  const saveSignedUpUser = useCallback((phone: string, password: string, mockUser: User) => {
+  const saveSignedUpUser = useCallback((phone: string, pin: string, mockUser: User) => {
     const existing = getSignedUpUsers();
-    existing[phone] = { password, user: mockUser };
+    existing[phone] = { pin, user: mockUser };
     try { localStorage.setItem("mimaji_mock_signups", JSON.stringify(existing)); } catch {}
   }, [getSignedUpUsers]);
 
@@ -111,16 +131,11 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (phone: string, password: string): Promise<{ error?: string }> => {
-    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
-    // Normalize leading 0 → 254 (same as signup)
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.slice(1);
-    }
+  const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
+    const cleaned = normalizePhone(phone);
 
     // Build alternative formats to try
     const phonesToTry = [cleaned];
-    // Also try without 254 prefix (with leading 0)
     if (cleaned.startsWith("254")) {
       phonesToTry.push("0" + cleaned.slice(3));
     }
@@ -129,8 +144,8 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     for (const p of phonesToTry) {
       const account = MOCK_ACCOUNTS[p];
       if (account) {
-        if (account.password !== password) {
-          return { error: "Invalid phone number or password" };
+        if (account.pin !== pin) {
+          return { error: "Invalid phone number or PIN" };
         }
         setUser(account.user);
         saveMockSession(account.user);
@@ -143,8 +158,8 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     for (const p of phonesToTry) {
       const signupAccount = signups[p];
       if (signupAccount) {
-        if (signupAccount.password !== password) {
-          return { error: "Invalid phone number or password" };
+        if (signupAccount.pin !== pin) {
+          return { error: "Invalid phone number or PIN" };
         }
         setUser(signupAccount.user);
         saveMockSession(signupAccount.user);
@@ -152,14 +167,11 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    return { error: "Invalid phone number or password" };
+    return { error: "Invalid phone number or PIN" };
   }, [getSignedUpUsers]);
 
-  const signup = useCallback(async (phone: string, password: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
-    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.slice(1);
-    }
+  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
+    const cleaned = normalizePhone(phone);
 
     // Check if phone is already registered (try both formats)
     const altPhone = cleaned.startsWith("254") ? "0" + cleaned.slice(3) : cleaned;
@@ -185,10 +197,10 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Save under normalized format
-    saveSignedUpUser(cleaned, password, newUser);
+    saveSignedUpUser(cleaned, pin, newUser);
     // Also save under 0-prefix format for robustness
     if (cleaned.startsWith("254")) {
-      saveSignedUpUser("0" + cleaned.slice(3), password, newUser);
+      saveSignedUpUser("0" + cleaned.slice(3), pin, newUser);
     }
     setUser(newUser);
     saveMockSession(newUser);
@@ -265,7 +277,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     const meta = supaUser.user_metadata || {};
     return {
       id: supaUser.id,
-      phone: meta.phone || supaUser.email?.replace("@mimaji.app", "") || "",
+      phone: meta.phone || supaUser.email?.replace(/@mimaji\.(app|co\.ke)$/, "") || "",
       name: meta.full_name || meta.name || "",
       role: (meta.role as UserRole) || "customer",
     };
@@ -326,26 +338,25 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     return () => { subscription?.unsubscribe(); };
   }, [getSupabase, mapUser, loadProfile]);
 
-  const login = useCallback(async (phone: string, password: string): Promise<{ error?: string }> => {
+  const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
     const sb = await getSupabase();
     const email = formatPhoneEmail(phone);
+    const password = padPin(pin);
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
       if (error.message.includes("Invalid login credentials")) {
-        return { error: "Invalid phone number or password" };
+        return { error: "Invalid phone number or PIN" };
       }
       return { error: error.message };
     }
     return {};
   }, [getSupabase]);
 
-  const signup = useCallback(async (phone: string, password: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
+  const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<{ error?: string }> => {
     const sb = await getSupabase();
+    const cleaned = normalizePhone(phone);
     const email = formatPhoneEmail(phone);
-    let cleaned = phone.replace(/\s/g, "").replace(/^\+/, "");
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.slice(1);
-    }
+    const password = padPin(pin);
 
     const { data: signUpData, error } = await sb.auth.signUp({
       email,

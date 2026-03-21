@@ -462,11 +462,15 @@ function AdminDashboardInner() {
 
   async function createUserAccount() {
     let phone = newUser.phone.replace(/\s/g, "").replace(/^\+/, "");
-    if (phone.startsWith("0")) phone = "254" + phone.slice(1);
+    if (phone.startsWith("0")) {
+      phone = "254" + phone.slice(1);
+    } else if (!phone.startsWith("254") && phone.length <= 9) {
+      phone = "254" + phone;
+    }
     if (!phone || !newUser.name || !newUser.password) return;
 
     if (hasSupabaseConfig) {
-      const email = `${phone}@mimaji.app`;
+      const email = `${phone}@mimaji.co.ke`;
       const { data, error } = await supabase.auth.signUp({
         email,
         password: newUser.password,
