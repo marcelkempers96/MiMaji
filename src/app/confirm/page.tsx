@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
-import { createOrder, updateOrderStatus, formatOrderId, generateDeliveryCode, DeliveryAddressDetails } from "@/lib/orders";
+import { createOrder, formatOrderId, generateDeliveryCode, DeliveryAddressDetails } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
 import { processOrderRewards, getRewardsSummaryAsync, useFreeLitresAsync } from "@/lib/rewards";
 import { getProductImage, products } from "@/data/products";
@@ -175,7 +175,9 @@ export default function ConfirmOrderPage() {
 
   /** Create the real order, assign vendor, process rewards, clear cart */
   const finalizeOrder = async (mpesaRef: string | null) => {
-    if (!user?.phone || !user?.id || !pendingOrderRef.current) return;
+    if (!user?.phone || !user?.id || !pendingOrderRef.current) {
+      throw new Error("Missing user or order data. Please try again.");
+    }
 
     const pending = pendingOrderRef.current;
 
@@ -198,40 +200,48 @@ export default function ConfirmOrderPage() {
     let brandPreference: string[] = [];
     try { const bp = sessionStorage.getItem("mimaji_brand_preference"); if (bp) brandPreference = JSON.parse(bp); } catch {}
 
-    const { orderId, error: orderError } = await createOrder({
-      customerId: user.id,
-      deliveryAddress: pending.address,
-      deliveryAddressDetails: addressDetails,
-      quantity: Math.min(totalItems || pending.savedItems.length, 10),
-      priceTotal: finalTotal,
-      productName: pending.productName,
-      orderItems: pending.orderItems,
-      scheduledDate: scheduledDelivery?.date,
-      scheduledTime: scheduledDelivery?.time,
-      deliveryCode: user.deliveryPin,
-      paymentMethod,
-      brandPreference,
-    });
+    let orderId: string | null = null;
+    let orderError: string | null = null;
+
+    // Determine initial status so we don't need a separate UPDATE call
+    const initialStatus = mpesaRef ? "paid" : paymentMethod === "cash" ? "confirmed" : "pending_payment";
+
+    try {
+      const result = await createOrder({
+        customerId: user.id,
+        deliveryAddress: pending.address,
+        deliveryAddressDetails: addressDetails,
+        quantity: Math.min(totalItems || pending.savedItems.length, 10),
+        priceTotal: finalTotal,
+        productName: pending.productName,
+        orderItems: pending.orderItems,
+        scheduledDate: scheduledDelivery?.date,
+        scheduledTime: scheduledDelivery?.time,
+        deliveryCode: user.deliveryPin,
+        paymentMethod,
+        brandPreference,
+        initialStatus,
+        mpesaRef: mpesaRef || undefined,
+      });
+      orderId = result.orderId;
+      orderError = result.error;
+    } catch (e) {
+      console.error("createOrder threw:", e);
+      throw new Error("Failed to create order. Please try again.");
+    }
 
     if (orderError || !orderId) {
       throw new Error(orderError || "Failed to create order");
     }
 
-    // Update status based on payment
-    if (mpesaRef) {
-      await updateOrderStatus(orderId, "paid", mpesaRef);
-    } else if (paymentMethod === "cash") {
-      await updateOrderStatus(orderId, "confirmed");
-    }
-
-    // Trigger vendor assignment
+    // Trigger vendor assignment — non-fatal
     try {
       await assignOrderToVendor(orderId);
     } catch (e) {
       console.error("Vendor assignment failed:", e);
     }
 
-    // Process referral rewards
+    // Process referral rewards — non-fatal
     try {
       processOrderRewards(user.id, pending.orderItems);
       if (claimRewards && rewardsApplied > 0) {
@@ -366,28 +376,32 @@ export default function ConfirmOrderPage() {
   const handleMpesaCodeSubmit = async () => {
     if (!mpesaCode.trim()) return;
     setCreatingOrder(true);
+    setErrorMsg("");
     try {
       await finalizeOrder(mpesaCode.trim().toUpperCase());
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
       setPaymentStatus("error");
-      setErrorMsg("Failed to place order. Please try again.");
+      setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
+    } finally {
+      setCreatingOrder(false);
     }
-    setCreatingOrder(false);
   };
 
   const handleMpesaSkip = async () => {
     setCreatingOrder(true);
+    setErrorMsg("");
     try {
       await finalizeOrder(null);
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
       setPaymentStatus("error");
-      setErrorMsg("Failed to place order. Please try again.");
+      setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
+    } finally {
+      setCreatingOrder(false);
     }
-    setCreatingOrder(false);
   };
 
   // ── M-PESA Code Entry Screen (order not yet created) ──
