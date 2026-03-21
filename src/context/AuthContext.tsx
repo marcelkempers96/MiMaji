@@ -431,8 +431,9 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Ensure name and phone are visible in raw_user_meta_data
+      // Store phone in auth.users phone column and name in user metadata
       await sb.auth.updateUser({
+        phone: cleaned,
         data: { full_name: name, phone: cleaned, display_name: name },
       });
 
