@@ -109,7 +109,7 @@ export default function OrdersPage() {
     router.push("/cart");
   };
 
-  if (!user) return null;
+  if (authLoading || !user) return null;
 
   const liveOrders = orders.filter((o) => {
     const status = mapOrderStatus(o.status);

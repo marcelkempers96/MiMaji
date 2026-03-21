@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User, ChevronRight, MapPin, CreditCard, Bell, Shield, HelpCircle, LogOut, FileText, Star, Settings, Edit2, KeyRound } from "lucide-react";
 
 import Link from "next/link";
@@ -29,17 +29,23 @@ export default function ProfilePage() {
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
   const [editName, setEditName] = useState(user?.name || "");
+  const loggingOutRef = useRef(false);
 
-  // Redirect unauthenticated users to login
-  if (!authLoading && !user) {
-    router.push("/login?redirect=/profile");
-    return null;
-  }
+  // Redirect unauthenticated users to login (must be in useEffect, not during render)
+  useEffect(() => {
+    if (!authLoading && !user && !loggingOutRef.current) {
+      router.push("/login?redirect=/profile");
+    }
+  }, [authLoading, user, router]);
 
   const handleLogout = async () => {
+    loggingOutRef.current = true;
     await logout();
     router.push("/");
   };
+
+  if (authLoading) return null;
+  if (!user && !loggingOutRef.current) return null;
 
   return (
     <div className="min-h-screen bg-background pb-16">

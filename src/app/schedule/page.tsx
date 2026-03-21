@@ -102,7 +102,7 @@ export default function SchedulePage() {
     }
   };
 
-  if (!user) return null;
+  if (authLoading || !user) return null;
 
   const content = (
     <>

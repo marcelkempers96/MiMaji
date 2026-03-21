@@ -32,7 +32,7 @@ export default function InvoicesPage() {
     }
   }, [user?.id]);
 
-  if (!user) return null;
+  if (authLoading || !user) return null;
 
   const invoiceContent = (
     <>

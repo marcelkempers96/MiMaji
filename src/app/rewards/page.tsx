@@ -61,7 +61,7 @@ export default function RewardsPage() {
     }
   };
 
-  if (!user) return null;
+  if (authLoading || !user) return null;
 
   const referralCapLitres = 50;
   const referralProgress = Math.min(summary.totalEarnedFromReferrals / referralCapLitres, 1) * 100;

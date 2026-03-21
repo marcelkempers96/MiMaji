@@ -1,6 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
+import { useEffect } from "react";
 import { Smartphone, CreditCard, Plus, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,10 +14,13 @@ export default function PaymentMethodsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  if (!authLoading && !user) {
-    router.push("/login?redirect=/payment-methods");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/payment-methods");
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading || !user) return null;
 
   const content = (
     <>

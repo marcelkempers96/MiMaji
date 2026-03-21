@@ -23,12 +23,6 @@ export default function AccountSettingsPage() {
   const { user, updateProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const [name, setName] = useState(user?.name || "");
-
-  // Redirect unauthenticated users to login
-  if (!authLoading && !user) {
-    router.push("/login?redirect=/account-settings");
-    return null;
-  }
   const [email, setEmail] = useState("");
   const [phone] = useState(user?.phone || "");
   const [mpesaNumber, setMpesaNumber] = useState(user?.phone || "");
@@ -40,6 +34,12 @@ export default function AccountSettingsPage() {
   const [corpBusinessName, setCorpBusinessName] = useState("");
   const [corpBusinessReg, setCorpBusinessReg] = useState("");
   const [corpSaved, setCorpSaved] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login?redirect=/account-settings");
+    }
+  }, [authLoading, user, router]);
 
   // Load saved profile data on mount
   useEffect(() => {
@@ -84,6 +84,8 @@ export default function AccountSettingsPage() {
       if (!mpesaDifferent) setMpesaNumber(user.phone);
     }
   }, [user?.name, user?.phone, mpesaDifferent]);
+
+  if (authLoading || !user) return null;
 
   const handleSave = async () => {
     setSaving(true);
