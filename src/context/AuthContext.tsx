@@ -352,6 +352,19 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       const password = padPin(pin);
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
+        // Fall back to built-in demo accounts (vendor, admin, customer)
+        const cleaned = normalizePhone(phone);
+        const phonesToTry = [cleaned];
+        if (cleaned.startsWith("254")) phonesToTry.push("0" + cleaned.slice(3));
+        for (const p of phonesToTry) {
+          const account = MOCK_ACCOUNTS[p];
+          if (account && account.pin === pin) {
+            setUser(account.user);
+            setSession(null);
+            return {};
+          }
+        }
+
         if (error.message.includes("Invalid login credentials")) {
           return { error: "Invalid phone number or PIN" };
         }
