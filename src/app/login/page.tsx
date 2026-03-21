@@ -85,12 +85,12 @@ function LoginContent() {
     setLoading(true);
 
     const result = await login(cleaned, pin);
+    setLoading(false);
     if (result.error) {
       setError(result.error);
-      setLoading(false);
       return;
     }
-    // Redirect is handled by the useEffect below once user state updates
+    // Redirect is handled by the useEffect once user state updates
   };
 
   const handleSignup = async () => {
@@ -116,13 +116,12 @@ function LoginContent() {
     setLoading(true);
 
     const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
+    setLoading(false);
     if (result.error) {
       setError(result.error);
-      setLoading(false);
       return;
     }
 
-    // Flag that we just signed up so the useEffect will init rewards (for mock mode)
     setJustSignedUp(true);
   };
 
