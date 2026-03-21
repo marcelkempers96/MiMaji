@@ -98,32 +98,66 @@ const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
   },
 };
 
-// Storage key for mock session persistence (24-hour expiry)
-const MOCK_SESSION_KEY = "mimaji_mock_user";
+// ── Session persistence (works for BOTH mock and real Supabase users) ──
+// This localStorage cache ensures instant restore on page load/refresh,
+// even before Supabase finishes verifying the session token.
+const USER_CACHE_KEY = "mimaji_user_cache";
+const MOCK_SESSION_KEY = "mimaji_mock_user"; // legacy key, still checked
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function saveMockSession(user: User) {
+function saveUserCache(user: User, isMock: boolean) {
   try {
-    const payload = { user, expiresAt: Date.now() + SESSION_EXPIRY_MS };
-    localStorage.setItem(MOCK_SESSION_KEY, JSON.stringify(payload));
+    const payload = { user, isMock, expiresAt: Date.now() + SESSION_EXPIRY_MS };
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify(payload));
+    // Also save under legacy key for backwards compat
+    if (isMock) {
+      localStorage.setItem(MOCK_SESSION_KEY, JSON.stringify(payload));
+    }
   } catch {}
 }
-function loadMockSession(): User | null {
+
+function loadUserCache(): { user: User; isMock: boolean } | null {
   try {
-    const raw = localStorage.getItem(MOCK_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    // Support legacy format (plain user object without expiry)
-    if (parsed && !parsed.expiresAt) return parsed as User;
-    if (parsed?.expiresAt && Date.now() < parsed.expiresAt) return parsed.user as User;
-    // Expired — clear it
-    localStorage.removeItem(MOCK_SESSION_KEY);
+    // Try new unified key first
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.expiresAt && Date.now() < parsed.expiresAt && parsed.user) {
+        return { user: parsed.user, isMock: !!parsed.isMock };
+      }
+      // Expired
+      localStorage.removeItem(USER_CACHE_KEY);
+    }
+    // Fall back to legacy mock key
+    const legacyRaw = localStorage.getItem(MOCK_SESSION_KEY);
+    if (legacyRaw) {
+      const parsed = JSON.parse(legacyRaw);
+      // Legacy format: plain user object
+      if (parsed && !parsed.expiresAt && parsed.id) return { user: parsed as User, isMock: true };
+      // New format with expiry
+      if (parsed?.expiresAt && Date.now() < parsed.expiresAt && parsed.user) {
+        return { user: parsed.user, isMock: true };
+      }
+      localStorage.removeItem(MOCK_SESSION_KEY);
+    }
     return null;
   } catch { return null; }
 }
-function clearMockSession() {
-  try { localStorage.removeItem(MOCK_SESSION_KEY); } catch {}
+
+function clearUserCache() {
+  try {
+    localStorage.removeItem(USER_CACHE_KEY);
+    localStorage.removeItem(MOCK_SESSION_KEY);
+  } catch {}
 }
+
+// Keep legacy helpers as aliases
+function saveMockSession(user: User) { saveUserCache(user, true); }
+function loadMockSession(): User | null {
+  const cached = loadUserCache();
+  return cached?.isMock ? cached.user : null;
+}
+function clearMockSession() { clearUserCache(); }
 
 // ── Mock Auth Provider ─────────────────────────────────────────────
 function MockAuthProvider({ children }: { children: React.ReactNode }) {
@@ -329,6 +363,17 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     return baseUser;
   }, [getSupabase]);
 
+  // Step 1: Instantly restore from localStorage cache (before Supabase loads)
+  useEffect(() => {
+    const cached = loadUserCache();
+    if (cached) {
+      isMockUserRef.current = cached.isMock;
+      setUser(cached.user);
+      // Don't set loading=false yet — wait for Supabase to confirm/update
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Step 2: Verify/update with Supabase session
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
     let initialSessionLoaded = false;
@@ -339,27 +384,30 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
+          // Real Supabase session exists — use it (and cache for next page load)
           isMockUserRef.current = false;
           const enriched = await loadProfile(baseUser.id, baseUser);
           setUser(enriched);
+          saveUserCache(enriched, false);
         } else {
-          // No Supabase session — restore mock session from localStorage
-          const mockUser = loadMockSession();
-          if (mockUser) {
+          // No Supabase session — keep cached user if it was a mock
+          const cached = loadUserCache();
+          if (cached?.isMock) {
             isMockUserRef.current = true;
-            setUser(mockUser);
-          } else {
+            setUser(cached.user);
+          } else if (!cached) {
+            setUser(null);
+          }
+          // If cached was a real user but Supabase has no session, it means
+          // the session expired — clear the cache
+          if (cached && !cached.isMock) {
+            clearUserCache();
             setUser(null);
           }
         }
         setLoading(false);
       }).catch(() => {
-        // Supabase error — try mock session
-        const mockUser = loadMockSession();
-        if (mockUser) {
-          isMockUserRef.current = true;
-          setUser(mockUser);
-        }
+        // Supabase error — keep cached user (already loaded in step 1)
         initialSessionLoaded = true;
         setLoading(false);
       });
@@ -372,36 +420,34 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
           isMockUserRef.current = false;
           const enriched = await loadProfile(baseUser.id, baseUser);
           setUser(enriched);
-          clearMockSession(); // Clear any mock session when real session exists
-        } else if (!isMockUserRef.current) {
-          // Only clear user if this isn't a mock user session
+          saveUserCache(enriched, false);
+        } else if (event === "SIGNED_OUT") {
+          // Only clear if explicitly signed out
           setUser(null);
+          clearUserCache();
+          isMockUserRef.current = false;
+        } else if (!isMockUserRef.current) {
+          // Token refresh failed etc. — don't clear mock users
+          // For real users, keep the cached version (optimistic)
         }
         if (!initialSessionLoaded) setLoading(false);
       });
       subscription = sub;
     }).catch(() => {
-      // Supabase init failed — try mock session
-      const mockUser = loadMockSession();
-      if (mockUser) {
-        isMockUserRef.current = true;
-        setUser(mockUser);
-      }
+      // Supabase init failed — keep cached user from step 1
       setLoading(false);
     });
 
     // Listen for cross-tab session changes via localStorage
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === MOCK_SESSION_KEY) {
-        const mockUser = loadMockSession();
-        if (mockUser) {
-          isMockUserRef.current = true;
-          setUser(mockUser);
+      if (e.key === USER_CACHE_KEY || e.key === MOCK_SESSION_KEY) {
+        const cached = loadUserCache();
+        if (cached) {
+          isMockUserRef.current = cached.isMock;
+          setUser(cached.user);
         } else {
-          if (isMockUserRef.current) {
-            isMockUserRef.current = false;
-            setUser(null);
-          }
+          isMockUserRef.current = false;
+          setUser(null);
         }
       }
     };
@@ -524,7 +570,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     isMockUserRef.current = false;
-    clearMockSession();
+    clearUserCache();
     try {
       const sb = await getSupabase();
       await sb.auth.signOut();

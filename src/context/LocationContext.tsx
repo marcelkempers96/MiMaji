@@ -130,7 +130,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const prevUserIdRef = useRef<string | null>(null);
 
-  // Load saved locations from Supabase (if logged in) or localStorage on mount
+  // Load saved locations: always from localStorage first (instant), then merge Supabase
   useEffect(() => {
     let cancelled = false;
     const userId = user?.id || null;
@@ -144,31 +144,24 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     }
     prevUserIdRef.current = userId;
 
+    // Step 1: Always load from localStorage immediately (instant, no network)
+    const localLocs = loadSavedLocations(userId);
+    setSavedLocations(localLocs);
+    setLoaded(true);
+
+    // Step 2: If Supabase is configured and user is logged in, fetch from Supabase
+    // and merge (Supabase wins if it has data, otherwise push local data up)
     if (userId && hasSupabaseConfig) {
       loadLocationsFromSupabase(userId).then((supaLocs) => {
         if (cancelled) return;
         if (supaLocs && supaLocs.length > 0) {
           setSavedLocations(supaLocs);
           persistLocations(supaLocs, userId); // sync to localStorage as cache
-        } else {
-          // Fall back to user-specific localStorage
-          const local = loadSavedLocations(userId);
-          setSavedLocations(local);
-          // Push local data to Supabase if we have some
-          if (local.length > 0) {
-            persistLocationsToSupabase(userId, local);
-          }
+        } else if (localLocs.length > 0) {
+          // Supabase has nothing — push local data up as backup
+          persistLocationsToSupabase(userId, localLocs);
         }
-        setLoaded(true);
       });
-    } else if (userId) {
-      // Logged in but no Supabase — use user-specific localStorage
-      setSavedLocations(loadSavedLocations(userId));
-      setLoaded(true);
-    } else {
-      // Not logged in — use generic localStorage
-      setSavedLocations(loadSavedLocations());
-      setLoaded(true);
     }
 
     return () => { cancelled = true; };
