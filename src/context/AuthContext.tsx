@@ -404,63 +404,38 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Step 2: Verify/update with Supabase session
+  // Uses onAuthStateChange with INITIAL_SESSION to avoid concurrent getSession() lock contention
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
-    let initialSessionLoaded = false;
 
     getSupabase().then((sb) => {
-      sb.auth.getSession().then(async ({ data: { session: sess } }) => {
-        initialSessionLoaded = true;
+      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (event, sess) => {
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
-          // Real Supabase session exists — use it (and cache for next page load)
           isMockUserRef.current = false;
           const enriched = await loadProfile(baseUser.id, baseUser);
           setUser(enriched);
           saveUserCache(enriched, false);
-        } else {
-          // No Supabase session — keep cached user if it was a mock
+        } else if (event === "INITIAL_SESSION") {
+          // No Supabase session on load — keep cached user if it was a mock
           const cached = loadUserCache();
           if (cached?.isMock) {
             isMockUserRef.current = true;
             setUser(cached.user);
+          } else if (cached && !cached.isMock) {
+            // Session expired — clear the cache
+            clearUserCache();
+            setUser(null);
           } else if (!cached) {
             setUser(null);
           }
-          // If cached was a real user but Supabase has no session, it means
-          // the session expired — clear the cache
-          if (cached && !cached.isMock) {
-            clearUserCache();
-            setUser(null);
-          }
-        }
-        setLoading(false);
-      }).catch(() => {
-        // Supabase error — keep cached user (already loaded in step 1)
-        initialSessionLoaded = true;
-        setLoading(false);
-      });
-
-      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (event, sess) => {
-        if (event === "INITIAL_SESSION") return;
-        setSession(sess);
-        const baseUser = mapUser(sess?.user ?? null);
-        if (baseUser) {
-          isMockUserRef.current = false;
-          const enriched = await loadProfile(baseUser.id, baseUser);
-          setUser(enriched);
-          saveUserCache(enriched, false);
         } else if (event === "SIGNED_OUT") {
-          // Only clear if explicitly signed out
           setUser(null);
           clearUserCache();
           isMockUserRef.current = false;
-        } else if (!isMockUserRef.current) {
-          // Token refresh failed etc. — don't clear mock users
-          // For real users, keep the cached version (optimistic)
         }
-        if (!initialSessionLoaded) setLoading(false);
+        setLoading(false);
       });
       subscription = sub;
     }).catch(() => {
