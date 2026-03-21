@@ -240,8 +240,8 @@ export default function VendorPortalPage() {
     loadOrders();
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
 

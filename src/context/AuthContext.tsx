@@ -382,7 +382,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error("Signup error:", { message: error.message, status: error.status, code: (error as Record<string, unknown>).code });
+        console.error("Signup error:", { message: error.message, status: error.status, code: (error as unknown as Record<string, unknown>).code });
         if (error.message.includes("already registered")) {
           // Account exists — try to log them in directly
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
@@ -431,6 +431,22 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Best-effort: store phone in auth.users phone column and name in metadata
+      // This may fail if phone provider is not enabled — don't block signup
+      try {
+        await sb.auth.updateUser({
+          phone: cleaned,
+          data: { full_name: name, phone: cleaned, display_name: name },
+        });
+      } catch {
+        // Fallback: update only metadata (no top-level phone)
+        try {
+          await sb.auth.updateUser({
+            data: { full_name: name, phone: cleaned, display_name: name },
+          });
+        } catch {}
+      }
+
       // Initialize rewards and referral relationship in Supabase
       const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
       if (userId) {
@@ -448,10 +464,15 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSupabase]);
 
   const logout = useCallback(async () => {
-    const sb = await getSupabase();
-    await sb.auth.signOut();
+    // Always clear local state, even if signOut fails
     setUser(null);
     setSession(null);
+    try {
+      const sb = await getSupabase();
+      await sb.auth.signOut();
+    } catch (e) {
+      console.error("Sign out error (non-fatal):", e);
+    }
   }, [getSupabase]);
 
   const updateProfile = useCallback(async (updates: { name?: string; email?: string; mpesaNumber?: string }): Promise<{ error?: string }> => {

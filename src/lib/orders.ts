@@ -175,7 +175,13 @@ export async function createOrder(params: {
   paymentMethod?: string;
   /** Brand preference IDs for vendor matching */
   brandPreference?: string[];
+  /** Initial order status (defaults to pending_payment) */
+  initialStatus?: string;
+  /** M-PESA reference code if already known */
+  mpesaRef?: string;
 }): Promise<{ orderId: string | null; error: string | null }> {
+  const status = params.initialStatus || "pending_payment";
+
   if (!hasSupabaseConfig) {
     const orderId = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -188,8 +194,8 @@ export async function createOrder(params: {
       price_total: params.priceTotal,
       product_name: params.productName,
       order_items: params.orderItems,
-      status: "pending_payment",
-      mpesa_ref: null,
+      status,
+      mpesa_ref: params.mpesaRef || null,
       estimated_delivery_minutes: null,
       created_at: now,
       updated_at: now,
@@ -249,7 +255,8 @@ export async function createOrder(params: {
       price_total: params.priceTotal,
       product_name: params.productName,
       order_items: params.orderItems,
-      status: "pending_payment",
+      status,
+      mpesa_ref: params.mpesaRef || null,
       vendor_id: null,
       vendor_name: null,
       vendor_location: null,
