@@ -19,6 +19,7 @@ import {
   User,
   Receipt,
   Home,
+  LogOut,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -39,8 +40,13 @@ const shortcuts = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const { neighbourhood } = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -58,9 +64,18 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background pb-16">
       {/* Mobile */}
       <div className="max-w-md mx-auto md:hidden">
-        <div className="px-4 pt-6 pb-4">
-          <h1 className="text-xl font-bold text-text-primary">Welcome, {user.name}!</h1>
-          <p className="text-text-secondary text-sm">{neighbourhood}</p>
+        <div className="px-4 pt-6 pb-4 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-text-primary">Welcome, {user.name}!</h1>
+            <p className="text-text-secondary text-sm">{neighbourhood}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-text-secondary hover:text-cta-alt text-xs font-medium mt-1 transition-colors"
+          >
+            <LogOut size={16} />
+            Log Out
+          </button>
         </div>
         <DashboardContent user={user} />
       </div>
@@ -81,6 +96,13 @@ export default function DashboardPage() {
               <Link href="/profile" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">
                 {user.name}
               </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 text-text-secondary hover:text-cta-alt text-sm font-medium transition-colors"
+              >
+                <LogOut size={16} />
+                Log Out
+              </button>
             </nav>
           </div>
         </header>

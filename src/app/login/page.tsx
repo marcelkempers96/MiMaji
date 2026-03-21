@@ -83,10 +83,8 @@ function LoginContent() {
       if (result.error) {
         setError(result.error);
         setLoading(false);
-      } else {
-        // Redirect directly using returned user data
-        redirectAfterAuth(result.user?.role);
       }
+      // On success, the useEffect watching `user` handles the redirect
     } catch (err) {
       console.error("Login failed:", err);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
@@ -127,8 +125,7 @@ function LoginContent() {
       if (result.user) {
         initRewardsAsync(result.user.id, result.user.name, referralCode.trim() || undefined).catch(() => {});
       }
-      // Redirect directly to dashboard
-      redirectAfterAuth(result.user?.role);
+      // On success, the useEffect watching `user` handles the redirect
     } catch (err) {
       console.error("Signup failed:", err);
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
@@ -136,7 +133,8 @@ function LoginContent() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (mode === "login") await handleLogin();
     else await handleSignup();
   };
@@ -154,6 +152,7 @@ function LoginContent() {
         {/* Mode Toggle */}
         <div className="flex w-full max-w-sm bg-gray-100 rounded-xl p-1 mb-6">
           <button
+            type="button"
             onClick={() => { setMode("login"); setError(""); }}
             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
               mode === "login" ? "bg-white text-primary shadow-sm" : "text-text-secondary"
@@ -162,6 +161,7 @@ function LoginContent() {
             Log In
           </button>
           <button
+            type="button"
             onClick={() => { setMode("signup"); setError(""); }}
             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
               mode === "signup" ? "bg-white text-primary shadow-sm" : "text-text-secondary"
@@ -171,7 +171,7 @@ function LoginContent() {
           </button>
         </div>
 
-        <div className="w-full max-w-sm">
+        <form onSubmit={handleSubmit} className="w-full max-w-sm">
           {/* Phone */}
           <label className="block text-sm font-medium text-text-primary mb-2">
             Phone Number
@@ -233,7 +233,6 @@ function LoginContent() {
               onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 4); setPin(v); setError(""); }}
               placeholder={mode === "signup" ? "Create a 4-digit PIN" : "Enter your PIN"}
               className="rounded-xl border border-gray-200 h-12 px-4 pr-12 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary tracking-[0.5em] text-center text-lg"
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
             <button
               type="button"
@@ -352,7 +351,7 @@ function LoginContent() {
 
           {error && <p className="text-cta-alt text-xs mt-3">{error}</p>}
 
-          <Button fullWidth className="mt-5" onClick={handleSubmit} disabled={loading}>
+          <Button fullWidth className="mt-5" type="submit" disabled={loading}>
             {loading
               ? (mode === "login" ? "Logging in..." : "Creating account...")
               : (mode === "login" ? "Log In" : "Create Account")}
@@ -363,6 +362,7 @@ function LoginContent() {
               ? "Don't have an account? "
               : "Already have an account? "}
             <button
+              type="button"
               onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}
               className="text-primary font-semibold"
             >
@@ -370,7 +370,7 @@ function LoginContent() {
             </button>
           </p>
 
-        </div>
+        </form>
       </div>
     </div>
   );
