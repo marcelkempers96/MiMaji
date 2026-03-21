@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Building2 } from "lucide-react";
 
@@ -50,15 +50,10 @@ function LoginContent() {
       setJustSignedUp(false);
     }
 
-    const redirect = searchParams.get("redirect");
-    if (redirect) {
-      router.push(redirect);
-    } else if (user.role === "vendor") {
-      router.push("/vendor-portal");
-    } else {
-      router.push("/dashboard");
-    }
-  }, [user, router, searchParams, justSignedUp, referralCode]);
+    // Clear loading state and redirect
+    setLoading(false);
+    redirectAfterAuth(user.role);
+  }, [user, justSignedUp, referralCode, redirectAfterAuth]);
 
   const getFullPhone = () => {
     let cleaned = phone.replace(/\s/g, "").replace(/^0+/, "");
@@ -69,6 +64,17 @@ function LoginContent() {
     }
     return cleaned;
   };
+
+  const redirectAfterAuth = useCallback((role?: string) => {
+    const redirect = searchParams.get("redirect");
+    if (redirect) {
+      router.push(redirect);
+    } else if (role === "vendor") {
+      router.push("/vendor-portal");
+    } else {
+      router.push("/dashboard");
+    }
+  }, [router, searchParams]);
 
   const handleLogin = async () => {
     const cleaned = getFullPhone();
@@ -88,11 +94,12 @@ function LoginContent() {
       const result = await login(cleaned, pin);
       if (result.error) {
         setError(result.error);
+        setLoading(false);
       }
+      // Redirect is handled by the useEffect watching `user`
     } catch (err) {
       console.error("Login failed:", err);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -123,13 +130,13 @@ function LoginContent() {
       const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
       if (result.error) {
         setError(result.error);
+        setLoading(false);
         return;
       }
       setJustSignedUp(true);
     } catch (err) {
       console.error("Signup failed:", err);
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };

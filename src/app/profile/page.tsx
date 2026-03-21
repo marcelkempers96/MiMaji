@@ -28,13 +28,13 @@ export default function ProfilePage() {
   const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState(user?.name || "");
 
   // Redirect unauthenticated users to login
   if (!authLoading && !user) {
     router.push("/login?redirect=/profile");
     return null;
   }
-  const [editName, setEditName] = useState(user?.name || "");
 
   const handleLogout = async () => {
     await logout();
@@ -233,6 +233,7 @@ function DesktopNav({ isLoggedIn }: { isLoggedIn: boolean }) {
           <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
         </Link>
         <nav className="flex items-center gap-8">
+          <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Products</Link>
           <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
           <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
           <Link href="/subscriptions" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Subscriptions</Link>

@@ -23,14 +23,7 @@ const LOCATION_TYPES: { value: LocationType; label: string; icon: typeof Home }[
 ];
 
 const NAIROBI_NEIGHBOURHOODS = [
-  "Kilimani", "Lavington", "Westlands", "Karen", "Kileleshwa",
-  "South B", "South C", "Langata", "Hurlingham", "Upper Hill",
-  "Parklands", "Riverside", "Runda", "Muthaiga", "Spring Valley",
-  "Ngong Road", "Dagoretti", "Embakasi", "Kasarani", "Roysambu",
-  "Ruaka", "Kitisuru", "Gigiri", "Loresho", "Mountain View",
-  "Nairobi CBD", "Ngara", "Eastleigh", "Buruburu", "Donholm",
-  "Umoja", "Kahawa", "Thika Road", "Rongai", "Syokimau",
-  "Athi River", "Kitengela", "Kiambu", "Ruiru",
+  "Lavington", "Kilimani", "Karen", "Westlands",
 ];
 
 interface AddressFormProps {
@@ -483,33 +476,26 @@ export default function AddressForm({
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
         Neighbourhood / Area *
       </label>
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <select
+        value={isCustomNeighbourhood ? "__other__" : neighbourhood}
+        onChange={(e) => {
+          if (e.target.value === "__other__") {
+            setIsCustomNeighbourhood(true);
+            setNeighbourhood(customNeighbourhood);
+          } else {
+            setIsCustomNeighbourhood(false);
+            setCustomNeighbourhood("");
+            setNeighbourhood(e.target.value);
+          }
+        }}
+        className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary outline-none focus:border-primary text-sm mb-2 bg-white"
+      >
+        <option value="" disabled>Select area...</option>
         {NAIROBI_NEIGHBOURHOODS.map((area) => (
-          <button
-            key={area}
-            type="button"
-            onClick={() => { setNeighbourhood(area); setIsCustomNeighbourhood(false); setCustomNeighbourhood(""); }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              neighbourhood === area && !isCustomNeighbourhood
-                ? "bg-primary text-white"
-                : "bg-gray-50 text-text-secondary border border-gray-200 hover:border-primary hover:text-primary"
-            }`}
-          >
-            {area}
-          </button>
+          <option key={area} value={area}>{area}</option>
         ))}
-        <button
-          type="button"
-          onClick={() => { setIsCustomNeighbourhood(true); setNeighbourhood(customNeighbourhood); }}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            isCustomNeighbourhood
-              ? "bg-primary text-white"
-              : "bg-gray-50 text-text-secondary border border-gray-200 hover:border-primary hover:text-primary"
-          }`}
-        >
-          Other
-        </button>
-      </div>
+        <option value="__other__">Other</option>
+      </select>
       {isCustomNeighbourhood && (
         <input
           type="text"
@@ -520,7 +506,7 @@ export default function AddressForm({
           autoFocus
         />
       )}
-      {!isCustomNeighbourhood && <div className="mb-3" />}
+      {!isCustomNeighbourhood && <div className="mb-1" />}
 
       {/* Street Name */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
