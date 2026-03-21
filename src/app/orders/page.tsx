@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
-import { getRewardsSummary, initRewards } from "@/lib/rewards";
+import { getRewardsSummaryAsync } from "@/lib/rewards";
 
 const statusSteps = [
   { key: "Processing", label: "Processing", icon: Clock },
@@ -51,8 +51,7 @@ export default function OrdersPage() {
         setOrders(data);
         setLoadingOrders(false);
       });
-      initRewards(user.id);
-      setFreeLitres(getRewardsSummary(user.id).freeLitres);
+      getRewardsSummaryAsync(user.id).then((s) => setFreeLitres(s.freeLitres));
     }
   }, [user?.id]);
 

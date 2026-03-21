@@ -9,7 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import type { UserRole } from "@/context/AuthContext";
-import { initRewards, updateReferralFriendName } from "@/lib/rewards";
+import { initRewardsAsync } from "@/lib/rewards";
 
 function LoginContent() {
   const router = useRouter();
@@ -46,8 +46,7 @@ function LoginContent() {
 
     // If user just signed up, init their rewards
     if (justSignedUp) {
-      const rewards = initRewards(user.id, referralCode.trim() || undefined);
-      updateReferralFriendName(user.id, user.name);
+      initRewardsAsync(user.id, user.name, referralCode.trim() || undefined).catch(() => {});
       setJustSignedUp(false);
     }
 
@@ -86,12 +85,12 @@ function LoginContent() {
     setLoading(true);
 
     const result = await login(cleaned, pin);
+    setLoading(false);
     if (result.error) {
       setError(result.error);
-      setLoading(false);
       return;
     }
-    // Redirect is handled by the useEffect below once user state updates
+    // Redirect is handled by the useEffect once user state updates
   };
 
   const handleSignup = async () => {
@@ -117,13 +116,12 @@ function LoginContent() {
     setLoading(true);
 
     const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
+    setLoading(false);
     if (result.error) {
       setError(result.error);
-      setLoading(false);
       return;
     }
 
-    // Flag that we just signed up so the useEffect will init rewards (for mock mode)
     setJustSignedUp(true);
   };
 

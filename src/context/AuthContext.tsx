@@ -347,6 +347,9 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       if (error.message.includes("Invalid login credentials")) {
         return { error: "Invalid phone number or PIN" };
       }
+      if (error.message.toLowerCase().includes("rate limit")) {
+        return { error: "Too many login attempts. Please wait a few minutes and try again." };
+      }
       return { error: error.message };
     }
     return {};
@@ -368,21 +371,24 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       if (error.message.includes("already registered")) {
         return { error: "This phone number is already registered. Please log in." };
       }
+      if (error.message.toLowerCase().includes("rate limit")) {
+        return { error: "Too many signup attempts. Please wait a few minutes and try again." };
+      }
       // Handle "Database error saving new user" by retrying profile creation
       if (error.message.includes("Database error")) {
         // Try signing in — the user may have been created but the profile trigger failed
         const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
         if (!loginErr) {
           // User was created, just profile failed — create profile manually
-          const session = (await sb.auth.getSession()).data.session;
-          if (session?.user) {
-            const pin = Math.abs([...session.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
+          const sess = (await sb.auth.getSession()).data.session;
+          if (sess?.user) {
+            const delivPin = Math.abs([...sess.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
             await sb.from("profiles").upsert({
-              id: session.user.id,
+              id: sess.user.id,
               phone: cleaned,
               full_name: name,
               role: "customer",
-              delivery_pin: pin,
+              delivery_pin: delivPin,
             }, { onConflict: "id" });
           }
           return {};
@@ -392,11 +398,24 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error.message };
     }
 
+    // If Supabase didn't auto-login (email confirmation enabled), sign in now
+    if (!signUpData?.session) {
+      const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+      if (loginErr) {
+        // If email not confirmed error, the user was created but can't log in
+        if (loginErr.message.includes("Email not confirmed")) {
+          return { error: "Account created but email confirmation is required. Please disable email confirmation in Supabase Auth settings for phone-based auth." };
+        }
+        return { error: loginErr.message };
+      }
+    }
+
     // Initialize rewards and referral relationship in Supabase
-    if (signUpData?.user?.id) {
+    const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
+    if (userId) {
       try {
         const { initRewardsAsync } = await import("@/lib/rewards");
-        await initRewardsAsync(signUpData.user.id, name, referralCode);
+        await initRewardsAsync(userId, name, referralCode);
       } catch {}
     }
 
