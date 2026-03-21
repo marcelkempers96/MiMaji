@@ -339,6 +339,19 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSupabase, mapUser, loadProfile]);
 
   const login = useCallback(async (phone: string, pin: string): Promise<{ error?: string }> => {
+    // Check demo accounts first (works even with Supabase configured)
+    const cleaned = normalizePhone(phone);
+    const phonesToTry = [cleaned];
+    if (cleaned.startsWith("254")) phonesToTry.push("0" + cleaned.slice(3));
+    for (const p of phonesToTry) {
+      const account = MOCK_ACCOUNTS[p];
+      if (account) {
+        if (account.pin !== pin) return { error: "Invalid phone number or PIN" };
+        setUser(account.user);
+        return {};
+      }
+    }
+
     const sb = await getSupabase();
     const email = formatPhoneEmail(phone);
     const password = padPin(pin);
