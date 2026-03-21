@@ -82,7 +82,7 @@ function persistLocations(locations: SavedLocation[], userId?: string | null) {
 
 /** Check if there is a real Supabase auth session using the session object from AuthContext */
 function hasActiveSession(session: unknown): boolean {
-  return hasSupabaseConfig && !!session;
+  return !!hasSupabaseConfig && !!session;
 }
 
 async function loadLocationsFromSupabase(userId: string, session: unknown): Promise<SavedLocation[] | null> {
