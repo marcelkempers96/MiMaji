@@ -303,9 +303,12 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
+    let initialSessionLoaded = false;
 
     getSupabase().then((sb) => {
+      // Use getSession for initial load only
       sb.auth.getSession().then(async ({ data: { session: sess } }) => {
+        initialSessionLoaded = true;
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
@@ -316,10 +319,14 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
         setLoading(false);
       }).catch(() => {
+        initialSessionLoaded = true;
         setLoading(false);
       });
 
-      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (_event, sess) => {
+      // onAuthStateChange handles subsequent changes (login, signup, logout)
+      // Skip the initial INITIAL_SESSION event to avoid duplicate profile loads
+      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (event, sess) => {
+        if (event === "INITIAL_SESSION") return; // already handled by getSession above
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
@@ -328,7 +335,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUser(null);
         }
-        setLoading(false);
+        if (!initialSessionLoaded) setLoading(false);
       });
       subscription = sub;
     }).catch(() => {
