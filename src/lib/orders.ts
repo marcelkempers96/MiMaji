@@ -219,6 +219,24 @@ export async function createOrder(params: {
     return { orderId, error: null };
   }
 
+  // Ensure the customer has a profile (foreign key requirement)
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", params.customerId)
+    .single();
+
+  if (!profile) {
+    // Profile missing — create a minimal one so the order can proceed
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .upsert({ id: params.customerId, role: "customer" }, { onConflict: "id" });
+    if (profileErr) {
+      console.error("Error ensuring profile exists:", profileErr);
+      return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
+    }
+  }
+
   // Generate a temporary ID for the delivery code, then use the real DB id
   const tempId = crypto.randomUUID();
   const { data, error } = await supabase
