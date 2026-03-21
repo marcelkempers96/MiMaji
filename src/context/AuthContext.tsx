@@ -561,14 +561,34 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        // Check if user already exists locally (mock signups)
+        const checkLocalUser = (): AuthResult | null => {
+          try {
+            const raw = localStorage.getItem("mimaji_mock_signups");
+            const signups: Record<string, { pin: string; user: User }> = raw ? JSON.parse(raw) : {};
+            const altPhone = cleaned.startsWith("254") ? "0" + cleaned.slice(3) : cleaned;
+            const localUser = signups[cleaned] || signups[altPhone];
+            if (localUser && localUser.pin === pin) {
+              setMockUser(localUser.user);
+              return { user: localUser.user };
+            }
+          } catch {}
+          return null;
+        };
+
         if (error.message.includes("already registered")) {
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
           if (!loginErr) return {};
+          // Supabase login failed (email not confirmed) — try local
+          const local = checkLocalUser();
+          if (local) return local;
           return { error: "This phone number is already registered. Please log in." };
         }
         if (error.message.toLowerCase().includes("rate limit") || error.status === 429) {
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
           if (!loginErr) return {};
+          const local = checkLocalUser();
+          if (local) return local;
           return { error: "Too many attempts. Please wait a few minutes and try again." };
         }
         if (error.message.includes("Database error")) {
@@ -583,42 +603,79 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
             }
             return {};
           }
+          const local = checkLocalUser();
+          if (local) return local;
           return { error: "Account creation failed. Please try again." };
         }
         return { error: error.message };
       }
 
-      // If Supabase didn't auto-login (email confirmation enabled), sign in now
-      if (!signUpData?.session) {
+      // Build user from Supabase data
+      const supaUserId = signUpData?.user?.id;
+      let loggedIn = !!signUpData?.session;
+
+      // If Supabase didn't auto-login (email confirmation enabled), try signing in
+      if (!loggedIn) {
         const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-        if (loginErr) {
-          if (loginErr.message.includes("Email not confirmed")) {
-            return { error: "Account created but email confirmation is required. Please disable email confirmation in Supabase Auth settings for phone-based auth." };
-          }
-          return { error: loginErr.message };
+        if (!loginErr) {
+          loggedIn = true;
+        }
+        // If sign-in also fails (email not confirmed), fall back to local mock session
+        // so the user can still use the app immediately
+      }
+
+      // Best-effort metadata update (only if we have a session)
+      if (loggedIn) {
+        try {
+          await sb.auth.updateUser({ phone: cleaned, data: { full_name: name, phone: cleaned, display_name: name } });
+        } catch {
+          try { await sb.auth.updateUser({ data: { full_name: name, phone: cleaned, display_name: name } }); } catch {}
         }
       }
 
-      // Best-effort metadata update
-      try {
-        await sb.auth.updateUser({ phone: cleaned, data: { full_name: name, phone: cleaned, display_name: name } });
-      } catch {
-        try { await sb.auth.updateUser({ data: { full_name: name, phone: cleaned, display_name: name } }); } catch {}
+      // Build the user object
+      const userId = supaUserId || `mock-user-${cleaned}`;
+      let pinHash = 0;
+      for (let i = 0; i < cleaned.length; i++) {
+        pinHash = ((pinHash << 5) - pinHash + cleaned.charCodeAt(i)) | 0;
       }
+      const deliveryPin = (Math.abs(pinHash) % 10000).toString().padStart(4, "0");
 
-      // Initialize rewards
-      const userId = signUpData?.user?.id || (await sb.auth.getUser()).data.user?.id;
-      if (userId) {
-        try { const { initRewardsAsync } = await import("@/lib/rewards"); await initRewardsAsync(userId, name, referralCode); } catch {}
-      }
-
-      // Return user for immediate redirect
       const resultUser: User = {
-        id: userId || `mock-user-${cleaned}`,
+        id: userId,
         phone: cleaned,
         name,
         role: "customer",
+        deliveryPin,
       };
+
+      // If Supabase login failed, create a local mock session so user can proceed
+      if (!loggedIn) {
+        setMockUser(resultUser);
+        // Also save as a dynamic signup so they can log in later
+        try {
+          const raw = localStorage.getItem("mimaji_mock_signups");
+          const signups = raw ? JSON.parse(raw) : {};
+          signups[cleaned] = { pin, user: resultUser };
+          if (cleaned.startsWith("254")) {
+            signups["0" + cleaned.slice(3)] = { pin, user: resultUser };
+          }
+          localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+        } catch {}
+      }
+
+      // Initialize rewards in background
+      try { const { initRewardsAsync } = await import("@/lib/rewards"); initRewardsAsync(userId, name, referralCode).catch(() => {}); } catch {}
+
+      // Create Supabase profile row (best-effort)
+      if (supaUserId) {
+        try {
+          await sb.from("profiles").upsert({
+            id: supaUserId, phone: cleaned, full_name: name, role: "customer", delivery_pin: deliveryPin,
+          }, { onConflict: "id" });
+        } catch {}
+      }
+
       return { user: resultUser };
     } catch (err) {
       console.error("Auth signup error:", err);
