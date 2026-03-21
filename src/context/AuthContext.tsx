@@ -369,10 +369,16 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       if (error.message.includes("already registered")) {
+        // Account exists — try to log them in directly
+        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+        if (!loginErr) return {};
         return { error: "This phone number is already registered. Please log in." };
       }
-      if (error.message.toLowerCase().includes("rate limit")) {
-        return { error: "Too many signup attempts. Please wait a few minutes and try again." };
+      if (error.message.toLowerCase().includes("rate limit") || error.status === 429) {
+        // Rate-limited — the account may have been created in a prior attempt; try logging in
+        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+        if (!loginErr) return {};
+        return { error: "Too many attempts. Please wait a few minutes and try again." };
       }
       // Handle "Database error saving new user" by retrying profile creation
       if (error.message.includes("Database error")) {
