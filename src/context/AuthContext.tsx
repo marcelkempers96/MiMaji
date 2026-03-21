@@ -303,9 +303,12 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
+    let initialSessionLoaded = false;
 
     getSupabase().then((sb) => {
+      // Use getSession for initial load only
       sb.auth.getSession().then(async ({ data: { session: sess } }) => {
+        initialSessionLoaded = true;
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
@@ -316,10 +319,14 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         }
         setLoading(false);
       }).catch(() => {
+        initialSessionLoaded = true;
         setLoading(false);
       });
 
-      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (_event, sess) => {
+      // onAuthStateChange handles subsequent changes (login, signup, logout)
+      // Skip the initial INITIAL_SESSION event to avoid duplicate profile loads
+      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (event, sess) => {
+        if (event === "INITIAL_SESSION") return; // already handled by getSession above
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
@@ -328,7 +335,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUser(null);
         }
-        setLoading(false);
+        if (!initialSessionLoaded) setLoading(false);
       });
       subscription = sub;
     }).catch(() => {
@@ -369,10 +376,16 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       if (error.message.includes("already registered")) {
+        // Account exists — try to log them in directly
+        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+        if (!loginErr) return {};
         return { error: "This phone number is already registered. Please log in." };
       }
-      if (error.message.toLowerCase().includes("rate limit")) {
-        return { error: "Too many signup attempts. Please wait a few minutes and try again." };
+      if (error.message.toLowerCase().includes("rate limit") || error.status === 429) {
+        // Rate-limited — the account may have been created in a prior attempt; try logging in
+        const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+        if (!loginErr) return {};
+        return { error: "Too many attempts. Please wait a few minutes and try again." };
       }
       // Handle "Database error saving new user" by retrying profile creation
       if (error.message.includes("Database error")) {
