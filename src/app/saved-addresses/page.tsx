@@ -26,7 +26,11 @@ export default function SavedAddressesPage() {
     }
   }, [authLoading, user, router]);
 
-  if (authLoading || !user) return null;
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   const handleSaveAddress = (loc: SavedLocation) => {
     addSavedLocation(loc);

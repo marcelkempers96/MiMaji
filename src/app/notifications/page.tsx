@@ -211,7 +211,11 @@ export default function NotificationsPage() {
     refreshNotifications();
   }, [refreshNotifications]);
 
-  if (authLoading || !user) return null;
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   const markAllRead = async () => {
     if (!user?.id) return;

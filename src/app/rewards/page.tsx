@@ -61,7 +61,11 @@ export default function RewardsPage() {
     }
   };
 
-  if (authLoading || !user) return null;
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   const referralCapLitres = 50;
   const referralProgress = Math.min(summary.totalEarnedFromReferrals / referralCapLitres, 1) * 100;

@@ -48,7 +48,11 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  if (!user) return null;
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-16">

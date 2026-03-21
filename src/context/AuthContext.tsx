@@ -468,7 +468,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       const password = padPin(pin);
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) {
-        // Fall back to built-in demo accounts (vendor, admin, customer)
+        // Fall back to built-in demo accounts and localStorage signups
         const cleaned = normalizePhone(phone);
         const phonesToTry = [cleaned];
         if (cleaned.startsWith("254")) phonesToTry.push("0" + cleaned.slice(3));
@@ -480,6 +480,20 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
             return {};
           }
         }
+
+        // Also check dynamically signed-up users from localStorage
+        try {
+          const raw = localStorage.getItem("mimaji_mock_signups");
+          const signups: Record<string, { pin: string; user: User }> = raw ? JSON.parse(raw) : {};
+          for (const p of phonesToTry) {
+            const signupAccount = signups[p];
+            if (signupAccount && signupAccount.pin === pin) {
+              setMockUser(signupAccount.user);
+              setSession(null);
+              return {};
+            }
+          }
+        } catch {}
 
         if (error.message.includes("Invalid login credentials")) {
           return { error: "Invalid phone number or PIN" };

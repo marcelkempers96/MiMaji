@@ -85,7 +85,11 @@ export default function AccountSettingsPage() {
     }
   }, [user?.name, user?.phone, mpesaDifferent]);
 
-  if (authLoading || !user) return null;
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   const handleSave = async () => {
     setSaving(true);

@@ -40,21 +40,6 @@ function LoginContent() {
   // Track if we just signed up (to init rewards)
   const [justSignedUp, setJustSignedUp] = useState(false);
 
-  // Redirect authenticated users based on role
-  useEffect(() => {
-    if (!user) return;
-
-    // If user just signed up, init their rewards
-    if (justSignedUp) {
-      initRewardsAsync(user.id, user.name, referralCode.trim() || undefined).catch(() => {});
-      setJustSignedUp(false);
-    }
-
-    // Clear loading state and redirect
-    setLoading(false);
-    redirectAfterAuth(user.role);
-  }, [user, justSignedUp, referralCode, redirectAfterAuth]);
-
   const getFullPhone = () => {
     let cleaned = phone.replace(/\s/g, "").replace(/^0+/, "");
     // Prepend country code digits (strip +)
@@ -75,6 +60,21 @@ function LoginContent() {
       router.push("/dashboard");
     }
   }, [router, searchParams]);
+
+  // Redirect authenticated users based on role
+  useEffect(() => {
+    if (!user) return;
+
+    // If user just signed up, init their rewards
+    if (justSignedUp) {
+      initRewardsAsync(user.id, user.name, referralCode.trim() || undefined).catch(() => {});
+      setJustSignedUp(false);
+    }
+
+    // Clear loading state and redirect
+    setLoading(false);
+    redirectAfterAuth(user.role);
+  }, [user, justSignedUp, referralCode, redirectAfterAuth]);
 
   const handleLogin = async () => {
     const cleaned = getFullPhone();

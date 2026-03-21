@@ -109,7 +109,11 @@ export default function OrdersPage() {
     router.push("/cart");
   };
 
-  if (authLoading || !user) return null;
+  if (authLoading || !user) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-text-secondary text-sm">Loading...</p>
+    </div>
+  );
 
   const liveOrders = orders.filter((o) => {
     const status = mapOrderStatus(o.status);
