@@ -862,11 +862,22 @@ function AdminDashboardInner() {
                           </td>
                           <td className="px-4 py-3 text-xs">
                             {(() => {
-                              const u = users.find((u) => u.id === order.customer_id);
-                              return u ? (
-                                <span className="font-medium text-text-primary">{u.name}</span>
-                              ) : (
-                                <span className="font-mono text-text-secondary">{truncate(order.customer_id, 12)}</span>
+                              // Try order-level customer info first (from profiles join), then fall back to users list
+                              const name = order.customer_name || users.find((u) => u.id === order.customer_id)?.name;
+                              const phone = order.customer_phone || users.find((u) => u.id === order.customer_id)?.phone;
+                              return (
+                                <div>
+                                  {name ? (
+                                    <span className="font-medium text-text-primary block">{name}</span>
+                                  ) : (
+                                    <span className="font-mono text-text-secondary block">{truncate(order.customer_id, 12)}</span>
+                                  )}
+                                  {phone && (
+                                    <a href={`tel:+${phone.replace(/^0/, "254")}`} className="text-[11px] text-primary hover:underline block mt-0.5">
+                                      {phone.startsWith("254") ? `0${phone.slice(3)}` : phone}
+                                    </a>
+                                  )}
+                                </div>
                               );
                             })()}
                           </td>

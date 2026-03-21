@@ -43,6 +43,9 @@ export interface OrderRecord {
   payment_method: string | null;
   // Brand preference for vendor matching
   brand_preference: string[];
+  // Customer info (populated from profiles join)
+  customer_name?: string;
+  customer_phone?: string;
 }
 
 /** Generate a 4-digit delivery confirmation code from the order ID */
@@ -83,16 +86,35 @@ export async function fetchAllOrders(): Promise<OrderRecord[]> {
     return getMockOrders().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
+  // Join with profiles to get customer name and phone
   const { data, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, profiles:customer_id(full_name, phone)")
     .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Error fetching all orders:", error);
-    return [];
+    // Fallback: fetch without join if profiles relation fails
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (fallbackError) {
+      console.error("Error fetching orders (fallback):", fallbackError);
+      return [];
+    }
+    return (fallbackData || []).map(mapSupabaseOrder);
   }
-  return (data || []).map(mapSupabaseOrder);
+  return (data || []).map((row: Record<string, unknown>) => {
+    const order = mapSupabaseOrder(row);
+    // Extract joined profile data
+    const profile = row.profiles as { full_name?: string; phone?: string } | null;
+    if (profile) {
+      order.customer_name = profile.full_name || undefined;
+      order.customer_phone = profile.phone || undefined;
+    }
+    return order;
+  });
 }
 
 export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
