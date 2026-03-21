@@ -255,6 +255,10 @@ export default function VendorPortalPage() {
   const activeOrders = orders.filter((o) => o.status === "confirmed" || o.status === "out_for_delivery");
   const completedOrders = orders.filter((o) => o.status === "delivered");
   const cancelledOrders = orders.filter((o) => o.status === "cancelled");
+  const scheduledOrders = orders.filter((o) => o.scheduled_date && o.scheduled_time && o.status !== "delivered" && o.status !== "cancelled");
+
+  // Order tab state for mobile
+  const [orderTab, setOrderTab] = useState<"requests" | "active" | "scheduled" | "closed">("requests");
 
   const statsCards = stats ? [
     { label: "Today's Orders", value: String(stats.todayOrders), icon: Package, color: "#2979C1" },
@@ -696,131 +700,71 @@ export default function VendorPortalPage() {
         </div>
 
         {activeTab === "orders" && (
-          <div className="flex flex-col gap-3">
+          <div>
+            {/* Order sub-tabs */}
+            <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+              {([
+                { id: "requests" as const, label: "Requests", count: pendingOrders.length },
+                { id: "active" as const, label: "Active", count: activeOrders.length },
+                { id: "scheduled" as const, label: "Scheduled", count: scheduledOrders.length },
+                { id: "closed" as const, label: "Closed", count: completedOrders.length + cancelledOrders.length },
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setOrderTab(tab.id)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                    orderTab === tab.id ? "bg-primary text-white" : "bg-white text-text-secondary border border-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span className={`rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold ${
+                      orderTab === tab.id ? "bg-white text-primary" : "bg-gray-100 text-text-primary"
+                    }`}>{tab.count}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3">
             {loadingOrders ? (
               <div className="text-center py-8 text-text-secondary text-sm">Loading orders...</div>
-            ) : orders.length === 0 ? (
-              <div className="bg-surface shadow-card rounded-xl p-8 text-center">
-                <Package size={40} className="text-text-secondary mx-auto mb-3" />
-                <p className="text-text-primary font-bold mb-1">No orders yet</p>
-                <p className="text-text-secondary text-sm">Orders will appear here when customers place them</p>
-              </div>
-            ) : (
-              orders.map((order) => (
-                <div key={order.id} className="bg-surface shadow-card rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-sm text-text-primary">{formatOrderId(order.id)}</span>
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                  <p className="text-sm text-text-primary font-medium">{order.product_name || "Water Order"}</p>
-                  {order.order_items && order.order_items.length > 0 ? (
-                    <button
-                      onClick={() => setItemsPopup({ orderId: order.id, items: order.order_items, total: order.price_total })}
-                      className="text-primary text-xs font-medium hover:underline text-left"
-                    >
-                      {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View details
-                    </button>
-                  ) : (
-                    <p className="text-xs text-text-secondary">{"\u2014"}</p>
-                  )}
-                  <div className="bg-primary-light rounded-lg p-2.5 mt-2">
-                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline font-medium"><MapPin size={12} /> {order.delivery_address}</a>
-                    {order.delivery_address_details?.additionalDirections && (
-                      <p className="text-xs text-text-secondary italic mt-1 ml-4">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
-                    )}
-                    {order.delivery_address_details?.neighbourhood && (
-                      <p className="text-xs text-text-secondary mt-0.5 ml-4">Area: {order.delivery_address_details.neighbourhood}</p>
-                    )}
-                    {order.delivery_address_details?.buildingName && (
-                      <p className="text-xs text-text-secondary mt-0.5 ml-4">
-                        {order.delivery_address_details.buildingName}
-                        {order.delivery_address_details.floor ? `, Floor ${order.delivery_address_details.floor}` : ""}
-                        {order.delivery_address_details.unitNumber ? `, Unit ${order.delivery_address_details.unitNumber}` : ""}
-                      </p>
-                    )}
-                  </div>
-                  {/* Scheduled Delivery Badge */}
-                  {order.scheduled_date && order.scheduled_time && (
-                    <div className="bg-[#FFF5EC] rounded-lg p-2.5 mt-2 flex items-center gap-2">
-                      <Calendar size={14} className="text-[#F5A623] flex-shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Scheduled Delivery</p>
-                        <p className="text-xs font-bold text-[#F5A623]">{order.scheduled_date} at {order.scheduled_time}</p>
-                      </div>
-                    </div>
-                  )}
-                  {/* Customer Info */}
-                  {(order.customer_name || order.customer_phone) && (
-                    <div className="bg-gray-50 rounded-lg p-2.5 mt-2">
-                      <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide mb-1">Customer</p>
-                      {order.customer_name && <p className="text-xs font-medium text-text-primary">{order.customer_name}</p>}
-                      {order.customer_phone && (
-                        <a href={`tel:+${order.customer_phone.replace(/^0/, "254")}`} className="text-xs text-primary hover:underline">
-                          {order.customer_phone.startsWith("254") ? `0${order.customer_phone.slice(3)}` : order.customer_phone}
-                        </a>
-                      )}
-                    </div>
-                  )}
-                  {/* Payment Confirmation */}
-                  {order.mpesa_ref && (
-                    <div className="bg-green-50 rounded-lg p-2.5 mt-2 flex items-center gap-2">
-                      <div>
-                        <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Payment Confirmed</p>
-                        <p className="text-xs font-bold text-green-700 font-mono">{order.mpesa_ref}</p>
-                      </div>
-                    </div>
-                  )}
-                  {!order.mpesa_ref && order.payment_method === "mpesa-app" && (
-                    <div className="bg-yellow-50 rounded-lg p-2.5 mt-2">
-                      <p className="text-[10px] text-yellow-700 font-semibold">Awaiting M-PESA code</p>
-                    </div>
-                  )}
-                  {order.payment_method === "cash" && (
-                    <div className="bg-orange-50 rounded-lg p-2.5 mt-2">
-                      <p className="text-[10px] text-orange-700 font-semibold">Cash on Delivery</p>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
-                    <span className="text-text-secondary text-[10px]">{formatOrderDateTime(order.created_at)}</span>
-                  </div>
-                  {order.estimated_delivery_minutes && (order.status === "confirmed" || order.status === "out_for_delivery") && (
-                    <div className="flex items-center gap-1 mt-2 text-xs text-primary"><Timer size={12} /><span className="font-semibold">ETA: {order.estimated_delivery_minutes} min</span></div>
-                  )}
-                  {order.vendor_location && order.status === "confirmed" && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-text-secondary"><MapPin size={12} /><span>From: {order.vendor_location}</span></div>
-                  )}
-                  {order.status === "paid" && !order.vendor_id && (
-                    <div className="flex gap-2 mt-3">
-                      <button onClick={() => handleAcceptOrder(order.id)} className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Accept</button>
-                      <button onClick={() => handleRejectOrder(order.id)} className="flex-1 bg-gray-100 text-cta-alt py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">Reject</button>
-                    </div>
-                  )}
-                  {order.status === "confirmed" && order.vendor_id === user.id && (
-                    <button onClick={() => handleDispatchOrder(order.id)} className="w-full mt-3 bg-[#F5A623] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#d4901e] transition-colors">Dispatch Order</button>
-                  )}
-                  {order.status === "out_for_delivery" && order.vendor_id === user.id && (
-                    <button onClick={() => handleCompleteOrder(order.id)} className="w-full mt-3 bg-[#2ECC71] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#27ae60] transition-colors">Mark Delivered</button>
-                  )}
+            ) : (() => {
+              const filteredOrders = orderTab === "requests" ? pendingOrders
+                : orderTab === "active" ? activeOrders
+                : orderTab === "scheduled" ? scheduledOrders
+                : [...completedOrders, ...cancelledOrders];
+              if (filteredOrders.length === 0) return (
+                <div className="bg-surface shadow-card rounded-xl p-8 text-center">
+                  <Package size={40} className="text-text-secondary mx-auto mb-3" />
+                  <p className="text-text-primary font-bold mb-1">No {orderTab} orders</p>
+                  <p className="text-text-secondary text-sm">
+                    {orderTab === "requests" ? "New order requests will appear here" :
+                     orderTab === "active" ? "Accepted orders in progress will appear here" :
+                     orderTab === "scheduled" ? "Scheduled future deliveries will appear here" :
+                     "Completed and cancelled orders will appear here"}
+                  </p>
                 </div>
-              ))
-            )}
+              );
+              return filteredOrders.map((order) => (
+                <MobileOrderCard
+                  key={order.id}
+                  order={order}
+                  userId={user.id}
+                  onAccept={handleAcceptOrder}
+                  onReject={handleRejectOrder}
+                  onDispatch={handleDispatchOrder}
+                  onComplete={handleCompleteOrder}
+                  onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })}
+                />
+              ));
+            })()}
+            </div>
           </div>
         )}
 
         {activeTab === "stats" && stats && (
-          <div className="bg-surface shadow-card rounded-xl p-5">
-            <h3 className="font-bold text-sm text-text-primary mb-4">Summary</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm"><span className="text-text-secondary">Total Orders</span><span className="font-bold text-text-primary">{stats.totalOrders}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-text-secondary">Total Revenue</span><span className="font-bold text-text-primary">KES {stats.totalRevenue.toLocaleString()}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-text-secondary">Pending</span><span className="font-bold text-[#F5A623]">{pendingOrders.length}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-text-secondary">Completed</span><span className="font-bold text-[#2ECC71]">{completedOrders.length}</span></div>
-              {cancelledOrders.length > 0 && (
-                <div className="flex justify-between text-sm"><span className="text-text-secondary">Cancelled</span><span className="font-bold text-red-600">{cancelledOrders.length}</span></div>
-              )}
-            </div>
-          </div>
+          <VendorAnalytics stats={stats} orders={orders} pendingOrders={pendingOrders} activeOrders={activeOrders} completedOrders={completedOrders} cancelledOrders={cancelledOrders} />
         )}
 
         {activeTab === "profile" && (
@@ -969,9 +913,36 @@ export default function VendorPortalPage() {
               </div>
 
               <div className="bg-surface shadow-card rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-[#F0F0F0] flex items-center justify-between">
-                  <h2 className="font-bold text-base text-text-primary">{activeDesktopTab === "orders" ? "All Orders" : "Recent Orders"}</h2>
-                  {activeDesktopTab !== "orders" && <button onClick={() => setActiveDesktopTab("orders")} className="text-primary text-sm font-semibold cursor-pointer">View All</button>}
+                <div className="px-6 py-4 border-b border-[#F0F0F0]">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-bold text-base text-text-primary">{activeDesktopTab === "orders" ? "All Orders" : "Recent Orders"}</h2>
+                    {activeDesktopTab !== "orders" && <button onClick={() => setActiveDesktopTab("orders")} className="text-primary text-sm font-semibold cursor-pointer">View All</button>}
+                  </div>
+                  {activeDesktopTab === "orders" && (
+                    <div className="flex gap-2">
+                      {([
+                        { id: "requests" as const, label: "New Requests", count: pendingOrders.length },
+                        { id: "active" as const, label: "Active / Ongoing", count: activeOrders.length },
+                        { id: "scheduled" as const, label: "Scheduled", count: scheduledOrders.length },
+                        { id: "closed" as const, label: "Closed", count: completedOrders.length + cancelledOrders.length },
+                      ]).map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setOrderTab(tab.id)}
+                          className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors flex items-center gap-2 ${
+                            orderTab === tab.id ? "bg-primary text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"
+                          }`}
+                        >
+                          {tab.label}
+                          {tab.count > 0 && (
+                            <span className={`rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold ${
+                              orderTab === tab.id ? "bg-white text-primary" : "bg-white text-text-primary"
+                            }`}>{tab.count}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {loadingOrders ? (
                   <div className="p-8 text-center text-text-secondary">Loading orders...</div>
@@ -993,11 +964,17 @@ export default function VendorPortalPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(activeDesktopTab === "orders" ? orders : orders.slice(0, 10)).map((order) => (
+                      {(activeDesktopTab === "orders"
+                        ? (orderTab === "requests" ? pendingOrders
+                          : orderTab === "active" ? activeOrders
+                          : orderTab === "scheduled" ? scheduledOrders
+                          : [...completedOrders, ...cancelledOrders])
+                        : orders.slice(0, 10)
+                      ).map((order) => (
                         <tr key={order.id} className="border-b border-[#F0F0F0] last:border-0 hover:bg-background transition-colors">
                           <td className="px-6 py-4">
                             <p className="text-sm font-bold text-text-primary">{formatOrderId(order.id)}</p>
-                            <p className="text-[10px] text-text-secondary">{formatOrderDateTime(order.created_at)}</p>
+                            <p className="text-sm font-semibold text-text-primary mt-0.5">{formatOrderDateTime(order.created_at)}</p>
                           </td>
                           <td className="px-6 py-4 text-sm">
                             {order.customer_name && <span className="font-medium text-text-primary block">{order.customer_name}</span>}
@@ -1079,28 +1056,7 @@ export default function VendorPortalPage() {
 
           {/* Analytics */}
           {activeDesktopTab === "analytics" && stats && (
-            <div className="grid grid-cols-2 gap-8">
-              <div className="bg-surface shadow-card rounded-xl p-6">
-                <h3 className="font-bold text-base text-text-primary mb-4">Revenue Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm"><span className="text-text-secondary">Today&apos;s Revenue</span><span className="font-bold text-text-primary">KES {stats.todayRevenue.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-text-secondary">Total Revenue</span><span className="font-bold text-text-primary">KES {stats.totalRevenue.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-text-secondary">Avg. Order Value</span><span className="font-bold text-text-primary">KES {stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders).toLocaleString() : 0}</span></div>
-                </div>
-              </div>
-              <div className="bg-surface shadow-card rounded-xl p-6">
-                <h3 className="font-bold text-base text-text-primary mb-4">Order Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm"><span className="text-text-secondary">Total Orders</span><span className="font-bold text-text-primary">{stats.totalOrders}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-text-secondary">Pending</span><span className="font-bold text-[#F5A623]">{pendingOrders.length}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-text-secondary">Active</span><span className="font-bold text-primary">{activeOrders.length}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-text-secondary">Completed</span><span className="font-bold text-[#2ECC71]">{completedOrders.length}</span></div>
-                  {cancelledOrders.length > 0 && (
-                    <div className="flex justify-between text-sm"><span className="text-text-secondary">Cancelled</span><span className="font-bold text-red-600">{cancelledOrders.length}</span></div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <VendorAnalytics stats={stats} orders={orders} pendingOrders={pendingOrders} activeOrders={activeOrders} completedOrders={completedOrders} cancelledOrders={cancelledOrders} />
           )}
         </div>
       </div>
@@ -1108,17 +1064,309 @@ export default function VendorPortalPage() {
   );
 }
 
+function VendorAnalytics({ stats, orders, pendingOrders, activeOrders, completedOrders, cancelledOrders }: {
+  stats: VendorStats;
+  orders: OrderRecord[];
+  pendingOrders: OrderRecord[];
+  activeOrders: OrderRecord[];
+  completedOrders: OrderRecord[];
+  cancelledOrders: OrderRecord[];
+}) {
+  const [timePeriod, setTimePeriod] = useState<"week" | "month">("week");
+
+  // Group orders by day for time series
+  const getTimeSeries = () => {
+    const now = new Date();
+    const days = timePeriod === "week" ? 7 : 30;
+    const buckets: { label: string; date: string; revenue: number; orders: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      const label = timePeriod === "week"
+        ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()]
+        : `${d.getDate()}/${d.getMonth() + 1}`;
+      buckets.push({ label, date: dateStr, revenue: 0, orders: 0 });
+    }
+    for (const order of orders) {
+      if (order.status === "cancelled") continue;
+      const orderDate = order.created_at.split("T")[0];
+      const bucket = buckets.find((b) => b.date === orderDate);
+      if (bucket) {
+        bucket.revenue += order.price_total;
+        bucket.orders += 1;
+      }
+    }
+    return buckets;
+  };
+
+  // Product breakdown
+  const getProductBreakdown = () => {
+    const counts: Record<string, { qty: number; revenue: number }> = {};
+    for (const order of orders) {
+      if (order.status === "cancelled") continue;
+      for (const item of (order.order_items || [])) {
+        const key = item.name;
+        if (!counts[key]) counts[key] = { qty: 0, revenue: 0 };
+        counts[key].qty += item.quantity;
+        counts[key].revenue += item.price * item.quantity;
+      }
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 8);
+  };
+
+  const timeSeries = getTimeSeries();
+  const maxRevenue = Math.max(...timeSeries.map((b) => b.revenue), 1);
+  const maxOrders = Math.max(...timeSeries.map((b) => b.orders), 1);
+  const productBreakdown = getProductBreakdown();
+  const maxProductRevenue = productBreakdown.length > 0 ? Math.max(...productBreakdown.map(([, v]) => v.revenue), 1) : 1;
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-surface shadow-card rounded-xl p-4">
+          <p className="text-text-secondary text-xs">Total Revenue</p>
+          <p className="text-xl font-extrabold text-text-primary">KES {stats.totalRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-surface shadow-card rounded-xl p-4">
+          <p className="text-text-secondary text-xs">Avg Order Value</p>
+          <p className="text-xl font-extrabold text-text-primary">KES {stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders).toLocaleString() : 0}</p>
+        </div>
+        <div className="bg-surface shadow-card rounded-xl p-4">
+          <p className="text-text-secondary text-xs">Avg Delivery Time</p>
+          <p className="text-xl font-extrabold text-text-primary">{stats.avgDeliveryMinutes} min</p>
+        </div>
+        <div className="bg-surface shadow-card rounded-xl p-4">
+          <p className="text-text-secondary text-xs">Order Status</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs font-bold text-[#F5A623]">{pendingOrders.length} new</span>
+            <span className="text-xs font-bold text-primary">{activeOrders.length} active</span>
+            <span className="text-xs font-bold text-[#2ECC71]">{completedOrders.length} done</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Time Period Selector */}
+      <div className="flex gap-2">
+        <button onClick={() => setTimePeriod("week")} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${timePeriod === "week" ? "bg-primary text-white" : "bg-gray-100 text-text-secondary"}`}>This Week</button>
+        <button onClick={() => setTimePeriod("month")} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${timePeriod === "month" ? "bg-primary text-white" : "bg-gray-100 text-text-secondary"}`}>This Month</button>
+      </div>
+
+      {/* Revenue Bar Chart */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-base text-text-primary mb-4">Revenue ({timePeriod === "week" ? "Last 7 Days" : "Last 30 Days"})</h3>
+        <div className="flex items-end gap-1 h-40">
+          {timeSeries.map((bucket) => (
+            <div key={bucket.date} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-[9px] text-text-secondary font-semibold">
+                {bucket.revenue > 0 ? `${Math.round(bucket.revenue / 1000)}k` : ""}
+              </span>
+              <div
+                className="w-full bg-primary rounded-t-md transition-all min-h-[2px]"
+                style={{ height: `${Math.max((bucket.revenue / maxRevenue) * 120, bucket.revenue > 0 ? 4 : 2)}px` }}
+              />
+              <span className="text-[9px] text-text-secondary">{bucket.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm">
+          <span className="text-text-secondary">Total: <span className="font-bold text-text-primary">KES {timeSeries.reduce((s, b) => s + b.revenue, 0).toLocaleString()}</span></span>
+          <span className="text-text-secondary">Orders: <span className="font-bold text-text-primary">{timeSeries.reduce((s, b) => s + b.orders, 0)}</span></span>
+        </div>
+      </div>
+
+      {/* Orders Time Series */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-base text-text-primary mb-4">Orders ({timePeriod === "week" ? "Last 7 Days" : "Last 30 Days"})</h3>
+        <div className="flex items-end gap-1 h-32">
+          {timeSeries.map((bucket) => (
+            <div key={bucket.date} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-[9px] text-text-secondary font-bold">
+                {bucket.orders > 0 ? bucket.orders : ""}
+              </span>
+              <div
+                className="w-full bg-[#2ECC71] rounded-t-md transition-all min-h-[2px]"
+                style={{ height: `${Math.max((bucket.orders / maxOrders) * 100, bucket.orders > 0 ? 4 : 2)}px` }}
+              />
+              <span className="text-[9px] text-text-secondary">{bucket.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Product Breakdown */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-base text-text-primary mb-4">Products Sold</h3>
+        {productBreakdown.length === 0 ? (
+          <p className="text-text-secondary text-sm">No product data yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {productBreakdown.map(([name, data]) => (
+              <div key={name}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-text-primary truncate max-w-[60%]">{name}</span>
+                  <span className="text-sm font-bold text-text-primary">KES {data.revenue.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#1a5a9a] rounded-full" style={{ width: `${(data.revenue / maxProductRevenue) * 100}%` }} />
+                  </div>
+                  <span className="text-xs text-text-secondary w-12 text-right">{data.qty} sold</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Order Status Breakdown */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-base text-text-primary mb-4">Order Status Breakdown</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "New Requests", count: pendingOrders.length, color: "#F5A623" },
+            { label: "Active", count: activeOrders.length, color: "#2979C1" },
+            { label: "Delivered", count: completedOrders.length, color: "#2ECC71" },
+            { label: "Cancelled", count: cancelledOrders.length, color: "#E8544E" },
+          ].map((item) => (
+            <div key={item.label} className="text-center p-3 rounded-xl" style={{ backgroundColor: `${item.color}10` }}>
+              <p className="text-3xl font-extrabold" style={{ color: item.color }}>{item.count}</p>
+              <p className="text-xs text-text-secondary font-medium mt-1">{item.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileOrderCard({ order, userId, onAccept, onReject, onDispatch, onComplete, onViewItems }: {
+  order: OrderRecord;
+  userId: string;
+  onAccept: (id: string) => void;
+  onReject: (id: string) => void;
+  onDispatch: (id: string) => void;
+  onComplete: (id: string) => void;
+  onViewItems: (o: OrderRecord) => void;
+}) {
+  return (
+    <div className="bg-surface shadow-card rounded-xl p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-bold text-sm text-text-primary">{formatOrderId(order.id)}</span>
+        <OrderStatusBadge status={order.status} />
+      </div>
+      {/* Date/Time - bigger font */}
+      <p className="text-base font-bold text-text-primary mb-1">{formatOrderDateTime(order.created_at)}</p>
+      <p className="text-sm text-text-primary font-medium">{order.product_name || "Water Order"}</p>
+      {order.order_items && order.order_items.length > 0 ? (
+        <button
+          onClick={() => onViewItems(order)}
+          className="text-primary text-xs font-medium hover:underline text-left"
+        >
+          {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View details
+        </button>
+      ) : (
+        <p className="text-xs text-text-secondary">{"\u2014"}</p>
+      )}
+      <div className="bg-primary-light rounded-lg p-2.5 mt-2">
+        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline font-medium"><MapPin size={12} /> {order.delivery_address}</a>
+        {order.delivery_address_details?.additionalDirections && (
+          <p className="text-xs text-text-secondary italic mt-1 ml-4">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
+        )}
+        {order.delivery_address_details?.neighbourhood && (
+          <p className="text-xs text-text-secondary mt-0.5 ml-4">Area: {order.delivery_address_details.neighbourhood}</p>
+        )}
+        {order.delivery_address_details?.buildingName && (
+          <p className="text-xs text-text-secondary mt-0.5 ml-4">
+            {order.delivery_address_details.buildingName}
+            {order.delivery_address_details.floor ? `, Floor ${order.delivery_address_details.floor}` : ""}
+            {order.delivery_address_details.unitNumber ? `, Unit ${order.delivery_address_details.unitNumber}` : ""}
+          </p>
+        )}
+      </div>
+      {/* Scheduled Delivery Badge */}
+      {order.scheduled_date && order.scheduled_time && (
+        <div className="bg-[#FFF5EC] rounded-lg p-2.5 mt-2 flex items-center gap-2">
+          <Calendar size={14} className="text-[#F5A623] flex-shrink-0" />
+          <div>
+            <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Scheduled Delivery</p>
+            <p className="text-base font-bold text-[#F5A623]">{order.scheduled_date} at {order.scheduled_time}</p>
+          </div>
+        </div>
+      )}
+      {/* Customer Info */}
+      {(order.customer_name || order.customer_phone) && (
+        <div className="bg-gray-50 rounded-lg p-2.5 mt-2">
+          <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide mb-1">Customer</p>
+          {order.customer_name && <p className="text-xs font-medium text-text-primary">{order.customer_name}</p>}
+          {order.customer_phone && (
+            <a href={`tel:+${order.customer_phone.replace(/^0/, "254")}`} className="text-xs text-primary hover:underline">
+              {order.customer_phone.startsWith("254") ? `0${order.customer_phone.slice(3)}` : order.customer_phone}
+            </a>
+          )}
+        </div>
+      )}
+      {/* Payment Info */}
+      {order.mpesa_ref && (
+        <div className="bg-green-50 rounded-lg p-2.5 mt-2">
+          <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Payment Confirmed</p>
+          <p className="text-xs font-bold text-green-700 font-mono">{order.mpesa_ref}</p>
+        </div>
+      )}
+      {!order.mpesa_ref && order.payment_method === "mpesa-app" && (
+        <div className="bg-yellow-50 rounded-lg p-2.5 mt-2">
+          <p className="text-[10px] text-yellow-700 font-semibold">Awaiting M-PESA code</p>
+        </div>
+      )}
+      {order.payment_method === "cash" && (
+        <div className="bg-orange-50 rounded-lg p-2.5 mt-2">
+          <p className="text-[10px] text-orange-700 font-semibold">Cash on Delivery</p>
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-3">
+        <span className="font-bold text-lg text-text-primary">KES {order.price_total.toLocaleString()}</span>
+      </div>
+      {order.estimated_delivery_minutes && (order.status === "confirmed" || order.status === "out_for_delivery") && (
+        <div className="flex items-center gap-1 mt-2 text-xs text-primary"><Timer size={12} /><span className="font-semibold">ETA: {order.estimated_delivery_minutes} min</span></div>
+      )}
+      {order.vendor_location && order.status === "confirmed" && (
+        <div className="flex items-center gap-1 mt-1 text-xs text-text-secondary"><MapPin size={12} /><span>From: {order.vendor_location}</span></div>
+      )}
+      {/* Action Buttons */}
+      {order.status === "paid" && !order.vendor_id && (
+        <div className="flex gap-2 mt-3">
+          <button onClick={() => onAccept(order.id)} className="flex-1 bg-primary text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Accept</button>
+          <button onClick={() => onReject(order.id)} className="flex-1 bg-gray-100 text-cta-alt py-2.5 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">Reject</button>
+        </div>
+      )}
+      {order.status === "confirmed" && order.vendor_id === userId && (
+        <button onClick={() => onDispatch(order.id)} className="w-full mt-3 bg-[#F5A623] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#d4901e] transition-colors flex items-center justify-center gap-2">
+          <Truck size={16} /> Dispatch — Out for Delivery
+        </button>
+      )}
+      {order.status === "out_for_delivery" && order.vendor_id === userId && (
+        <button onClick={() => onComplete(order.id)} className="w-full mt-3 bg-[#2ECC71] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#27ae60] transition-colors flex items-center justify-center gap-2">
+          <CheckCircle size={16} /> Enter Delivery Code to Close
+        </button>
+      )}
+    </div>
+  );
+}
+
 function OrderStatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; bg: string; text: string }> = {
-    pending_payment: { label: "Pending", bg: "bg-[#FFF5EC]", text: "text-[#F5A623]" },
-    paid: { label: "Paid", bg: "bg-[#E8F5E9]", text: "text-[#2ECC71]" },
-    confirmed: { label: "Confirmed", bg: "bg-primary-light", text: "text-primary" },
-    out_for_delivery: { label: "In Transit", bg: "bg-primary-light", text: "text-primary" },
-    delivered: { label: "Delivered", bg: "bg-[#E8F5E9]", text: "text-[#2ECC71]" },
+    pending_payment: { label: "Pending Payment", bg: "bg-gray-100", text: "text-text-secondary" },
+    paid: { label: "New Request", bg: "bg-[#FFF5EC]", text: "text-[#F5A623]" },
+    confirmed: { label: "Accepted", bg: "bg-primary-light", text: "text-primary" },
+    out_for_delivery: { label: "OUT FOR DELIVERY", bg: "bg-[#E8F5E9]", text: "text-[#2ECC71]" },
+    delivered: { label: "Delivered & Closed", bg: "bg-[#E8F5E9]", text: "text-[#2ECC71]" },
     cancelled: { label: "Cancelled", bg: "bg-red-50", text: "text-red-600" },
   };
   const c = config[status] || config.pending_payment;
-  return <span className={`${c.bg} ${c.text} text-xs px-2.5 py-1 rounded-full font-semibold`}>{c.label}</span>;
+  return <span className={`${c.bg} ${c.text} text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wide`}>{c.label}</span>;
 }
 
 function DesktopVendorNav({ onLogout, activeTab, setActiveTab }: { onLogout: () => void; activeTab: string; setActiveTab: (t: "dashboard" | "orders" | "analytics" | "notifications" | "settings") => void }) {
