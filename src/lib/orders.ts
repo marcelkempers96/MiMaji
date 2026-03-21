@@ -201,6 +201,10 @@ export async function createOrder(params: {
   initialStatus?: string;
   /** M-PESA reference code if already known */
   mpesaRef?: string;
+  /** Customer name for admin visibility */
+  customerName?: string;
+  /** Customer phone for admin visibility */
+  customerPhone?: string;
 }): Promise<{ orderId: string | null; error: string | null }> {
   const status = params.initialStatus || "pending_payment";
 
@@ -231,6 +235,8 @@ export async function createOrder(params: {
       delivery_code: params.deliveryCode || generateDeliveryCode(orderId),
       payment_method: params.paymentMethod || null,
       brand_preference: params.brandPreference || [],
+      customer_name: params.customerName || undefined,
+      customer_phone: params.customerPhone || undefined,
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -289,6 +295,8 @@ export async function createOrder(params: {
       delivery_code: generateDeliveryCode(tempId),
       payment_method: params.paymentMethod || null,
       brand_preference: params.brandPreference || [],
+      customer_name: params.customerName || "",
+      customer_phone: params.customerPhone || "",
     })
     .select("id")
     .single();

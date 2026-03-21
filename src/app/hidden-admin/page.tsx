@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
-import { supabase } from "@/lib/supabase";
 
 const hasSupabaseConfig =
   typeof process !== "undefined" &&
@@ -147,8 +146,29 @@ function getLast7Days(): string[] {
   return days;
 }
 
-// ── Admin Login Gate ──
+// ── Admin API helpers (bypass RLS via service role) ──
 const ADMIN_CODE = "5566";
+
+async function adminFetch(type: string): Promise<unknown[]> {
+  try {
+    const res = await fetch(`/api/admin?code=${ADMIN_CODE}&type=${type}`);
+    if (!res.ok) { console.error(`Admin API ${type} error:`, res.status); return []; }
+    return await res.json();
+  } catch (e) { console.error(`Admin API ${type} fetch error:`, e); return []; }
+}
+
+async function adminPost(body: Record<string, unknown>): Promise<{ success?: boolean; error?: string }> {
+  try {
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: ADMIN_CODE, ...body }),
+    });
+    return await res.json();
+  } catch (e) { console.error("Admin API post error:", e); return { error: "Network error" }; }
+}
+
+// ── Admin Login Gate ──
 
 function AdminLoginGate({ children }: { children: React.ReactNode }) {
   const [code, setCode] = React.useState("");
@@ -257,55 +277,69 @@ function AdminDashboardInner() {
 
   async function loadVendors() {
     if (hasSupabaseConfig) {
-      const vendors = await fetchVendors();
-      setCustomVendors(vendors);
-    } else {
-      setCustomVendors(loadCustomVendors());
+      try {
+        const raw = await adminFetch("vendors") as Record<string, unknown>[];
+        setCustomVendors(raw.map((v) => ({
+          id: v.id as string,
+          name: v.name as string,
+          area: (v.area as string) || "",
+          distance: "",
+          rating: Number(v.rating) || 0,
+          reviews: Number(v.reviews) || 0,
+          hours: (v.hours as string) || "7AM - 8PM",
+          products: (v.products as string[]) || [],
+          brands: (v.brands as string[]) || [],
+          areasServed: (v.areas_served as string[]) || [],
+          businessRegNo: (v.business_reg_no as string) || "",
+          mpesaNumber: (v.mpesa_number as string) || "",
+          phoneNumbers: (v.phone_numbers as string[]) || [],
+          locations: ((v.vendor_locations as Array<Record<string, unknown>>) || []).map((l) => ({
+            id: l.id as string,
+            name: l.name as string,
+            area: (l.area as string) || "",
+            lat: Number(l.lat),
+            lng: Number(l.lng),
+          })),
+        })));
+        return;
+      } catch {}
     }
+    setCustomVendors(loadCustomVendors());
   }
 
   async function handleAddVendor() {
     if (hasSupabaseConfig) {
-      // Insert vendor into Supabase
-      const { data: vendorData, error } = await supabase.from("vendors").insert({
+      const locations = [];
+      if (newVendor.locationName) {
+        locations.push({
+          name: newVendor.locationName,
+          area: newVendor.locationArea || newVendor.area,
+          lat: parseFloat(newVendor.locationLat) || -1.2864,
+          lng: parseFloat(newVendor.locationLng) || 36.8172,
+        });
+      }
+      for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
+        locations.push({
+          name: loc.name,
+          area: loc.area || newVendor.area,
+          lat: parseFloat(loc.lat) || -1.2864,
+          lng: parseFloat(loc.lng) || 36.8172,
+        });
+      }
+      await adminPost({
+        action: "add_vendor",
         name: newVendor.name,
         area: newVendor.area,
         rating: parseFloat(newVendor.rating) || 4.5,
         reviews: parseInt(newVendor.reviews) || 0,
         hours: newVendor.hours,
         products: newVendor.products,
-        business_reg_no: newVendor.businessRegNo,
-        mpesa_number: newVendor.mpesaNumber,
-        phone_numbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
-        delivery_radius_km: parseInt(newVendor.deliveryRadius) || 10,
-        active: true,
-      }).select("id").single();
-
-      if (!error && vendorData) {
-        // Insert locations
-        const locations = [];
-        if (newVendor.locationName) {
-          locations.push({
-            vendor_id: vendorData.id,
-            name: newVendor.locationName,
-            area: newVendor.locationArea || newVendor.area,
-            lat: parseFloat(newVendor.locationLat) || -1.2864,
-            lng: parseFloat(newVendor.locationLng) || 36.8172,
-          });
-        }
-        for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
-          locations.push({
-            vendor_id: vendorData.id,
-            name: loc.name,
-            area: loc.area || newVendor.area,
-            lat: parseFloat(loc.lat) || -1.2864,
-            lng: parseFloat(loc.lng) || 36.8172,
-          });
-        }
-        if (locations.length > 0) {
-          await supabase.from("vendor_locations").insert(locations);
-        }
-      }
+        businessRegNo: newVendor.businessRegNo,
+        mpesaNumber: newVendor.mpesaNumber,
+        phoneNumbers: newVendor.phoneNumbers.split(",").map((p: string) => p.trim()).filter(Boolean),
+        deliveryRadius: parseInt(newVendor.deliveryRadius) || 10,
+        locations,
+      });
       await loadVendors();
     } else {
       const id = `cv-${Date.now()}`;
@@ -359,7 +393,7 @@ function AdminDashboardInner() {
 
   async function handleDeleteCustomVendor(vendorId: string) {
     if (hasSupabaseConfig) {
-      await supabase.from("vendors").update({ active: false }).eq("id", vendorId);
+      await adminPost({ action: "delete_vendor", vendorId });
       await loadVendors();
     } else {
       const remaining = deleteCustomVendor(vendorId);
@@ -374,16 +408,14 @@ function AdminDashboardInner() {
   async function loadUsers() {
     if (hasSupabaseConfig) {
       try {
-        const { data, error } = await supabase.from("profiles").select("id, phone, full_name, role").order("created_at", { ascending: false });
-        if (!error && data) {
-          setUsers(data.map((p: Record<string, unknown>) => ({
-            id: p.id as string,
-            phone: (p.phone as string) || "",
-            name: (p.full_name as string) || "",
-            role: (p.role as string) || "customer",
-          })));
-          return;
-        }
+        const raw = await adminFetch("users") as Record<string, unknown>[];
+        setUsers(raw.map((p) => ({
+          id: p.id as string,
+          phone: (p.phone as string) || "",
+          name: (p.full_name as string) || "",
+          role: (p.role as string) || "customer",
+        })));
+        return;
       } catch {}
     }
 
@@ -414,10 +446,7 @@ function AdminDashboardInner() {
 
   async function updateUser(userId: string, updates: Partial<MockUser>) {
     if (hasSupabaseConfig) {
-      const profileUpdates: Record<string, unknown> = {};
-      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
-      if (updates.role !== undefined) profileUpdates.role = updates.role;
-      await supabase.from("profiles").update(profileUpdates).eq("id", userId);
+      await adminPost({ action: "update_user", userId, name: updates.name, role: updates.role, phone: updates.phone });
       await loadUsers();
     } else {
       try {
@@ -439,9 +468,7 @@ function AdminDashboardInner() {
 
   async function deleteUser(userId: string) {
     if (hasSupabaseConfig) {
-      // Note: deleting from profiles will cascade from auth.users FK
-      // We just remove the profile; the auth user remains but is effectively deactivated
-      await supabase.from("profiles").delete().eq("id", userId);
+      await adminPost({ action: "delete_user", userId });
       await loadUsers();
     } else {
       try {
@@ -470,18 +497,7 @@ function AdminDashboardInner() {
     if (!phone || !newUser.name || !newUser.password) return;
 
     if (hasSupabaseConfig) {
-      const email = `${phone}@mimaji.co.ke`;
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: newUser.password,
-        options: { data: { full_name: newUser.name, phone } },
-      });
-      if (!error && data?.user) {
-        // Set role if not customer
-        if (newUser.role !== "customer") {
-          await supabase.from("profiles").update({ role: newUser.role }).eq("id", data.user.id);
-        }
-      }
+      await adminPost({ action: "create_user", phone, name: newUser.name, password: newUser.password, role: newUser.role });
       await loadUsers();
     } else {
       // Mock: save to signups localStorage
@@ -502,11 +518,46 @@ function AdminDashboardInner() {
     setShowCreateUser(false);
   }
 
-  const loadOrders = useCallback(() => {
-    fetchAllOrders().then((data) => {
+  const loadOrders = useCallback(async () => {
+    try {
+      let data: OrderRecord[];
+      if (hasSupabaseConfig) {
+        const raw = await adminFetch("orders") as Record<string, unknown>[];
+        data = raw.map((row) => ({
+          id: (row.id as string) || "",
+          customer_id: (row.customer_id as string) || "",
+          delivery_address: (row.delivery_address as string) || "",
+          delivery_address_details: (row.delivery_address_details as OrderRecord["delivery_address_details"]) || null,
+          quantity: Number(row.quantity) || 0,
+          price_total: Number(row.price_total) || 0,
+          status: (row.status as string) || "pending_payment",
+          mpesa_ref: (row.mpesa_ref as string) || null,
+          product_name: (row.product_name as string) || null,
+          order_items: (row.order_items as OrderRecord["order_items"]) || [],
+          estimated_delivery_minutes: row.estimated_delivery_minutes != null ? Number(row.estimated_delivery_minutes) : null,
+          created_at: (row.created_at as string) || new Date().toISOString(),
+          updated_at: (row.updated_at as string) || new Date().toISOString(),
+          vendor_id: (row.vendor_id as string) || null,
+          vendor_name: (row.vendor_name as string) || null,
+          vendor_location: (row.vendor_location as string) || null,
+          vendors_tried: (row.vendors_tried as string[]) || [],
+          current_vendor_offer: (row.current_vendor_offer as string) || null,
+          scheduled_date: (row.scheduled_date as string) || null,
+          scheduled_time: (row.scheduled_time as string) || null,
+          delivery_code: (row.delivery_code as string) || null,
+          payment_method: (row.payment_method as string) || null,
+          brand_preference: (row.brand_preference as string[]) || [],
+          customer_name: (row.customer_name as string) || undefined,
+          customer_phone: (row.customer_phone as string) || undefined,
+        }));
+      } else {
+        data = await fetchAllOrders();
+      }
       setOrders(data);
       setLastRefresh(new Date());
-    });
+    } catch (e) {
+      console.error("loadOrders error:", e);
+    }
   }, []);
 
   // Initial load + polling
@@ -589,15 +640,22 @@ function AdminDashboardInner() {
         return;
       }
     }
-    await updateOrderStatus(orderId, newStatus);
-    // Refresh from source of truth
+    if (hasSupabaseConfig) {
+      await adminPost({ action: "update_order_status", orderId, status: newStatus });
+    } else {
+      await updateOrderStatus(orderId, newStatus);
+    }
     loadOrders();
     setStatusDropdown(null);
   }
 
   async function confirmCancel() {
     if (!cancelConfirm) return;
-    await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    if (hasSupabaseConfig) {
+      await adminPost({ action: "update_order_status", orderId: cancelConfirm.orderId, status: "cancelled" });
+    } else {
+      await updateOrderStatus(cancelConfirm.orderId, "cancelled");
+    }
     loadOrders();
     setCancelConfirm(null);
   }
@@ -605,13 +663,23 @@ function AdminDashboardInner() {
   async function reassignVendor(orderId: string, vendorId: string) {
     const vendor = allVendors.find(v => v.id === vendorId);
     if (!vendor) return;
-    const { updateOrder } = await import("@/lib/orders");
-    await updateOrder(orderId, {
-      vendor_id: vendorId,
-      vendor_name: vendor.name,
-      vendor_location: vendor.locations?.[0]?.name || vendor.area || "",
-      current_vendor_offer: vendorId,
-    });
+    if (hasSupabaseConfig) {
+      await adminPost({
+        action: "reassign_vendor",
+        orderId,
+        vendorId,
+        vendorName: vendor.name,
+        vendorLocation: vendor.locations?.[0]?.name || vendor.area || "",
+      });
+    } else {
+      const { updateOrder } = await import("@/lib/orders");
+      await updateOrder(orderId, {
+        vendor_id: vendorId,
+        vendor_name: vendor.name,
+        vendor_location: vendor.locations?.[0]?.name || vendor.area || "",
+        current_vendor_offer: vendorId,
+      });
+    }
     loadOrders();
     setVendorDropdown(null);
   }
@@ -627,23 +695,21 @@ function AdminDashboardInner() {
   async function loadSubscriptions() {
     if (hasSupabaseConfig) {
       try {
-        const { data, error } = await supabase.from("subscriptions").select("*").order("created_at", { ascending: false });
-        if (!error && data) {
-          setSubscriptions(data.map((s: Record<string, unknown>) => ({
-            id: s.id as string,
-            userId: (s.user_id as string) || "",
-            userName: (s.user_name as string) || "",
-            userPhone: (s.user_phone as string) || "",
-            planId: (s.plan_id as string) || "custom",
-            planName: (s.plan_name as string) || "Custom",
-            jugsPerMonth: Number(s.jugs_per_month) || 0,
-            pricePerJug: Number(s.price_per_jug) || 0,
-            monthlyTotal: Number(s.monthly_total) || 0,
-            status: (s.status as string) || "active",
-            startDate: (s.created_at as string) || new Date().toISOString(),
-          })));
-          return;
-        }
+        const raw = await adminFetch("subscriptions") as Record<string, unknown>[];
+        setSubscriptions(raw.map((s) => ({
+          id: s.id as string,
+          userId: (s.user_id as string) || "",
+          userName: (s.user_name as string) || "",
+          userPhone: (s.user_phone as string) || "",
+          planId: (s.plan_id as string) || "custom",
+          planName: (s.plan_name as string) || "Custom",
+          jugsPerMonth: Number(s.jugs_per_month) || 0,
+          pricePerJug: Number(s.price_per_jug) || 0,
+          monthlyTotal: Number(s.monthly_total) || 0,
+          status: (s.status as string) || "active",
+          startDate: (s.created_at as string) || new Date().toISOString(),
+        })));
+        return;
       } catch {}
     }
     // Fallback: localStorage
@@ -670,15 +736,18 @@ function AdminDashboardInner() {
       startDate: new Date().toISOString(),
     };
     if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").insert({
-        user_name: sub.userName,
-        user_phone: sub.userPhone,
-        plan_id: sub.planId,
-        plan_name: sub.planName,
-        jugs_per_month: sub.jugsPerMonth,
-        price_per_jug: sub.pricePerJug,
-        monthly_total: sub.monthlyTotal,
-        status: "active",
+      await adminPost({
+        action: "add_subscription",
+        subscription: {
+          user_name: sub.userName,
+          user_phone: sub.userPhone,
+          plan_id: sub.planId,
+          plan_name: sub.planName,
+          jugs_per_month: sub.jugsPerMonth,
+          price_per_jug: sub.pricePerJug,
+          monthly_total: sub.monthlyTotal,
+          status: "active",
+        },
       });
       await loadSubscriptions();
     } else {
@@ -692,7 +761,7 @@ function AdminDashboardInner() {
 
   async function toggleSubscriptionStatus(subId: string, newStatus: string) {
     if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").update({ status: newStatus }).eq("id", subId);
+      await adminPost({ action: "update_subscription", subId, status: newStatus });
       await loadSubscriptions();
     } else {
       const all = subscriptions.map((s) => s.id === subId ? { ...s, status: newStatus } : s);
@@ -703,7 +772,7 @@ function AdminDashboardInner() {
 
   async function deleteSubscription(subId: string) {
     if (hasSupabaseConfig) {
-      await supabase.from("subscriptions").delete().eq("id", subId);
+      await adminPost({ action: "delete_subscription", subId });
       await loadSubscriptions();
     } else {
       const all = subscriptions.filter((s) => s.id !== subId);
