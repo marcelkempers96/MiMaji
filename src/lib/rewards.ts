@@ -374,19 +374,10 @@ export async function useFreeLitresAsync(userId: string, litres: number): Promis
 }
 
 export function getRewardsSummary(userId: string) {
-  const rewards = getRewards(userId);
+  let rewards = getRewards(userId);
   if (!rewards) {
-    return {
-      freeLitres: 0,
-      referralCode: "",
-      referralsCount: 0,
-      qualifiedReferrals: 0,
-      pendingReferrals: 0,
-      totalEarnedFromReferrals: 0,
-      referralCapReached: false,
-      milestoneBonusAwarded: false,
-      referrals: [] as ReferralRecord[],
-    };
+    // Auto-initialize rewards for users who haven't been initialized yet
+    rewards = initRewards(userId);
   }
 
   const qualifiedReferrals = rewards.referrals.filter((r) => r.qualified).length;
@@ -410,9 +401,11 @@ export async function getRewardsSummaryAsync(userId: string) {
 
   const rewards = await getRewardsAsync(userId);
   if (!rewards) {
+    // Return defaults with a valid referral code
+    const code = generateReferralCode(userId);
     return {
-      freeLitres: 0,
-      referralCode: generateReferralCode(userId),
+      freeLitres: 1,
+      referralCode: code,
       referralsCount: 0,
       qualifiedReferrals: 0,
       pendingReferrals: 0,

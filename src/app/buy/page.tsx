@@ -10,6 +10,7 @@ import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { products, Product, waterBrands } from "@/data/products";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 
 // Discount tiers: the more bottles, the cheaper per unit
@@ -48,6 +49,7 @@ function getCartItemId(productId: string, bottleType: BottleType): string {
 export default function BuyWaterPage() {
   const router = useRouter();
   const { addItem, removeItem, items, updateQuantity } = useCart();
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("soft");
   const [activeSize, setActiveSize] = useState<"20L" | "10L" | "5L">("20L");
 
@@ -126,6 +128,14 @@ export default function BuyWaterPage() {
       {/* Mobile */}
       <div className="md:hidden">
         <TopBar title="Buy Water" />
+        {user && (
+          <div className="px-4 pb-1">
+            <Link href="/dashboard" className="inline-flex items-center gap-1.5 bg-primary-light text-primary rounded-full px-3 py-1 text-xs font-semibold float-right">
+              {user.name ? `${user.name}'s Dashboard` : user.phone}
+            </Link>
+            <div className="clear-both" />
+          </div>
+        )}
         <div className="max-w-md mx-auto">
           <BuyContent
             activeCategory={activeCategory}
@@ -153,7 +163,7 @@ export default function BuyWaterPage() {
 
       {/* Desktop */}
       <div className="hidden md:block">
-        <DesktopNav />
+        <DesktopNav user={user} />
         <div className="max-w-5xl mx-auto px-8 py-10">
           <h1 className="text-3xl font-extrabold text-text-primary mb-2">Order Water</h1>
           <p className="text-text-secondary mb-6">Select your preferred water type, size, and quantity. You can mix refills and new bottles in the same order.</p>
@@ -231,7 +241,7 @@ function BuyContent({
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setActiveCategory("soft")}
-            className={`rounded-xl p-3 flex items-center justify-center transition-all border-2 ${
+            className={`rounded-xl p-3 flex items-center justify-center text-center transition-all border-2 ${
               activeCategory === "soft"
                 ? "border-primary bg-primary-light"
                 : "border-gray-200 bg-white"
@@ -243,7 +253,7 @@ function BuyContent({
           </button>
           <button
             onClick={() => setActiveCategory("hard")}
-            className={`rounded-xl p-3 flex items-center justify-center transition-all border-2 ${
+            className={`rounded-xl p-3 flex items-center justify-center text-center transition-all border-2 ${
               activeCategory === "hard"
                 ? "border-primary bg-primary-light"
                 : "border-gray-200 bg-white"
@@ -366,9 +376,6 @@ function ProductCard({
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm text-text-primary">{product.name} — {product.size}</p>
-          <p className="text-text-secondary text-[11px] mt-0.5">
-            {product.description}
-          </p>
         </div>
       </div>
 
@@ -477,7 +484,7 @@ function BottleTypeRow({
   );
 }
 
-function DesktopNav() {
+function DesktopNav({ user }: { user?: { name: string; phone: string } | null }) {
   return (
     <header className="bg-surface border-b border-[#E0E0E0]">
       <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
@@ -486,11 +493,16 @@ function DesktopNav() {
         </Link>
         <nav className="flex items-center gap-8">
           <Link href="/buy" className="text-primary font-medium text-sm">Products</Link>
-          <Link href="/buy" className="text-primary font-medium text-sm">Order Water</Link>
           <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
           <Link href="/subscriptions" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Subscriptions</Link>
           <Link href="/contact" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Contact</Link>
-          <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
+          {user ? (
+            <Link href="/dashboard" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">
+              {user.name ? `${user.name}'s Dashboard` : user.phone}
+            </Link>
+          ) : (
+            <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
+          )}
         </nav>
       </div>
     </header>

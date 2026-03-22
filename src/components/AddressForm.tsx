@@ -140,7 +140,7 @@ export default function AddressForm({
     }
 
     if (autocompleteServiceRef.current) {
-      // Use Google Maps
+      // Use Google Maps, with Nominatim fallback if no results
       autocompleteServiceRef.current.getPlacePredictions(
         {
           input: value,
@@ -153,14 +153,16 @@ export default function AddressForm({
             setShowPredictions(true);
           } else {
             setPredictions([]);
-            setShowPredictions(false);
+            // Fallback to Nominatim when Google returns no results
+            if (nominatimTimerRef.current) clearTimeout(nominatimTimerRef.current);
+            nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 300);
           }
         }
       );
     } else {
       // Fallback to Nominatim (debounced to respect rate limits)
       if (nominatimTimerRef.current) clearTimeout(nominatimTimerRef.current);
-      nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 500);
+      nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 300);
     }
   }, [searchNominatim]);
 
@@ -351,7 +353,7 @@ export default function AddressForm({
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={mapsLoaded ? "Search for area, street, or building..." : "Type area or street name..."}
             className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-secondary"
-            onFocus={() => predictions.length > 0 && setShowPredictions(true)}
+            onFocus={() => (predictions.length > 0 || nominatimResults.length > 0) && setShowPredictions(true)}
           />
           <button
             onClick={handleGetCurrentLocation}
@@ -412,65 +414,6 @@ export default function AddressForm({
 
       {/* Divider between search and address details */}
       <div className="border-t border-gray-100 my-4" />
-
-      {/* Address Label */}
-      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
-        Address Label
-      </label>
-      <div className="flex gap-2 mb-3">
-        <button
-          onClick={() => { setAddressType("home"); setLabel("Home"); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
-            label === "Home" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
-          }`}
-        >
-          <Home size={14} /> Home
-        </button>
-        <button
-          onClick={() => { setAddressType("office"); setLabel("Office"); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
-            label === "Office" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
-          }`}
-        >
-          <Briefcase size={14} /> Office
-        </button>
-        <input
-          type="text"
-          value={label !== "Home" && label !== "Office" ? label : ""}
-          onChange={(e) => { setLabel(e.target.value); setAddressType("home"); }}
-          onFocus={() => { if (label === "Home" || label === "Office") setLabel(""); }}
-          placeholder="Custom label..."
-          className={`flex-1 rounded-full border px-4 py-2 text-xs font-semibold outline-none transition-colors ${
-            label !== "Home" && label !== "Office" && label
-              ? "border-primary text-primary bg-primary-light"
-              : "border-gray-200 text-text-secondary bg-gray-50"
-          }`}
-        />
-      </div>
-
-      {/* Location Type */}
-      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
-        Property Type
-      </label>
-      <div className="grid grid-cols-4 gap-2 mb-3">
-        {LOCATION_TYPES.map((lt) => {
-          const Icon = lt.icon;
-          return (
-            <button
-              key={lt.value}
-              onClick={() => setLocationType(lt.value)}
-              className={`flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                locationType === lt.value
-                  ? "bg-primary text-white"
-                  : "bg-gray-50 text-text-secondary border border-gray-200"
-              }`}
-            >
-              <Icon size={18} />
-              {lt.label}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Neighbourhood / Area */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
@@ -605,6 +548,65 @@ export default function AddressForm({
         rows={2}
         className="rounded-xl border border-gray-200 px-4 py-3 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3 resize-none"
       />
+
+      {/* Location Type */}
+      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
+        Property Type
+      </label>
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {LOCATION_TYPES.map((lt) => {
+          const Icon = lt.icon;
+          return (
+            <button
+              key={lt.value}
+              onClick={() => setLocationType(lt.value)}
+              className={`flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                locationType === lt.value
+                  ? "bg-primary text-white"
+                  : "bg-gray-50 text-text-secondary border border-gray-200"
+              }`}
+            >
+              <Icon size={18} />
+              {lt.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Address Label */}
+      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
+        Address Label
+      </label>
+      <div className="flex gap-2 mb-3">
+        <button
+          onClick={() => { setAddressType("home"); setLabel("Home"); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
+            label === "Home" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
+          }`}
+        >
+          <Home size={14} /> Home
+        </button>
+        <button
+          onClick={() => { setAddressType("office"); setLabel("Office"); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
+            label === "Office" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
+          }`}
+        >
+          <Briefcase size={14} /> Office
+        </button>
+        <input
+          type="text"
+          value={label !== "Home" && label !== "Office" ? label : ""}
+          onChange={(e) => { setLabel(e.target.value); setAddressType("home"); }}
+          onFocus={() => { if (label === "Home" || label === "Office") setLabel(""); }}
+          placeholder="Custom label..."
+          className={`flex-1 rounded-full border px-4 py-2 text-xs font-semibold outline-none transition-colors ${
+            label !== "Home" && label !== "Office" && label
+              ? "border-primary text-primary bg-primary-light"
+              : "border-gray-200 text-text-secondary bg-gray-50"
+          }`}
+        />
+      </div>
 
       {/* Save for future checkbox */}
       {showSaveCheckbox && (

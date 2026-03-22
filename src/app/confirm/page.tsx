@@ -88,26 +88,27 @@ export default function ConfirmOrderPage() {
   const cartTotal = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
 
   // Auth guard: redirect to login if not authenticated (after loading completes)
-  if (!authLoading && !user && paymentStatus === "idle") {
-    router.push("/login?redirect=/delivery");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !user && paymentStatus === "idle") {
+      router.push("/login?redirect=/delivery");
+    }
+  }, [authLoading, user, paymentStatus, router]);
 
-  // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
-  if (!authLoading && user && items.length === 0 && paymentStatus === "idle") {
-    router.push("/buy");
-    return null;
-  }
+  // Empty cart guard: redirect to shop if cart is empty (only when idle, not during payment)
+  useEffect(() => {
+    if (!authLoading && user && items.length === 0 && paymentStatus === "idle" && !confirmedOrderRef.current) {
+      router.push("/buy");
+    }
+  }, [authLoading, user, items.length, paymentStatus, router]);
 
   // Scheduled delivery
-  const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(null);
-  useState(() => {
+  const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(() => {
     try {
+      if (typeof window === "undefined") return null;
       const raw = sessionStorage.getItem("mimaji_scheduled_delivery");
-      if (raw) {
-        setScheduledDelivery(JSON.parse(raw));
-      }
+      if (raw) return JSON.parse(raw);
     } catch {}
+    return null;
   });
 
   // Rewards
@@ -163,6 +164,18 @@ export default function ConfirmOrderPage() {
     paymentMethod: PaymentMethod;
     deliveryCode: string;
   } | null>(null);
+
+  // Restore confirmed order from sessionStorage on mount (handles component remount after cart clear)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("mimaji_confirmed_order");
+      if (saved) {
+        sessionStorage.removeItem("mimaji_confirmed_order");
+        confirmedOrderRef.current = JSON.parse(saved);
+        setPaymentStatus("confirmed");
+      }
+    } catch {}
+  }, []);
 
   // Pending order params — saved before order is actually created
   const pendingOrderRef = useRef<{
@@ -274,6 +287,11 @@ export default function ConfirmOrderPage() {
       localStorage.setItem(codeKey, JSON.stringify(existingCodes));
     } catch {}
 
+    // Save confirmed order to sessionStorage as backup (in case component remounts)
+    try {
+      sessionStorage.setItem("mimaji_confirmed_order", JSON.stringify(confirmedOrderRef.current));
+    } catch {}
+
     clearCart();
     try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}
   };
@@ -381,12 +399,13 @@ export default function ConfirmOrderPage() {
     setErrorMsg("");
     try {
       await finalizeOrder(mpesaCode.trim().toUpperCase());
+      // Set confirmed BEFORE clearing creatingOrder to avoid intermediate states
       setPaymentStatus("confirmed");
+      setCreatingOrder(false);
     } catch (e) {
       console.error("Failed to create order:", e);
-      setPaymentStatus("error");
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
-    } finally {
+      setPaymentStatus("error");
       setCreatingOrder(false);
     }
   };
@@ -396,12 +415,13 @@ export default function ConfirmOrderPage() {
     setErrorMsg("");
     try {
       await finalizeOrder(null);
+      // Set confirmed BEFORE clearing creatingOrder to avoid intermediate states
       setPaymentStatus("confirmed");
+      setCreatingOrder(false);
     } catch (e) {
       console.error("Failed to create order:", e);
-      setPaymentStatus("error");
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
-    } finally {
+      setPaymentStatus("error");
       setCreatingOrder(false);
     }
   };

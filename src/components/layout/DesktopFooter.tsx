@@ -69,7 +69,7 @@ export default function DesktopFooter() {
               <Link href="/orders" className="text-white/60 text-sm hover:text-white transition-colors">My Orders</Link>
               <Link href="/subscriptions" className="text-white/60 text-sm hover:text-white transition-colors">Subscriptions</Link>
               <Link href="/rewards" className="text-white/60 text-sm hover:text-white transition-colors">Water Warriors Rewards</Link>
-              <Link href="/schedule" className="text-white/60 text-sm hover:text-white transition-colors">Schedule Delivery</Link>
+              <Link href="/buy" className="text-white/60 text-sm hover:text-white transition-colors">Schedule Delivery</Link>
               <Link href="/corporate" className="text-white/60 text-sm hover:text-white transition-colors">Corporate Solutions</Link>
             </div>
           </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { useState, useEffect, useRef } from "react";
-import { User, ChevronRight, MapPin, CreditCard, Bell, Shield, HelpCircle, LogOut, FileText, Star, Settings, Edit2, KeyRound } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { User, ChevronRight, MapPin, CreditCard, Bell, Shield, HelpCircle, LogOut, FileText, Star, Settings, KeyRound } from "lucide-react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -27,8 +27,6 @@ const menuItems = [
 export default function ProfilePage() {
   const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [editMode, setEditMode] = useState(false);
-  const [editName, setEditName] = useState(user?.name || "");
   const loggingOutRef = useRef(false);
 
   // Redirect unauthenticated users to login (must be in useEffect, not during render)
@@ -40,12 +38,13 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     loggingOutRef.current = true;
+    // Navigate first to avoid any auth-guard redirects
+    router.push("/");
     try {
       await logout();
     } catch (e) {
       console.error("Logout error:", e);
     }
-    router.push("/");
   };
 
   if (authLoading) return (
@@ -65,10 +64,6 @@ export default function ProfilePage() {
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
         <ProfileContent
           user={user}
-          editMode={editMode}
-          setEditMode={setEditMode}
-          editName={editName}
-          setEditName={setEditName}
           onLogout={handleLogout}
         />
       </div>
@@ -82,10 +77,6 @@ export default function ProfilePage() {
             <div className="col-span-2">
               <ProfileContent
                 user={user}
-                editMode={editMode}
-                setEditMode={setEditMode}
-                editName={editName}
-                setEditName={setEditName}
                 onLogout={handleLogout}
               />
             </div>
@@ -113,12 +104,8 @@ export default function ProfilePage() {
   );
 }
 
-function ProfileContent({ user, editMode, setEditMode, editName, setEditName, onLogout }: {
+function ProfileContent({ user, onLogout }: {
   user: { phone: string; name: string; deliveryPin?: string } | null;
-  editMode: boolean;
-  setEditMode: (v: boolean) => void;
-  editName: string;
-  setEditName: (v: string) => void;
   onLogout: () => void;
 }) {
   return (
@@ -131,36 +118,10 @@ function ProfileContent({ user, editMode, setEditMode, editName, setEditName, on
           </div>
           <div className="flex-1">
             {user ? (
-              editMode ? (
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-text-primary outline-none focus:border-primary"
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditMode(false)}
-                      className="text-primary text-xs font-semibold"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditMode(false)}
-                      className="text-text-secondary text-xs"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p className="font-bold text-lg text-text-primary">{user.name}</p>
-                  <p className="text-text-secondary text-sm">{user.phone}</p>
-                </>
-              )
+              <>
+                <p className="font-bold text-lg text-text-primary">{user.name}</p>
+                <p className="text-text-secondary text-sm">{user.phone}</p>
+              </>
             ) : (
               <>
                 <p className="font-bold text-text-primary">Guest</p>
@@ -170,11 +131,6 @@ function ProfileContent({ user, editMode, setEditMode, editName, setEditName, on
               </>
             )}
           </div>
-          {user && !editMode && (
-            <button onClick={() => setEditMode(true)} className="text-primary">
-              <Edit2 size={18} />
-            </button>
-          )}
         </div>
       </div>
 
