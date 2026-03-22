@@ -58,6 +58,14 @@ export async function POST(req: NextRequest) {
             mpesa_ref: mpesaReceiptNumber,
           })
           .eq("id", payment.order_id);
+
+        // Auto-assign order to the best matching vendor
+        try {
+          const { assignOrderToVendor } = await import("@/lib/vendor");
+          await assignOrderToVendor(payment.order_id);
+        } catch (e) {
+          console.error("Error auto-assigning vendor:", e);
+        }
       }
     } else {
       console.log("M-Pesa Payment Failed:", { resultCode, resultDesc, merchantRequestID });

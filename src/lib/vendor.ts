@@ -147,18 +147,32 @@ export async function fetchVendors(): Promise<VendorInfo[]> {
 // ── Fetch orders for vendor portal ──
 export async function fetchVendorOrders(vendorId: string): Promise<OrderRecord[]> {
   if (!hasSupabaseConfig) {
-    return getMockOrders()
+    // Auto-assign any unassigned paid orders to a vendor
+    const allOrders = getMockOrders();
+    let changed = false;
+    for (const o of allOrders) {
+      if (o.status === "paid" && !o.vendor_id && !o.current_vendor_offer) {
+        // Trigger auto-assignment
+        await assignOrderToVendor(o.id);
+        changed = true;
+      }
+    }
+    const orders = changed ? getMockOrders() : allOrders;
+    return orders
       .filter((o) =>
         o.current_vendor_offer === vendorId ||
-        o.vendor_id === vendorId ||
-        (o.status === "paid" && !o.vendor_id && !o.current_vendor_offer)
+        o.vendor_id === vendorId
       )
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
+  // Fetch orders relevant to this vendor:
+  // 1) Orders offered to this vendor (current_vendor_offer)
+  // 2) Orders already assigned to this vendor (vendor_id)
   const { data, error } = await supabase
     .from("orders")
     .select("*")
+    .or(`current_vendor_offer.eq.${vendorId},vendor_id.eq.${vendorId}`)
     .order("created_at", { ascending: false });
 
   if (error) {
