@@ -251,10 +251,13 @@ export default function VendorPortalPage() {
 
   if (!user || user.role !== "vendor") return null;
 
-  const pendingOrders = orders.filter((o) => o.status === "paid" && !o.vendor_id);
-  const activeOrders = orders.filter((o) => o.status === "confirmed" || o.status === "out_for_delivery");
-  const completedOrders = orders.filter((o) => o.status === "delivered");
-  const cancelledOrders = orders.filter((o) => o.status === "cancelled");
+  const vendorId = user.id;
+  // Only show orders specifically offered to THIS vendor
+  const pendingOrders = orders.filter((o) => o.status === "paid" && !o.vendor_id && o.current_vendor_offer === vendorId);
+  // Only show orders accepted by THIS vendor
+  const activeOrders = orders.filter((o) => (o.status === "confirmed" || o.status === "out_for_delivery") && o.vendor_id === vendorId);
+  const completedOrders = orders.filter((o) => o.status === "delivered" && o.vendor_id === vendorId);
+  const cancelledOrders = orders.filter((o) => o.status === "cancelled" && o.vendor_id === vendorId);
 
   const statsCards = stats ? [
     { label: "Today's Orders", value: String(stats.todayOrders), icon: Package, color: "#2979C1" },
@@ -699,111 +702,56 @@ export default function VendorPortalPage() {
           <div className="flex flex-col gap-3">
             {loadingOrders ? (
               <div className="text-center py-8 text-text-secondary text-sm">Loading orders...</div>
-            ) : orders.length === 0 ? (
+            ) : pendingOrders.length === 0 && activeOrders.length === 0 && completedOrders.length === 0 ? (
               <div className="bg-surface shadow-card rounded-xl p-8 text-center">
                 <Package size={40} className="text-text-secondary mx-auto mb-3" />
                 <p className="text-text-primary font-bold mb-1">No orders yet</p>
                 <p className="text-text-secondary text-sm">Orders will appear here when customers place them</p>
               </div>
             ) : (
-              orders.map((order) => (
-                <div key={order.id} className="bg-surface shadow-card rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-sm text-text-primary">{formatOrderId(order.id)}</span>
-                    <OrderStatusBadge status={order.status} />
-                  </div>
-                  <p className="text-sm text-text-primary font-medium">{order.product_name || "Water Order"}</p>
-                  {order.order_items && order.order_items.length > 0 ? (
-                    <button
-                      onClick={() => setItemsPopup({ orderId: order.id, items: order.order_items, total: order.price_total })}
-                      className="text-primary text-xs font-medium hover:underline text-left"
-                    >
-                      {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View details
-                    </button>
-                  ) : (
-                    <p className="text-xs text-text-secondary">{"\u2014"}</p>
-                  )}
-                  <div className="bg-primary-light rounded-lg p-2.5 mt-2">
-                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline font-medium"><MapPin size={12} /> {order.delivery_address}</a>
-                    {order.delivery_address_details?.additionalDirections && (
-                      <p className="text-xs text-text-secondary italic mt-1 ml-4">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
-                    )}
-                    {order.delivery_address_details?.neighbourhood && (
-                      <p className="text-xs text-text-secondary mt-0.5 ml-4">Area: {order.delivery_address_details.neighbourhood}</p>
-                    )}
-                    {order.delivery_address_details?.buildingName && (
-                      <p className="text-xs text-text-secondary mt-0.5 ml-4">
-                        {order.delivery_address_details.buildingName}
-                        {order.delivery_address_details.floor ? `, Floor ${order.delivery_address_details.floor}` : ""}
-                        {order.delivery_address_details.unitNumber ? `, Unit ${order.delivery_address_details.unitNumber}` : ""}
-                      </p>
-                    )}
-                  </div>
-                  {/* Scheduled Delivery Badge */}
-                  {order.scheduled_date && order.scheduled_time && (
-                    <div className="bg-[#FFF5EC] rounded-lg p-2.5 mt-2 flex items-center gap-2">
-                      <Calendar size={14} className="text-[#F5A623] flex-shrink-0" />
-                      <div>
-                        <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Scheduled Delivery</p>
-                        <p className="text-xs font-bold text-[#F5A623]">{order.scheduled_date} at {order.scheduled_time}</p>
-                      </div>
+              <>
+                {/* ── PENDING ORDERS ── */}
+                {pendingOrders.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Bell size={16} className="text-[#F5A623]" />
+                      <h3 className="font-bold text-sm text-text-primary uppercase tracking-wide">New Orders</h3>
+                      <span className="bg-[#F5A623] text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{pendingOrders.length}</span>
                     </div>
-                  )}
-                  {/* Customer Info */}
-                  {(order.customer_name || order.customer_phone) && (
-                    <div className="bg-gray-50 rounded-lg p-2.5 mt-2">
-                      <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide mb-1">Customer</p>
-                      {order.customer_name && <p className="text-xs font-medium text-text-primary">{order.customer_name}</p>}
-                      {order.customer_phone && (
-                        <a href={`tel:+${order.customer_phone.replace(/^0/, "254")}`} className="text-xs text-primary hover:underline">
-                          {order.customer_phone.startsWith("254") ? `0${order.customer_phone.slice(3)}` : order.customer_phone}
-                        </a>
-                      )}
+                    {pendingOrders.map((order) => (
+                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
+                    ))}
+                  </>
+                )}
+
+                {/* ── ONGOING DELIVERIES ── */}
+                {activeOrders.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 mt-4">
+                      <Truck size={16} className="text-primary" />
+                      <h3 className="font-bold text-sm text-text-primary uppercase tracking-wide">Ongoing Deliveries</h3>
+                      <span className="bg-primary text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{activeOrders.length}</span>
                     </div>
-                  )}
-                  {/* Payment Confirmation */}
-                  {order.mpesa_ref && (
-                    <div className="bg-green-50 rounded-lg p-2.5 mt-2 flex items-center gap-2">
-                      <div>
-                        <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Payment Confirmed</p>
-                        <p className="text-xs font-bold text-green-700 font-mono">{order.mpesa_ref}</p>
-                      </div>
+                    {activeOrders.map((order) => (
+                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
+                    ))}
+                  </>
+                )}
+
+                {/* ── COMPLETED ORDERS ── */}
+                {completedOrders.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 mt-4">
+                      <CheckCircle size={16} className="text-[#2ECC71]" />
+                      <h3 className="font-bold text-sm text-text-primary uppercase tracking-wide">Completed</h3>
+                      <span className="bg-[#2ECC71] text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{completedOrders.length}</span>
                     </div>
-                  )}
-                  {!order.mpesa_ref && order.payment_method === "mpesa-app" && (
-                    <div className="bg-yellow-50 rounded-lg p-2.5 mt-2">
-                      <p className="text-[10px] text-yellow-700 font-semibold">Awaiting M-PESA code</p>
-                    </div>
-                  )}
-                  {order.payment_method === "cash" && (
-                    <div className="bg-orange-50 rounded-lg p-2.5 mt-2">
-                      <p className="text-[10px] text-orange-700 font-semibold">Cash on Delivery</p>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
-                    <span className="text-text-secondary text-[10px]">{formatOrderDateTime(order.created_at)}</span>
-                  </div>
-                  {order.estimated_delivery_minutes && (order.status === "confirmed" || order.status === "out_for_delivery") && (
-                    <div className="flex items-center gap-1 mt-2 text-xs text-primary"><Timer size={12} /><span className="font-semibold">ETA: {order.estimated_delivery_minutes} min</span></div>
-                  )}
-                  {order.vendor_location && order.status === "confirmed" && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-text-secondary"><MapPin size={12} /><span>From: {order.vendor_location}</span></div>
-                  )}
-                  {order.status === "paid" && !order.vendor_id && (
-                    <div className="flex gap-2 mt-3">
-                      <button onClick={() => handleAcceptOrder(order.id)} className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Accept</button>
-                      <button onClick={() => handleRejectOrder(order.id)} className="flex-1 bg-gray-100 text-cta-alt py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">Reject</button>
-                    </div>
-                  )}
-                  {order.status === "confirmed" && order.vendor_id === user.id && (
-                    <button onClick={() => handleDispatchOrder(order.id)} className="w-full mt-3 bg-[#F5A623] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#d4901e] transition-colors">Dispatch Order</button>
-                  )}
-                  {order.status === "out_for_delivery" && order.vendor_id === user.id && (
-                    <button onClick={() => handleCompleteOrder(order.id)} className="w-full mt-3 bg-[#2ECC71] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#27ae60] transition-colors">Mark Delivered</button>
-                  )}
-                </div>
-              ))
+                    {completedOrders.slice(0, 5).map((order) => (
+                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
+                    ))}
+                  </>
+                )}
+              </>
             )}
           </div>
         )}
@@ -886,7 +834,12 @@ export default function VendorPortalPage() {
                 <p className="text-text-secondary text-sm text-center py-4">No new notifications</p>
               )}
               {activeOrders.length > 0 && (
-                <div className="mt-4 space-y-3">
+                <div className="mt-6">
+                  <h3 className="font-bold text-base text-text-primary mb-3 flex items-center gap-2">
+                    <Truck size={18} className="text-primary" /> Ongoing Deliveries
+                    <span className="bg-primary text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{activeOrders.length}</span>
+                  </h3>
+                  <div className="space-y-3">
                   {activeOrders.map((order) => (
                     <div key={order.id} className="flex items-center gap-4 p-3 bg-primary-light rounded-xl">
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><Truck size={20} className="text-primary" /></div>
@@ -896,9 +849,26 @@ export default function VendorPortalPage() {
                         {order.delivery_address_details?.additionalDirections && (
                           <p className="text-text-secondary text-[11px] italic truncate">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
                         )}
+                        {order.estimated_delivery_minutes && (
+                          <p className="text-xs text-primary font-semibold mt-0.5">ETA: {order.estimated_delivery_minutes} min</p>
+                        )}
+                        {(order.customer_name || order.customer_phone) && (
+                          <p className="text-xs text-text-secondary mt-0.5">
+                            {order.customer_name}{order.customer_phone ? ` — ${order.customer_phone.startsWith("254") ? `0${order.customer_phone.slice(3)}` : order.customer_phone}` : ""}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        {order.status === "confirmed" && (
+                          <button onClick={() => handleDispatchOrder(order.id)} className="bg-[#F5A623] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#d4901e] transition-colors flex items-center gap-1"><Truck size={14} /> Dispatch</button>
+                        )}
+                        {order.status === "out_for_delivery" && (
+                          <button onClick={() => handleCompleteOrder(order.id)} className="bg-[#2ECC71] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#27ae60] transition-colors flex items-center gap-1"><CheckCircle size={14} /> Complete</button>
+                        )}
                       </div>
                     </div>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -1104,6 +1074,112 @@ export default function VendorPortalPage() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MobileOrderCard({ order, userId, onAccept, onReject, onDispatch, onComplete, onViewItems }: {
+  order: OrderRecord;
+  userId: string;
+  onAccept: (id: string) => void;
+  onReject: (id: string) => void;
+  onDispatch: (id: string) => void;
+  onComplete: (id: string) => void;
+  onViewItems: (o: OrderRecord) => void;
+}) {
+  return (
+    <div className="bg-surface shadow-card rounded-xl p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-bold text-sm text-text-primary">{formatOrderId(order.id)}</span>
+        <OrderStatusBadge status={order.status} />
+      </div>
+      <p className="text-sm text-text-primary font-medium">{order.product_name || "Water Order"}</p>
+      {order.order_items && order.order_items.length > 0 ? (
+        <button
+          onClick={() => onViewItems(order)}
+          className="text-primary text-xs font-medium hover:underline text-left"
+        >
+          {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View details
+        </button>
+      ) : (
+        <p className="text-xs text-text-secondary">{"\u2014"}</p>
+      )}
+      <div className="bg-primary-light rounded-lg p-2.5 mt-2">
+        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address)}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline font-medium"><MapPin size={12} /> {order.delivery_address}</a>
+        {order.delivery_address_details?.additionalDirections && (
+          <p className="text-xs text-text-secondary italic mt-1 ml-4">&quot;{order.delivery_address_details.additionalDirections}&quot;</p>
+        )}
+        {order.delivery_address_details?.neighbourhood && (
+          <p className="text-xs text-text-secondary mt-0.5 ml-4">Area: {order.delivery_address_details.neighbourhood}</p>
+        )}
+        {order.delivery_address_details?.buildingName && (
+          <p className="text-xs text-text-secondary mt-0.5 ml-4">
+            {order.delivery_address_details.buildingName}
+            {order.delivery_address_details.floor ? `, Floor ${order.delivery_address_details.floor}` : ""}
+            {order.delivery_address_details.unitNumber ? `, Unit ${order.delivery_address_details.unitNumber}` : ""}
+          </p>
+        )}
+      </div>
+      {order.scheduled_date && order.scheduled_time && (
+        <div className="bg-[#FFF5EC] rounded-lg p-2.5 mt-2 flex items-center gap-2">
+          <Calendar size={14} className="text-[#F5A623] flex-shrink-0" />
+          <div>
+            <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Scheduled Delivery</p>
+            <p className="text-xs font-bold text-[#F5A623]">{order.scheduled_date} at {order.scheduled_time}</p>
+          </div>
+        </div>
+      )}
+      {(order.customer_name || order.customer_phone) && (
+        <div className="bg-gray-50 rounded-lg p-2.5 mt-2">
+          <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide mb-1">Customer</p>
+          {order.customer_name && <p className="text-xs font-medium text-text-primary">{order.customer_name}</p>}
+          {order.customer_phone && (
+            <a href={`tel:+${order.customer_phone.replace(/^0/, "254")}`} className="text-xs text-primary hover:underline">
+              {order.customer_phone.startsWith("254") ? `0${order.customer_phone.slice(3)}` : order.customer_phone}
+            </a>
+          )}
+        </div>
+      )}
+      {order.mpesa_ref && (
+        <div className="bg-green-50 rounded-lg p-2.5 mt-2 flex items-center gap-2">
+          <div>
+            <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide">Payment Confirmed</p>
+            <p className="text-xs font-bold text-green-700 font-mono">{order.mpesa_ref}</p>
+          </div>
+        </div>
+      )}
+      {!order.mpesa_ref && order.payment_method === "mpesa-app" && (
+        <div className="bg-yellow-50 rounded-lg p-2.5 mt-2">
+          <p className="text-[10px] text-yellow-700 font-semibold">Awaiting M-PESA code</p>
+        </div>
+      )}
+      {order.payment_method === "cash" && (
+        <div className="bg-orange-50 rounded-lg p-2.5 mt-2">
+          <p className="text-[10px] text-orange-700 font-semibold">Cash on Delivery</p>
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-3">
+        <span className="font-bold text-text-primary">KES {order.price_total.toLocaleString()}</span>
+        <span className="text-text-secondary text-[10px]">{formatOrderDateTime(order.created_at)}</span>
+      </div>
+      {order.estimated_delivery_minutes && (order.status === "confirmed" || order.status === "out_for_delivery") && (
+        <div className="flex items-center gap-1 mt-2 text-xs text-primary"><Timer size={12} /><span className="font-semibold">ETA: {order.estimated_delivery_minutes} min</span></div>
+      )}
+      {order.vendor_location && order.status === "confirmed" && (
+        <div className="flex items-center gap-1 mt-1 text-xs text-text-secondary"><MapPin size={12} /><span>From: {order.vendor_location}</span></div>
+      )}
+      {order.status === "paid" && !order.vendor_id && (
+        <div className="flex gap-2 mt-3">
+          <button onClick={() => onAccept(order.id)} className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Accept</button>
+          <button onClick={() => onReject(order.id)} className="flex-1 bg-gray-100 text-cta-alt py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">Reject</button>
+        </div>
+      )}
+      {order.status === "confirmed" && order.vendor_id === userId && (
+        <button onClick={() => onDispatch(order.id)} className="w-full mt-3 bg-[#F5A623] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#d4901e] transition-colors flex items-center justify-center gap-2"><Truck size={16} /> Dispatch Order</button>
+      )}
+      {order.status === "out_for_delivery" && order.vendor_id === userId && (
+        <button onClick={() => onComplete(order.id)} className="w-full mt-3 bg-[#2ECC71] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#27ae60] transition-colors flex items-center justify-center gap-2"><CheckCircle size={16} /> Mark Delivered</button>
+      )}
     </div>
   );
 }

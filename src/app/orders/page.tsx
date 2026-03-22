@@ -83,6 +83,9 @@ export default function OrdersPage() {
     if (!code || code.length < 5) return;
     setSubmittingCode(orderId);
     await updateOrderStatus(orderId, "paid", code);
+    // Auto-assign order to the best matching vendor
+    const { assignOrderToVendor } = await import("@/lib/vendor");
+    await assignOrderToVendor(orderId);
     loadOrders();
     setSubmittingCode(null);
     setMpesaCodeInputs((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
