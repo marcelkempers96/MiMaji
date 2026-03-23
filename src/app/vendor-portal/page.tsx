@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
+import { supabase } from "@/lib/supabase";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
 import { getVendorSettingsByUserId, getVendorSettingsByUserIdAsync, updateVendor as updateVendorStore, updateVendorAsync, VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
 
@@ -34,6 +35,8 @@ export default function VendorPortalPage() {
   const [itemsPopup, setItemsPopup] = useState<{ orderId: string; items: Array<{ name: string; quantity: number; price: number }>; total: number } | null>(null);
   const [deliveryCodeInput, setDeliveryCodeInput] = useState("");
   const [deliveryCodeError, setDeliveryCodeError] = useState("");
+  const [deliveryCodeAttempts, setDeliveryCodeAttempts] = useState(0);
+  const [deliveryCodeLocked, setDeliveryCodeLocked] = useState(false);
 
   // Settings state
   const [settingsBusinessName, setSettingsBusinessName] = useState("");
@@ -219,11 +222,37 @@ export default function VendorPortalPage() {
   useEffect(() => { loadOrders(); }, [loadOrders]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  // Poll for new orders every 10 seconds
+  // Subscribe to order changes via Supabase realtime, fallback to 30s polling
   useEffect(() => {
-    const interval = setInterval(() => { loadOrders(); }, 10000);
-    return () => clearInterval(interval);
-  }, [loadOrders]);
+    if (!user?.id) return;
+
+    // Realtime subscription for instant updates
+    const channel = supabase
+      .channel(`vendor-orders-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        (payload) => {
+          // Only reload if this order is relevant to this vendor
+          const row = payload.new as Record<string, unknown> | undefined;
+          if (
+            row &&
+            (row.current_vendor_offer === user.id || row.vendor_id === user.id)
+          ) {
+            loadOrders();
+          }
+        }
+      )
+      .subscribe();
+
+    // Fallback polling at 30s in case realtime connection drops
+    const interval = setInterval(() => { loadOrders(); }, 30000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [user?.id, loadOrders]);
 
   // Get current vendor's locations for the store picker
   const currentVendor = MOCK_VENDORS.find((v) => v.id === user?.id) || MOCK_VENDORS[0];
@@ -261,18 +290,32 @@ export default function VendorPortalPage() {
       setDeliveryCodeModalOrder(order);
       setDeliveryCodeInput("");
       setDeliveryCodeError("");
+      setDeliveryCodeAttempts(0);
+      setDeliveryCodeLocked(false);
     }
   };
 
+  const MAX_CODE_ATTEMPTS = 5;
+
   const handleConfirmDeliveryCode = async () => {
-    if (!deliveryCodeModalOrder) return;
+    if (!deliveryCodeModalOrder || deliveryCodeLocked) return;
     const expectedCode = deliveryCodeModalOrder.delivery_code || generateDeliveryCode(deliveryCodeModalOrder.id);
     if (deliveryCodeInput !== expectedCode) {
-      setDeliveryCodeError("Incorrect code. Please ask the customer for their 4-digit delivery code.");
+      const newAttempts = deliveryCodeAttempts + 1;
+      setDeliveryCodeAttempts(newAttempts);
+      if (newAttempts >= MAX_CODE_ATTEMPTS) {
+        setDeliveryCodeLocked(true);
+        setDeliveryCodeError(`Too many incorrect attempts. Please contact the customer or admin to verify delivery.`);
+      } else {
+        setDeliveryCodeError(`Incorrect code (${newAttempts}/${MAX_CODE_ATTEMPTS} attempts). Ask the customer for their 4-digit delivery code.`);
+      }
+      setDeliveryCodeInput("");
       return;
     }
     await updateVendorOrderStatus(deliveryCodeModalOrder.id, "delivered");
     setDeliveryCodeModalOrder(null);
+    setDeliveryCodeAttempts(0);
+    setDeliveryCodeLocked(false);
     loadOrders();
   };
 
@@ -762,14 +805,16 @@ export default function VendorPortalPage() {
             )}
             <button
               onClick={handleConfirmDeliveryCode}
-              disabled={deliveryCodeInput.length < 4}
+              disabled={deliveryCodeInput.length < 4 || deliveryCodeLocked}
               className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
-                deliveryCodeInput.length >= 4
+                deliveryCodeLocked
+                  ? "bg-red-100 text-red-400 cursor-not-allowed"
+                  : deliveryCodeInput.length >= 4
                   ? "bg-[#2ECC71] text-white hover:bg-[#27ae60]"
                   : "bg-gray-200 text-gray-400 cursor-not-allowed"
               }`}
             >
-              <CheckCircle size={18} /> Confirm Delivery
+              <CheckCircle size={18} /> {deliveryCodeLocked ? "Locked — Contact Admin" : "Confirm Delivery"}
             </button>
           </div>
         </div>

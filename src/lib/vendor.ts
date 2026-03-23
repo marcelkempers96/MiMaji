@@ -9,6 +9,8 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
+const isProduction = typeof process !== "undefined" && process.env.NODE_ENV === "production";
+
 const MOCK_ORDERS_KEY = "mimaji_mock_orders";
 
 function getMockOrders(): OrderRecord[] {
@@ -110,6 +112,7 @@ export const MOCK_VENDORS: VendorInfo[] = [
 // ── Fetch all active vendors ──
 export async function fetchVendors(): Promise<VendorInfo[]> {
   if (!hasSupabaseConfig) {
+    if (isProduction) console.warn("fetchVendors: using mock vendors — Supabase not configured");
     // Combine mock vendors with dynamically-created vendors from vendorStore
     const storeVendors = loadVendorStore();
     const storeVendorInfos: VendorInfo[] = storeVendors.map((v) => ({
@@ -319,45 +322,114 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
   }
 
-  // Race against timeout to prevent hanging on slow network
-  try {
-    const result = await Promise.race([
-      (async () => {
-        const { data: order } = await supabase.from("orders").select("vendors_tried, brand_preference").eq("id", orderId).single();
-        if (!order) return null;
+  // Supabase path: fetch order, vendors + locations + service times, score, assign
+  const attempt = async (): Promise<{ vendorId: string; vendorName: string } | null> => {
+    const { data: order } = await supabase
+      .from("orders")
+      .select("vendors_tried, brand_preference, delivery_address_details, scheduled_date, scheduled_time")
+      .eq("id", orderId)
+      .single();
+    if (!order) return null;
 
-        const triedIds = (order.vendors_tried as string[]) || [];
-        const brandPref = (order.brand_preference as string[]) || [];
-        const { data: vendors } = await supabase
-          .from("vendors").select("id, name, brands").eq("active", true).order("rating", { ascending: false });
+    const triedIds = (order.vendors_tried as string[]) || [];
+    const brandPref = (order.brand_preference as string[]) || [];
+    const addrDetails = order.delivery_address_details as { lat?: number; lng?: number; neighbourhood?: string } | null;
+    const deliveryLat = addrDetails?.lat;
+    const deliveryLng = addrDetails?.lng;
+    const deliveryArea = addrDetails?.neighbourhood || "";
 
-        if (!vendors) return null;
+    const { data: vendors } = await supabase
+      .from("vendors")
+      .select("id, name, brands, areas_served, rating, vendor_locations(lat, lng), vendor_service_times(day, open, open_time, close_time)")
+      .eq("active", true);
 
-        // Prefer vendors that carry requested brands
-        const untried = vendors.filter((v: { id: string }) => !triedIds.includes(v.id));
-        let next = untried[0];
-        if (brandPref.length > 0) {
-          const brandMatch = untried.find((v: { brands?: string[] }) =>
-            brandPref.some((b: string) => (v.brands || []).includes(b))
-          );
-          if (brandMatch) next = brandMatch;
+    if (!vendors || vendors.length === 0) return null;
+
+    // Determine which day/time to check (Kenya time UTC+3)
+    const kenyaNow = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const currentDay = dayNames[kenyaNow.getUTCDay()];
+    const currentTime = `${kenyaNow.getUTCHours().toString().padStart(2, "0")}:${kenyaNow.getUTCMinutes().toString().padStart(2, "0")}`;
+
+    // For scheduled orders, check the scheduled day/time instead
+    let checkDay = currentDay;
+    let checkTime = currentTime;
+    if (order.scheduled_date) {
+      const schedDate = new Date(order.scheduled_date as string);
+      checkDay = dayNames[schedDate.getDay()];
+      if (order.scheduled_time) checkTime = order.scheduled_time as string;
+    }
+
+    // Score each untried vendor
+    type ServiceTime = { day: string; open: boolean; open_time: string; close_time: string };
+    type VendorRow = { id: string; name: string; brands?: string[]; areas_served?: string[]; rating?: number; vendor_locations?: Array<{ lat: number; lng: number }>; vendor_service_times?: ServiceTime[] };
+    const candidates = (vendors as VendorRow[])
+      .filter((v) => {
+        if (triedIds.includes(v.id)) return false;
+        // Check service times — if vendor has schedule data, ensure they're open
+        if (v.vendor_service_times && v.vendor_service_times.length > 0) {
+          const dayEntry = v.vendor_service_times.find((st) => st.day === checkDay);
+          if (!dayEntry || !dayEntry.open) return false;
+          if (checkTime < dayEntry.open_time || checkTime > dayEntry.close_time) return false;
         }
-        if (!next) return null;
+        return true;
+      })
+      .map((v) => {
+        let score = 0;
 
-        await supabase.from("orders").update({
-          current_vendor_offer: next.id,
-          updated_at: new Date().toISOString(),
-        }).eq("id", orderId);
+        // Brand match: +10 per matching brand
+        if (brandPref.length > 0) {
+          const matches = brandPref.filter((b) => (v.brands || []).includes(b)).length;
+          score += matches * 10;
+        }
 
-        return { vendorId: next.id, vendorName: next.name };
-      })(),
-      new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 10000)),
-    ]);
-    return result;
-  } catch (e) {
-    console.error("assignOrderToVendor Supabase error:", e);
-    return null;
+        // Area match: +8 if vendor serves delivery neighbourhood
+        if (deliveryArea && (v.areas_served || []).some((a) => a.toLowerCase() === deliveryArea.toLowerCase())) {
+          score += 8;
+        }
+
+        // Proximity: closer = higher score (max 5 points)
+        if (deliveryLat && deliveryLng && v.vendor_locations && v.vendor_locations.length > 0) {
+          let minDist = Infinity;
+          for (const loc of v.vendor_locations) {
+            const d = haversineKm(deliveryLat, deliveryLng, loc.lat, loc.lng);
+            if (d < minDist) minDist = d;
+          }
+          score += Math.max(0, 5 - minDist);
+        }
+
+        // Rating bonus
+        score += Number(v.rating) || 0;
+
+        return { vendor: v, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (candidates.length === 0) return null;
+    const next = candidates[0].vendor;
+
+    await supabase.from("orders").update({
+      current_vendor_offer: next.id,
+      updated_at: new Date().toISOString(),
+    }).eq("id", orderId);
+
+    return { vendorId: next.id, vendorName: next.name };
+  };
+
+  // Retry up to 2 times with timeout
+  for (let i = 0; i < 2; i++) {
+    try {
+      const result = await Promise.race([
+        attempt(),
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 10000)),
+      ]);
+      return result;
+    } catch (e) {
+      console.error(`assignOrderToVendor attempt ${i + 1} failed:`, e);
+      if (i === 0) await new Promise((r) => setTimeout(r, 1000)); // brief delay before retry
+    }
   }
+  return null;
 }
 
 export async function acceptOrder(
@@ -410,11 +482,11 @@ export async function acceptOrder(
   }).eq("id", orderId);
 }
 
-export async function rejectOrder(orderId: string, vendorId: string): Promise<{ nextVendor: string | null }> {
+export async function rejectOrder(orderId: string, vendorId: string): Promise<{ nextVendor: string | null; allRejected: boolean }> {
   if (!hasSupabaseConfig) {
     const orders = getMockOrders();
     const idx = orders.findIndex((o) => o.id === orderId);
-    if (idx === -1) return { nextVendor: null };
+    if (idx === -1) return { nextVendor: null, allRejected: false };
 
     const order = orders[idx];
     const triedIds = order.vendors_tried || [];
@@ -425,11 +497,17 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
     saveMockOrders(orders);
 
     const result = await assignOrderToVendor(orderId);
-    return { nextVendor: result?.vendorName || null };
+    if (!result) {
+      // All vendors rejected — mark order so admin can see
+      orders[idx].status = "pending_payment"; // revert to pending for admin attention
+      saveMockOrders(orders);
+      return { nextVendor: null, allRejected: true };
+    }
+    return { nextVendor: result.vendorName, allRejected: false };
   }
 
-  const { data: order } = await supabase.from("orders").select("vendors_tried").eq("id", orderId).single();
-  if (!order) return { nextVendor: null };
+  const { data: order } = await supabase.from("orders").select("vendors_tried, customer_id").eq("id", orderId).single();
+  if (!order) return { nextVendor: null, allRejected: false };
 
   const triedIds = (order.vendors_tried as string[]) || [];
   if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
@@ -441,5 +519,20 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
   }).eq("id", orderId);
 
   const result = await assignOrderToVendor(orderId);
-  return { nextVendor: result?.vendorName || null };
+  if (!result) {
+    // All vendors rejected — notify customer and flag for admin
+    try {
+      await supabase.from("notifications").insert({
+        user_id: order.customer_id as string,
+        type: "order_update",
+        title: "Vendor Unavailable",
+        message: "We're having trouble finding a vendor for your order. Our team has been notified and will assign one shortly.",
+        order_id: orderId,
+      });
+    } catch (e) {
+      console.error("Failed to create notification:", e);
+    }
+    return { nextVendor: null, allRejected: true };
+  }
+  return { nextVendor: result.vendorName, allRejected: false };
 }

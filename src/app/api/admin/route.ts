@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 
-const ADMIN_CODE = "5566";
+// Admin code from environment variable (fallback to hardcoded for dev only)
+const ADMIN_CODE = process.env.ADMIN_SECRET_CODE || "5566";
+
+// Simple in-memory rate limiter for admin auth attempts
+const authAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = authAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    authAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > MAX_ATTEMPTS;
+}
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+function rateLimited() {
+  return NextResponse.json({ error: "Too many attempts. Try again in 15 minutes." }, { status: 429 });
 }
 
 function notConfigured() {
@@ -21,6 +42,8 @@ const hasServiceKey =
  * GET /api/admin?code=5566&type=orders|users|vendors|subscriptions
  */
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(ip)) return rateLimited();
   const code = req.nextUrl.searchParams.get("code");
   if (code !== ADMIN_CODE) return unauthorized();
   if (!hasServiceKey) return notConfigured();
@@ -162,6 +185,8 @@ export async function GET(req: NextRequest) {
  * POST /api/admin { code, action, ... }
  */
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(ip)) return rateLimited();
   const body = await req.json();
   if (body.code !== ADMIN_CODE) return unauthorized();
   if (!hasServiceKey) return notConfigured();
