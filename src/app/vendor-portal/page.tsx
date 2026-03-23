@@ -35,6 +35,8 @@ export default function VendorPortalPage() {
   const [itemsPopup, setItemsPopup] = useState<{ orderId: string; items: Array<{ name: string; quantity: number; price: number }>; total: number } | null>(null);
   const [deliveryCodeInput, setDeliveryCodeInput] = useState("");
   const [deliveryCodeError, setDeliveryCodeError] = useState("");
+  const [deliveryCodeAttempts, setDeliveryCodeAttempts] = useState(0);
+  const [deliveryCodeLocked, setDeliveryCodeLocked] = useState(false);
 
   // Settings state
   const [settingsBusinessName, setSettingsBusinessName] = useState("");
@@ -288,18 +290,32 @@ export default function VendorPortalPage() {
       setDeliveryCodeModalOrder(order);
       setDeliveryCodeInput("");
       setDeliveryCodeError("");
+      setDeliveryCodeAttempts(0);
+      setDeliveryCodeLocked(false);
     }
   };
 
+  const MAX_CODE_ATTEMPTS = 5;
+
   const handleConfirmDeliveryCode = async () => {
-    if (!deliveryCodeModalOrder) return;
+    if (!deliveryCodeModalOrder || deliveryCodeLocked) return;
     const expectedCode = deliveryCodeModalOrder.delivery_code || generateDeliveryCode(deliveryCodeModalOrder.id);
     if (deliveryCodeInput !== expectedCode) {
-      setDeliveryCodeError("Incorrect code. Please ask the customer for their 4-digit delivery code.");
+      const newAttempts = deliveryCodeAttempts + 1;
+      setDeliveryCodeAttempts(newAttempts);
+      if (newAttempts >= MAX_CODE_ATTEMPTS) {
+        setDeliveryCodeLocked(true);
+        setDeliveryCodeError(`Too many incorrect attempts. Please contact the customer or admin to verify delivery.`);
+      } else {
+        setDeliveryCodeError(`Incorrect code (${newAttempts}/${MAX_CODE_ATTEMPTS} attempts). Ask the customer for their 4-digit delivery code.`);
+      }
+      setDeliveryCodeInput("");
       return;
     }
     await updateVendorOrderStatus(deliveryCodeModalOrder.id, "delivered");
     setDeliveryCodeModalOrder(null);
+    setDeliveryCodeAttempts(0);
+    setDeliveryCodeLocked(false);
     loadOrders();
   };
 
@@ -789,14 +805,16 @@ export default function VendorPortalPage() {
             )}
             <button
               onClick={handleConfirmDeliveryCode}
-              disabled={deliveryCodeInput.length < 4}
+              disabled={deliveryCodeInput.length < 4 || deliveryCodeLocked}
               className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${
-                deliveryCodeInput.length >= 4
+                deliveryCodeLocked
+                  ? "bg-red-100 text-red-400 cursor-not-allowed"
+                  : deliveryCodeInput.length >= 4
                   ? "bg-[#2ECC71] text-white hover:bg-[#27ae60]"
                   : "bg-gray-200 text-gray-400 cursor-not-allowed"
               }`}
             >
-              <CheckCircle size={18} /> Confirm Delivery
+              <CheckCircle size={18} /> {deliveryCodeLocked ? "Locked — Contact Admin" : "Confirm Delivery"}
             </button>
           </div>
         </div>
