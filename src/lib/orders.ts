@@ -118,16 +118,19 @@ export async function fetchAllOrders(): Promise<OrderRecord[]> {
 }
 
 export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
-  if (!hasSupabaseConfig) {
-    try {
-      return getMockOrders().filter((o) => o.customer_id === userId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    } catch (e) {
-      console.error("Error reading mock orders:", e);
-      return [];
-    }
+  // Always check localStorage for mock orders first as a baseline
+  let mockOrders: OrderRecord[] = [];
+  try {
+    mockOrders = getMockOrders().filter((o) => o.customer_id === userId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } catch (e) {
+    console.error("Error reading mock orders:", e);
   }
 
-  // Add timeout to prevent hanging forever on network issues
+  if (!hasSupabaseConfig) {
+    return mockOrders;
+  }
+
+  // Try Supabase, fall back to localStorage mock orders on failure
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
 
@@ -142,14 +145,24 @@ export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
     clearTimeout(timeout);
 
     if (error) {
-      console.error("Error fetching orders:", error);
-      return [];
+      console.error("Error fetching orders from Supabase:", error);
+      // Fall back to localStorage mock orders
+      return mockOrders;
     }
-    return (data || []).map(mapSupabaseOrder);
+
+    const supabaseOrders = (data || []).map(mapSupabaseOrder);
+
+    // Merge: return Supabase orders + any mock orders not already in Supabase
+    // This handles the case where some orders were created in mock mode
+    const supabaseIds = new Set(supabaseOrders.map((o) => o.id));
+    const uniqueMockOrders = mockOrders.filter((o) => !supabaseIds.has(o.id));
+    const merged = [...supabaseOrders, ...uniqueMockOrders];
+    return merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   } catch (e) {
     clearTimeout(timeout);
     console.error("Error fetching orders:", e);
-    return [];
+    // Fall back to localStorage mock orders
+    return mockOrders;
   }
 }
 
@@ -348,6 +361,41 @@ export async function createOrder(params: {
       }
       return { orderId: null, error: "Failed to place order. Please try again." };
     }
+
+    // Also save a local backup in localStorage so orders survive Supabase outages
+    try {
+      const backupOrder: OrderRecord = {
+        id: data.id,
+        customer_id: params.customerId,
+        delivery_address: params.deliveryAddress,
+        delivery_address_details: params.deliveryAddressDetails || null,
+        quantity: Math.min(params.quantity, 10),
+        price_total: params.priceTotal,
+        product_name: params.productName,
+        order_items: params.orderItems,
+        status,
+        mpesa_ref: params.mpesaRef || null,
+        estimated_delivery_minutes: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        vendor_id: null,
+        vendor_name: null,
+        vendor_location: null,
+        vendors_tried: [],
+        current_vendor_offer: null,
+        scheduled_date: params.scheduledDate || null,
+        scheduled_time: params.scheduledTime || null,
+        delivery_code: params.deliveryCode || generateDeliveryCode(data.id),
+        payment_method: params.paymentMethod || null,
+        brand_preference: params.brandPreference || [],
+        customer_name: params.customerName || undefined,
+        customer_phone: params.customerPhone || undefined,
+      };
+      const mockOrders = getMockOrders();
+      mockOrders.push(backupOrder);
+      saveMockOrders(mockOrders);
+    } catch {}
+
     return { orderId: data.id, error: null };
   } catch (e) {
     clearTimeout(timeout);

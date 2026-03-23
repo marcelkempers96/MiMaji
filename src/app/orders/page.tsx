@@ -39,9 +39,14 @@ export default function OrdersPage() {
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [freeLitres, setFreeLitres] = useState(0);
 
+  // Delay redirect slightly to give auth a chance to fully restore from cache/Supabase.
+  // Without this, a brief user=null during auth initialization triggers an unwanted redirect.
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/login?redirect=/orders");
+      const timer = setTimeout(() => {
+        if (!user) router.push("/login?redirect=/orders");
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [user, authLoading, router]);
 
