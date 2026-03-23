@@ -130,11 +130,15 @@ function getLast7Days(): string[] {
 }
 
 // ── Admin API helpers (bypass RLS via service role) ──
-const ADMIN_CODE = "5566";
+// Admin code is stored in sessionStorage after server-validated login
+function getAdminCode(): string {
+  try { return sessionStorage.getItem("mimaji_admin_code") || ""; } catch { return ""; }
+}
 
 async function adminFetch(type: string): Promise<{ data: unknown[]; ok: boolean }> {
   try {
-    const res = await fetch(`/api/admin?code=${ADMIN_CODE}&type=${type}`);
+    const code = getAdminCode();
+    const res = await fetch(`/api/admin?code=${encodeURIComponent(code)}&type=${type}`);
     if (!res.ok) { console.error(`Admin API ${type} error:`, res.status); return { data: [], ok: false }; }
     const data = await res.json();
     return { data: Array.isArray(data) ? data : [], ok: true };
@@ -143,10 +147,11 @@ async function adminFetch(type: string): Promise<{ data: unknown[]; ok: boolean 
 
 async function adminPost(body: Record<string, unknown>): Promise<{ success?: boolean; error?: string }> {
   try {
+    const code = getAdminCode();
     const res = await fetch("/api/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: ADMIN_CODE, ...body }),
+      body: JSON.stringify({ code, ...body }),
     });
     return await res.json();
   } catch (e) { console.error("Admin API post error:", e); return { error: "Network error" }; }
@@ -158,23 +163,41 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
   const [code, setCode] = React.useState("");
   const [authenticated, setAuthenticated] = React.useState(false);
   const [error, setError] = React.useState(false);
+  const [checking, setChecking] = React.useState(false);
 
   React.useEffect(() => {
+    // Restore session — verify stored code is still valid
     try {
-      if (sessionStorage.getItem("mimaji_admin_auth") === "true") {
-        setAuthenticated(true);
+      const savedCode = sessionStorage.getItem("mimaji_admin_code");
+      if (savedCode) {
+        fetch(`/api/admin?code=${encodeURIComponent(savedCode)}&type=orders`)
+          .then((res) => { if (res.ok) setAuthenticated(true); else sessionStorage.removeItem("mimaji_admin_code"); })
+          .catch(() => {});
       }
     } catch {}
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code === ADMIN_CODE) {
-      setAuthenticated(true);
-      try { sessionStorage.setItem("mimaji_admin_auth", "true"); } catch {}
-    } else {
+    setChecking(true);
+    try {
+      // Validate code server-side — never compare on the client
+      const res = await fetch(`/api/admin?code=${encodeURIComponent(code)}&type=orders`);
+      if (res.ok) {
+        setAuthenticated(true);
+        try { sessionStorage.setItem("mimaji_admin_code", code); } catch {}
+      } else if (res.status === 429) {
+        setError(true);
+        setTimeout(() => setError(false), 5000);
+      } else {
+        setError(true);
+        setTimeout(() => setError(false), 2000);
+      }
+    } catch {
       setError(true);
       setTimeout(() => setError(false), 2000);
+    } finally {
+      setChecking(false);
     }
   };
 
