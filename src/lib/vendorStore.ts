@@ -258,9 +258,11 @@ export async function getVendorByPhoneAsync(phone: string): Promise<VendorRecord
 
 /**
  * Create a new vendor with just name + phone.
- * Creates vendor record + products + service times in Supabase.
- * Does NOT create a Supabase auth user — the vendor will authenticate
- * via the PIN system (mock auth fallback) or sign up themselves later.
+ * Calls the server-side admin API which uses the service role to:
+ * 1. Create a real Supabase auth user (so vendor can log in from any device)
+ * 2. Create a profile with role "vendor"
+ * 3. Create the vendor record with PIN
+ * 4. Insert default products and service times
  */
 export async function createVendorAsync(name: string, phone: string): Promise<VendorRecord> {
   const normalizedPhone = normalizePhone(phone);
@@ -269,62 +271,27 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
 
   if (hasSupabaseConfig) {
     try {
-      // 1. Create vendor record in Supabase (no auth user needed)
-      const { data: vendorData, error: vendorError } = await supabase
-        .from("vendors")
-        .insert({
+      // Call server-side API to create vendor (uses service role — bypasses RLS,
+      // creates auth user without affecting admin session)
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: "5566",
+          action: "create_vendor",
           name,
-          area: "",
-          rating: 5.0,
-          reviews: 0,
-          hours: "7AM - 8PM",
-          products: [],
-          brands: [],
-          areas_served: [],
-          phone_numbers: [normalizedPhone],
-          delivery_radius_km: 10,
-          active: true,
-          verified: false,
-          profile_id: null,
-          business_reg_no: "",
-          mpesa_number: "",
-          description: "",
-          min_order: "",
+          phone: normalizedPhone,
           pin,
-        })
-        .select()
-        .single();
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || "Failed to create vendor");
 
-      if (vendorError) throw vendorError;
-      const vendorId = vendorData.id;
-
-      // 4. Insert default products
+      const vendorId = result.vendorId;
       const defaultProducts = defaultVendorProducts();
-      await supabase.from("vendor_products").insert(
-        defaultProducts.map((p) => ({
-          id: p.id,
-          vendor_id: vendorId,
-          name: p.name,
-          size: p.size,
-          price_new: p.priceNew,
-          price_refill: p.priceRefill,
-          available: p.available,
-        }))
-      );
-
-      // 5. Insert default service times
       const defaultTimes = defaultServiceTimes();
-      await supabase.from("vendor_service_times").insert(
-        defaultTimes.map((st) => ({
-          vendor_id: vendorId,
-          day: st.day,
-          open: st.open,
-          open_time: st.openTime,
-          close_time: st.closeTime,
-        }))
-      );
 
-      // Build the record
+      // Build the local record (server already created everything in Supabase)
       const vendor: VendorRecord = {
         id: vendorId,
         name,

@@ -221,6 +221,112 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    if (action === "create_vendor") {
+      // 1. Create Supabase auth user for vendor (server-side, won't affect admin session)
+      const phone = body.phone;
+      const pin = body.pin;
+      const email = `${phone}@mimaji.co.ke`;
+      const password = `MiMaji${pin}`;
+
+      let profileId: string | null = null;
+      try {
+        const { data: authData, error: authErr } = await sb.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: body.name, phone, role: "vendor" },
+        });
+        if (authErr) {
+          // User might already exist — try to find them
+          if (authErr.message.includes("already been registered") || authErr.message.includes("already exists")) {
+            const { data: existing } = await sb.auth.admin.listUsers({ page: 1, perPage: 1 });
+            // Try to find by email in all users
+            let foundPage = 1;
+            while (true) {
+              const { data: page } = await sb.auth.admin.listUsers({ page: foundPage, perPage: 100 });
+              if (!page?.users?.length) break;
+              const found = page.users.find((u) => u.email === email);
+              if (found) { profileId = found.id; break; }
+              if (page.users.length < 100) break;
+              foundPage++;
+            }
+          } else {
+            console.error("Auth user creation error:", authErr);
+          }
+        } else if (authData?.user) {
+          profileId = authData.user.id;
+        }
+      } catch (e) {
+        console.error("Auth user creation failed:", e);
+      }
+
+      // 2. Create/update profile with vendor role
+      if (profileId) {
+        await sb.from("profiles").upsert({
+          id: profileId,
+          phone,
+          full_name: body.name,
+          role: "vendor",
+        }, { onConflict: "id" });
+      }
+
+      // 3. Create vendor record
+      const { data: vendorData, error } = await sb.from("vendors").insert({
+        name: body.name,
+        area: "",
+        rating: 5.0,
+        reviews: 0,
+        hours: "7AM - 8PM",
+        products: [],
+        brands: [],
+        areas_served: [],
+        phone_numbers: [phone],
+        delivery_radius_km: 10,
+        active: true,
+        verified: false,
+        profile_id: profileId,
+        business_reg_no: "",
+        mpesa_number: "",
+        description: "",
+        min_order: "",
+        pin,
+      }).select("id").single();
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+      // 4. Insert default products
+      const defaultProducts = [
+        { id: "vp-20l-hard", name: "20L Hard Jug", size: "20L", price_new: 1500, price_refill: 290, available: true },
+        { id: "vp-189l-hard", name: "18.9L Hard Jug", size: "18.9L", price_new: 1400, price_refill: 250, available: true },
+        { id: "vp-20l-soft", name: "20L Soft Bottle", size: "20L", price_new: 500, price_refill: 280, available: true },
+        { id: "vp-189l-soft", name: "18.9L Soft Bottle", size: "18.9L", price_new: 450, price_refill: 240, available: true },
+        { id: "vp-10l-hard", name: "10L Hard Jug", size: "10L", price_new: 180, price_refill: 0, available: false },
+        { id: "vp-10l-soft", name: "10L Soft Bottle", size: "10L", price_new: 150, price_refill: 0, available: false },
+        { id: "vp-5l-soft", name: "5L Soft Bottle", size: "5L", price_new: 80, price_refill: 0, available: false },
+        { id: "vp-15l", name: "1.5L Bottle", size: "1.5L", price_new: 50, price_refill: 0, available: false },
+        { id: "vp-1l", name: "1L Bottle", size: "1L", price_new: 40, price_refill: 0, available: false },
+        { id: "vp-500ml", name: "500ML Bottle", size: "500ML", price_new: 25, price_refill: 0, available: false },
+      ];
+      if (vendorData?.id) {
+        await sb.from("vendor_products").insert(defaultProducts.map((p) => ({ ...p, vendor_id: vendorData.id })));
+      }
+
+      // 5. Insert default service times
+      const defaultTimes = [
+        { day: "Monday", open: true, open_time: "07:00", close_time: "20:00" },
+        { day: "Tuesday", open: true, open_time: "07:00", close_time: "20:00" },
+        { day: "Wednesday", open: true, open_time: "07:00", close_time: "20:00" },
+        { day: "Thursday", open: true, open_time: "07:00", close_time: "20:00" },
+        { day: "Friday", open: true, open_time: "07:00", close_time: "20:00" },
+        { day: "Saturday", open: true, open_time: "08:00", close_time: "18:00" },
+        { day: "Sunday", open: false, open_time: "09:00", close_time: "16:00" },
+      ];
+      if (vendorData?.id) {
+        await sb.from("vendor_service_times").insert(defaultTimes.map((t) => ({ ...t, vendor_id: vendorData.id })));
+      }
+
+      return NextResponse.json({ success: true, vendorId: vendorData?.id, profileId });
+    }
+
     if (action === "add_vendor") {
       const { data: vendorData, error } = await sb.from("vendors").insert({
         name: body.name,
@@ -236,7 +342,6 @@ export async function POST(req: NextRequest) {
         active: true,
       }).select("id").single();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      // Insert locations
       if (vendorData && body.locations) {
         for (const loc of body.locations) {
           await sb.from("vendor_locations").insert({
