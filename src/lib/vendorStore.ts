@@ -307,6 +307,7 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
     if (!res.ok || result.error) throw new Error(result.error || "Failed to create vendor");
 
     const vendorId = result.vendorId;
+    console.log("Vendor created in Supabase:", vendorId);
 
     // Build the local record (server already created everything in Supabase)
     const vendor: VendorRecord = {
