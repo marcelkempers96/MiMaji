@@ -258,8 +258,11 @@ export async function getVendorByPhoneAsync(phone: string): Promise<VendorRecord
 
 /**
  * Create a new vendor with just name + phone.
- * Creates in Supabase (auth user + vendor record + products + service times)
- * and localStorage cache. Returns the vendor with login credentials.
+ * Calls the server-side admin API which uses the service role to:
+ * 1. Create a real Supabase auth user (so vendor can log in from any device)
+ * 2. Create a profile with role "vendor"
+ * 3. Create the vendor record with PIN
+ * 4. Insert default products and service times
  */
 export async function createVendorAsync(name: string, phone: string): Promise<VendorRecord> {
   const normalizedPhone = normalizePhone(phone);
@@ -268,89 +271,27 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
 
   if (hasSupabaseConfig) {
     try {
-      // 1. Create Supabase auth user for vendor
-      const email = `${normalizedPhone}@mimaji.co.ke`;
-      const password = `MiMaji${pin}`;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name, phone: normalizedPhone, role: "vendor" } },
-      });
-
-      // If signUp fails because user already exists, that's okay
-      let profileId = authData?.user?.id;
-
-      if (authError && !authError.message.includes("already registered")) {
-        console.error("Supabase auth signUp error:", authError);
-      }
-
-      // 2. Create profile if we got a user ID
-      if (profileId) {
-        await supabase.from("profiles").upsert({
-          id: profileId,
-          phone: normalizedPhone,
-          full_name: name,
-          role: "vendor",
-        }, { onConflict: "id" }).then(() => {});
-      }
-
-      // 3. Create vendor record
-      const { data: vendorData, error: vendorError } = await supabase
-        .from("vendors")
-        .insert({
+      // Call server-side API to create vendor (uses service role — bypasses RLS,
+      // creates auth user without affecting admin session)
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: "5566",
+          action: "create_vendor",
           name,
-          area: "",
-          rating: 5.0,
-          reviews: 0,
-          hours: "7AM - 8PM",
-          products: [],
-          brands: [],
-          areas_served: [],
-          phone_numbers: [normalizedPhone],
-          delivery_radius_km: 10,
-          active: true,
-          verified: false,
-          profile_id: profileId || null,
-          business_reg_no: "",
-          mpesa_number: "",
-          description: "",
-          min_order: "",
+          phone: normalizedPhone,
           pin,
-        })
-        .select()
-        .single();
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || "Failed to create vendor");
 
-      if (vendorError) throw vendorError;
-      const vendorId = vendorData.id;
-
-      // 4. Insert default products
+      const vendorId = result.vendorId;
       const defaultProducts = defaultVendorProducts();
-      await supabase.from("vendor_products").insert(
-        defaultProducts.map((p) => ({
-          id: p.id,
-          vendor_id: vendorId,
-          name: p.name,
-          size: p.size,
-          price_new: p.priceNew,
-          price_refill: p.priceRefill,
-          available: p.available,
-        }))
-      );
-
-      // 5. Insert default service times
       const defaultTimes = defaultServiceTimes();
-      await supabase.from("vendor_service_times").insert(
-        defaultTimes.map((st) => ({
-          vendor_id: vendorId,
-          day: st.day,
-          open: st.open,
-          open_time: st.openTime,
-          close_time: st.closeTime,
-        }))
-      );
 
-      // Build the record
+      // Build the local record (server already created everything in Supabase)
       const vendor: VendorRecord = {
         id: vendorId,
         name,
