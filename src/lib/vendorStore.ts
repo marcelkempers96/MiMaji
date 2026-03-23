@@ -194,6 +194,7 @@ export async function loadVendorStoreAsync(): Promise<VendorRecord[]> {
     const { data, error } = await supabase
       .from("vendors")
       .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
+      .eq("active", true)
       .order("created_at", { ascending: false });
 
     if (error) throw error;

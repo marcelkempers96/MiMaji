@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useRef } from "react";
-import { User, ChevronRight, MapPin, CreditCard, Bell, Shield, HelpCircle, LogOut, FileText, Star, Settings, Edit2, KeyRound } from "lucide-react";
+import { User, ChevronRight, MapPin, CreditCard, Bell, Shield, HelpCircle, LogOut, FileText, Star, Settings, Edit2 } from "lucide-react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -114,7 +114,7 @@ export default function ProfilePage() {
 }
 
 function ProfileContent({ user, editMode, setEditMode, editName, setEditName, onLogout }: {
-  user: { phone: string; name: string; deliveryPin?: string } | null;
+  user: { phone: string; name: string } | null;
   editMode: boolean;
   setEditMode: (v: boolean) => void;
   editName: string;
@@ -146,23 +146,6 @@ function ProfileContent({ user, editMode, setEditMode, editName, setEditName, on
           </div>
         </div>
       </div>
-
-      {/* Delivery Code */}
-      {user?.deliveryPin && (
-        <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-xl p-4 mb-4">
-          <p className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide mb-2 text-center">Your Delivery Code</p>
-          <div className="flex justify-center gap-2">
-            {user.deliveryPin.split("").map((digit, i) => (
-              <div key={i} className="w-11 h-13 bg-white rounded-xl flex items-center justify-center shadow-sm py-2">
-                <span className="text-xl font-extrabold text-primary">{digit}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-text-secondary text-[10px] text-center mt-2">
-            Share this code with the delivery driver to confirm your delivery.
-          </p>
-        </div>
-      )}
 
       {/* Rewards Summary */}
       <Link href="/rewards">
