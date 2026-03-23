@@ -239,18 +239,24 @@ export default function ConfirmOrderPage() {
       throw new Error(orderError || "Failed to create order");
     }
 
-    // Trigger vendor assignment — non-fatal
+    // Trigger vendor assignment — non-fatal, with timeout
     try {
-      await assignOrderToVendor(orderId);
+      await Promise.race([
+        assignOrderToVendor(orderId),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 8000)),
+      ]);
     } catch (e) {
       console.error("Vendor assignment failed:", e);
     }
 
-    // Process referral rewards — non-fatal
+    // Process referral rewards — non-fatal, with timeout
     try {
       processOrderRewards(user.id, pending.orderItems);
       if (claimRewards && rewardsApplied > 0) {
-        await useFreeLitresAsync(user.id, rewardsApplied);
+        await Promise.race([
+          useFreeLitresAsync(user.id, rewardsApplied),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Rewards timeout")), 5000)),
+        ]);
       }
     } catch (e) {
       console.error("Rewards processing failed:", e);
@@ -328,7 +334,10 @@ export default function ConfirmOrderPage() {
           if (data.mock) {
             // Demo mode — simulate successful payment, NOW create order
             const mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-            await finalizeOrder(mpesaRef);
+            await Promise.race([
+              finalizeOrder(mpesaRef),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
+            ]);
             setPaymentStatus("confirmed");
           } else if (!res.ok) {
             setStkFailedPopup(true);
@@ -337,7 +346,10 @@ export default function ConfirmOrderPage() {
           } else {
             // Real STK push sent — payment confirmed, NOW create order
             const mpesaRef = data.CheckoutRequestID || null;
-            await finalizeOrder(mpesaRef);
+            await Promise.race([
+              finalizeOrder(mpesaRef),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
+            ]);
             setPaymentStatus("confirmed");
           }
         } catch (fetchErr) {
@@ -351,7 +363,10 @@ export default function ConfirmOrderPage() {
       } else {
         // Cash on Delivery: create order immediately
         try {
-          await finalizeOrder(null);
+          await Promise.race([
+            finalizeOrder(null),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Please check your orders page.")), 30000)),
+          ]);
           setPaymentStatus("confirmed");
         } catch (codErr) {
           setPaymentStatus("error");
@@ -389,11 +404,13 @@ export default function ConfirmOrderPage() {
     setCreatingOrder(true);
     setErrorMsg("");
     try {
-      await finalizeOrder(mpesaCode.trim().toUpperCase());
+      await Promise.race([
+        finalizeOrder(mpesaCode.trim().toUpperCase()),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
+      ]);
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
-      // Stay on awaiting_code screen and show error there (don't jump back to main screen)
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
     } finally {
       setCreatingOrder(false);
@@ -404,11 +421,13 @@ export default function ConfirmOrderPage() {
     setCreatingOrder(true);
     setErrorMsg("");
     try {
-      await finalizeOrder(null);
+      await Promise.race([
+        finalizeOrder(null),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Please check your orders page.")), 30000)),
+      ]);
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
-      // Stay on awaiting_code screen and show error there (don't jump back to main screen)
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
     } finally {
       setCreatingOrder(false);

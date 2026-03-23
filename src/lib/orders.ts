@@ -77,7 +77,23 @@ function getMockOrders(): OrderRecord[] {
 }
 
 function saveMockOrders(orders: OrderRecord[]) {
-  try { localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(orders)); } catch {}
+  try {
+    const json = JSON.stringify(orders);
+    localStorage.setItem(MOCK_ORDERS_KEY, json);
+  } catch (e) {
+    console.error("Failed to save mock orders to localStorage:", e);
+    // If quota exceeded, try to trim old delivered/cancelled orders
+    try {
+      const trimmed = orders.filter((o) => {
+        if (o.status === "delivered" || o.status === "cancelled") {
+          const age = Date.now() - new Date(o.created_at).getTime();
+          return age < 7 * 24 * 60 * 60 * 1000; // Keep last 7 days
+        }
+        return true;
+      });
+      localStorage.setItem(MOCK_ORDERS_KEY, JSON.stringify(trimmed));
+    } catch {}
+  }
 }
 
 /** Fetch ALL orders (for admin panel) */

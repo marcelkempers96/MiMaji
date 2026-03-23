@@ -362,15 +362,28 @@ export function useFreeLitres(userId: string, litres: number): number {
 export async function useFreeLitresAsync(userId: string, litres: number): Promise<number> {
   if (!hasSupabaseConfig) return useFreeLitres(userId, litres);
 
-  const { data } = await supabase.from("rewards").select("free_litres").eq("user_id", userId).maybeSingle();
-  if (!data || Number(data.free_litres) <= 0) return 0;
+  try {
+    // Race against timeout to prevent hanging on slow network
+    const result = await Promise.race([
+      (async () => {
+        const { data } = await supabase.from("rewards").select("free_litres").eq("user_id", userId).maybeSingle();
+        if (!data || Number(data.free_litres) <= 0) return 0;
 
-  const used = Math.min(litres, Number(data.free_litres));
-  await supabase.from("rewards").update({
-    free_litres: Number(data.free_litres) - used,
-  }).eq("user_id", userId);
+        const used = Math.min(litres, Number(data.free_litres));
+        await supabase.from("rewards").update({
+          free_litres: Number(data.free_litres) - used,
+        }).eq("user_id", userId);
 
-  return used;
+        return used;
+      })(),
+      new Promise<number>((_, reject) => setTimeout(() => reject(new Error("Rewards timeout")), 8000)),
+    ]);
+    return result;
+  } catch (e) {
+    console.error("useFreeLitresAsync failed:", e);
+    // Fall back to local rewards
+    return useFreeLitres(userId, litres);
+  }
 }
 
 export function getRewardsSummary(userId: string) {

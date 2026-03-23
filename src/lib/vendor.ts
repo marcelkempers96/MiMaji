@@ -295,33 +295,45 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
   }
 
-  const { data: order } = await supabase.from("orders").select("vendors_tried, brand_preference").eq("id", orderId).single();
-  if (!order) return null;
+  // Race against timeout to prevent hanging on slow network
+  try {
+    const result = await Promise.race([
+      (async () => {
+        const { data: order } = await supabase.from("orders").select("vendors_tried, brand_preference").eq("id", orderId).single();
+        if (!order) return null;
 
-  const triedIds = (order.vendors_tried as string[]) || [];
-  const brandPref = (order.brand_preference as string[]) || [];
-  const { data: vendors } = await supabase
-    .from("vendors").select("id, name, brands").eq("active", true).order("rating", { ascending: false });
+        const triedIds = (order.vendors_tried as string[]) || [];
+        const brandPref = (order.brand_preference as string[]) || [];
+        const { data: vendors } = await supabase
+          .from("vendors").select("id, name, brands").eq("active", true).order("rating", { ascending: false });
 
-  if (!vendors) return null;
+        if (!vendors) return null;
 
-  // Prefer vendors that carry requested brands
-  const untried = vendors.filter((v: { id: string }) => !triedIds.includes(v.id));
-  let next = untried[0];
-  if (brandPref.length > 0) {
-    const brandMatch = untried.find((v: { brands?: string[] }) =>
-      brandPref.some((b: string) => (v.brands || []).includes(b))
-    );
-    if (brandMatch) next = brandMatch;
+        // Prefer vendors that carry requested brands
+        const untried = vendors.filter((v: { id: string }) => !triedIds.includes(v.id));
+        let next = untried[0];
+        if (brandPref.length > 0) {
+          const brandMatch = untried.find((v: { brands?: string[] }) =>
+            brandPref.some((b: string) => (v.brands || []).includes(b))
+          );
+          if (brandMatch) next = brandMatch;
+        }
+        if (!next) return null;
+
+        await supabase.from("orders").update({
+          current_vendor_offer: next.id,
+          updated_at: new Date().toISOString(),
+        }).eq("id", orderId);
+
+        return { vendorId: next.id, vendorName: next.name };
+      })(),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 10000)),
+    ]);
+    return result;
+  } catch (e) {
+    console.error("assignOrderToVendor Supabase error:", e);
+    return null;
   }
-  if (!next) return null;
-
-  await supabase.from("orders").update({
-    current_vendor_offer: next.id,
-    updated_at: new Date().toISOString(),
-  }).eq("id", orderId);
-
-  return { vendorId: next.id, vendorName: next.name };
 }
 
 export async function acceptOrder(
