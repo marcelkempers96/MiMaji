@@ -122,7 +122,7 @@ function saveLocalCache(vendors: VendorRecord[]) {
 
 // ── Supabase <-> VendorRecord mapping ──
 
-function mapSupabaseToVendor(v: Record<string, unknown>): VendorRecord {
+export function mapSupabaseToVendor(v: Record<string, unknown>): VendorRecord {
   const locations = ((v.vendor_locations as Array<Record<string, unknown>>) || []).map((l) => ({
     id: l.id as string,
     name: l.name as string,

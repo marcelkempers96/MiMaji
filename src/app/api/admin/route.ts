@@ -158,8 +158,9 @@ export async function GET(req: NextRequest) {
     if (type === "vendors") {
       const { data, error } = await sb
         .from("vendors")
-        .select("*, vendor_locations(*)")
-        .eq("active", true);
+        .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
+        .eq("active", true)
+        .order("created_at", { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json(data || []);
     }
