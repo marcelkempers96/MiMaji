@@ -46,9 +46,15 @@ export async function GET(req: NextRequest) {
   if (isRateLimited(ip)) return rateLimited();
   const code = req.nextUrl.searchParams.get("code");
   if (code !== ADMIN_CODE) return unauthorized();
-  if (!hasServiceKey) return notConfigured();
 
   const type = req.nextUrl.searchParams.get("type") || "orders";
+
+  // Auth-only check — returns success even without Supabase, so admin login gate works
+  if (type === "auth") {
+    return NextResponse.json({ authenticated: true, hasServiceKey });
+  }
+
+  if (!hasServiceKey) return notConfigured();
   const sb = createServiceClient();
 
   try {

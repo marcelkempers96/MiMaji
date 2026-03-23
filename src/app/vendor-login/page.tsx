@@ -47,12 +47,48 @@ export default function VendorLoginPage() {
       cleaned = "254" + cleaned.slice(1);
     }
 
+    // Try standard auth first (Supabase auth or mock accounts)
     const result = await login(cleaned, pin);
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-      return;
-    }
+    if (!result.error) return;
+
+    // Fallback: try server-side vendor auth (checks vendors table PIN directly)
+    try {
+      const res = await fetch("/api/vendor-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleaned, pin }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.vendor) {
+          // Store vendor session so AuthContext picks it up
+          const vendorUser = {
+            id: data.vendor.id,
+            phone: data.vendor.phone,
+            name: data.vendor.name,
+            role: "vendor" as const,
+          };
+          try {
+            localStorage.setItem("mimaji_user_cache", JSON.stringify({
+              user: vendorUser,
+              timestamp: Date.now(),
+            }));
+            // Also register in mock signups for subsequent logins
+            const raw = localStorage.getItem("mimaji_mock_signups");
+            const signups = raw ? JSON.parse(raw) : {};
+            signups[cleaned] = { pin, user: vendorUser };
+            if (cleaned.startsWith("254")) signups["0" + cleaned.slice(3)] = { pin, user: vendorUser };
+            localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
+          } catch {}
+          // Force reload to pick up the new session
+          window.location.href = "/vendor-portal";
+          return;
+        }
+      }
+    } catch {}
+
+    setError(result.error || "Invalid phone number or PIN");
+    setLoading(false);
   };
 
   return (

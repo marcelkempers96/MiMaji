@@ -273,11 +273,14 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
     try {
       // Call server-side API to create vendor (uses service role — bypasses RLS,
       // creates auth user without affecting admin session)
+      // Read admin code from sessionStorage (set during admin login)
+      let adminCode = "";
+      try { adminCode = sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
       const res = await fetch("/api/admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          code: "5566",
+          code: adminCode,
           action: "create_vendor",
           name,
           phone: normalizedPhone,

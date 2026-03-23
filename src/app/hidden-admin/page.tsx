@@ -170,7 +170,7 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
     try {
       const savedCode = sessionStorage.getItem("mimaji_admin_code");
       if (savedCode) {
-        fetch(`/api/admin?code=${encodeURIComponent(savedCode)}&type=orders`)
+        fetch(`/api/admin?code=${encodeURIComponent(savedCode)}&type=auth`)
           .then((res) => { if (res.ok) setAuthenticated(true); else sessionStorage.removeItem("mimaji_admin_code"); })
           .catch(() => {});
       }
@@ -182,7 +182,7 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
     setChecking(true);
     try {
       // Validate code server-side — never compare on the client
-      const res = await fetch(`/api/admin?code=${encodeURIComponent(code)}&type=orders`);
+      const res = await fetch(`/api/admin?code=${encodeURIComponent(code)}&type=auth`);
       if (res.ok) {
         setAuthenticated(true);
         try { sessionStorage.setItem("mimaji_admin_code", code); } catch {}
