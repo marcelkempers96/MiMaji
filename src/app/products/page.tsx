@@ -13,7 +13,6 @@ const refillProducts = [
   { name: "20L Soft Bottle", image: soft20L, price: 280, perLitre: "KES 14.0/L", desc: "The classic household refill. Lightweight and easy to store." },
   { name: "18.9L Hard Jug", image: hard20L, price: 250, badge: "Best Value", perLitre: "KES 13.2/L", desc: "Best value for dispenser jugs. Fits all standard water dispensers." },
   { name: "20L Hard Jug", image: hard20L, price: 290, badge: "Most Popular", perLitre: "KES 14.5/L", desc: "Our flagship refill. The standard for homes and offices across Nairobi." },
-  { name: "18.9L Premium Branded", image: hard20L, price: 550, perLitre: "KES 29.1/L", desc: "Aquamist, Mt Kenya, Keringet. Premium branded water refill." },
 ];
 
 const newBottleProducts = [
@@ -24,8 +23,6 @@ const newBottleProducts = [
   { name: "10L Hard Jug", image: hard10L, price: 180, perLitre: "KES 18.0/L", desc: "Compact dispenser-ready jug. Durable and reusable." },
   { name: "18.9L Hard Jug", image: hard20L, price: 470, badge: "Best Value", perLitre: "KES 24.9/L", desc: "Dispenser-ready hard jug. Built to last for years." },
   { name: "20L Hard Jug", image: hard20L, price: 500, perLitre: "KES 25.0/L", desc: "Our flagship new dispenser jug. The Nairobi standard." },
-  { name: "18.9L Premium Branded", image: hard20L, price: 750, perLitre: "KES 39.7/L", desc: "Aquamist, Mt Kenya, Keringet. Brand new sealed premium bottle." },
-  { name: "10L Premium Branded", image: hard10L, price: 400, perLitre: "KES 40.0/L", desc: "Premium 10L branded water. Aquamist and top brands." },
 ];
 
 const tankServices = [

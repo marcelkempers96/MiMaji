@@ -11,7 +11,7 @@ export interface Product {
   /** 0 means refill not available (new only) */
   priceRefill: number;
   image: StaticImageData;
-  category: "hard" | "soft" | "premium";
+  category: "hard" | "soft";
   description: string;
   /** Price per litre for comparison display */
   pricePerLitre: number;
@@ -57,16 +57,12 @@ export const products: Product[] = [
   { id: "h10",  name: "Hard Jug",     size: "10L",   litres: 10,   priceNew: 180,  priceRefill: 0,   image: hard10L, category: "hard", description: "Compact dispenser-ready jug. Durable, reusable, and easy to handle.", pricePerLitre: 18.0 },
   { id: "h189", name: "Hard Jug",     size: "18.9L", litres: 18.9, priceNew: 470,  priceRefill: 250, image: hard20L, category: "hard", description: "Best value for hard jugs. Fits all standard dispensers. Built to last.", pricePerLitre: 13.2, badge: "Best Value" },
   { id: "h20",  name: "Hard Jug",     size: "20L",   litres: 20,   priceNew: 500,  priceRefill: 290, image: hard20L, category: "hard", description: "Our flagship dispenser jug. The standard for homes and offices across Nairobi.", pricePerLitre: 14.5, badge: "Most Popular" },
-
-  // ── Premium Branded Water ──
-  { id: "p189", name: "Premium Branded", size: "18.9L", litres: 18.9, priceNew: 750, priceRefill: 550, image: hard20L, category: "premium", description: "Aquamist, Mt Kenya, Keringet and more. Premium branded water for those who want the best.", pricePerLitre: 29.1 },
-  { id: "p10",  name: "Premium Branded", size: "10L",   litres: 10,   priceNew: 400, priceRefill: 0,   image: hard10L, category: "premium", description: "Premium 10L branded water. Aquamist and other top brands.", pricePerLitre: 40.0 },
 ];
 
 /** Get product image from a cart item ID (e.g. "h20-new") or item name (e.g. "Hard Jug 20L — New") */
 export function getProductImage(cartIdOrName: string): StaticImageData | null {
   // Try matching by cart ID prefix (e.g. "h20-new" → "h20")
-  const idMatch = cartIdOrName.match(/^([shp]\d+)/);
+  const idMatch = cartIdOrName.match(/^([sh]\d+)/);
   if (idMatch) {
     const product = products.find((p) => p.id === idMatch[1]);
     if (product) return product.image;

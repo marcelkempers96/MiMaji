@@ -48,7 +48,7 @@ function getCartItemId(productId: string, bottleType: BottleType): string {
 export default function BuyWaterPage() {
   const router = useRouter();
   const { addItem, removeItem, items, updateQuantity } = useCart();
-  const [activeCategory, setActiveCategory] = useState<"hard" | "soft" | "premium">("soft");
+  const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("soft");
   const [activeSize, setActiveSize] = useState<string>("20L");
 
   // Selections keyed by cartItemId (e.g. "h20-refill", "s10-new")
@@ -208,8 +208,8 @@ function BuyContent({
   setProductSelection,
   desktop,
 }: {
-  activeCategory: "hard" | "soft" | "premium";
-  setActiveCategory: (c: "hard" | "soft" | "premium") => void;
+  activeCategory: "hard" | "soft";
+  setActiveCategory: (c: "hard" | "soft") => void;
   activeSize: string;
   setActiveSize: (s: string) => void;
   sizes: string[];
@@ -238,11 +238,10 @@ function BuyContent({
       {/* Water Type Selection */}
       <div className="px-4 mt-2 mb-4">
         <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Water Type</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {([
             { key: "soft" as const, label: "Soft Bottle" },
             { key: "hard" as const, label: "Hard Jug" },
-            { key: "premium" as const, label: "Premium" },
           ]).map((cat) => (
             <button
               key={cat.key}
@@ -259,9 +258,6 @@ function BuyContent({
             </button>
           ))}
         </div>
-        {activeCategory === "premium" && (
-          <p className="text-xs text-text-secondary mt-2">Aquamist, Mt Kenya, Keringet and other top brands.</p>
-        )}
       </div>
 
       {/* Size Selection */}
