@@ -10,20 +10,28 @@ import {
 // Admin code from environment variable (fallback to hardcoded for dev only)
 const ADMIN_CODE = process.env.ADMIN_SECRET_CODE || "5566";
 
-// Simple in-memory rate limiter for admin auth attempts
+// Simple in-memory rate limiter for FAILED admin auth attempts only
 const authAttempts = new Map<string, { count: number; resetAt: number }>();
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 10;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = authAttempts.get(ip);
   if (!entry || now > entry.resetAt) {
-    authAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
     return false;
   }
-  entry.count++;
-  return entry.count > MAX_ATTEMPTS;
+  return entry.count >= MAX_ATTEMPTS;
+}
+
+function recordFailedAttempt(ip: string): void {
+  const now = Date.now();
+  const entry = authAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    authAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+  } else {
+    entry.count++;
+  }
 }
 
 function unauthorized() {
@@ -149,7 +157,10 @@ export async function GET(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (isRateLimited(ip)) return rateLimited();
   const code = req.nextUrl.searchParams.get("code");
-  if (code !== ADMIN_CODE) return unauthorized();
+  if (code !== ADMIN_CODE) {
+    recordFailedAttempt(ip);
+    return unauthorized();
+  }
 
   const type = req.nextUrl.searchParams.get("type") || "orders";
 
@@ -286,7 +297,10 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (isRateLimited(ip)) return rateLimited();
   const body = await req.json();
-  if (body.code !== ADMIN_CODE) return unauthorized();
+  if (body.code !== ADMIN_CODE) {
+    recordFailedAttempt(ip);
+    return unauthorized();
+  }
 
   const { action } = body;
 

@@ -162,7 +162,7 @@ async function adminPost(body: Record<string, unknown>): Promise<{ success?: boo
 function AdminLoginGate({ children }: { children: React.ReactNode }) {
   const [code, setCode] = React.useState("");
   const [authenticated, setAuthenticated] = React.useState(false);
-  const [error, setError] = React.useState(false);
+  const [error, setError] = React.useState("");
   const [checking, setChecking] = React.useState(false);
 
   React.useEffect(() => {
@@ -187,15 +187,15 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
         setAuthenticated(true);
         try { sessionStorage.setItem("mimaji_admin_code", code); } catch {}
       } else if (res.status === 429) {
-        setError(true);
-        setTimeout(() => setError(false), 5000);
+        setError("Too many attempts. Try again in 15 minutes.");
+        setTimeout(() => setError(""), 5000);
       } else {
-        setError(true);
-        setTimeout(() => setError(false), 2000);
+        setError("Invalid code. Try again.");
+        setTimeout(() => setError(""), 2000);
       }
     } catch {
-      setError(true);
-      setTimeout(() => setError(false), 2000);
+      setError("Network error. Try again.");
+      setTimeout(() => setError(""), 2000);
     } finally {
       setChecking(false);
     }
@@ -222,7 +222,7 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
           maxLength={6}
           autoFocus
         />
-        {error && <p className="text-red-500 text-xs mt-2">Invalid code. Try again.</p>}
+        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
         <button
           type="submit"
           className="w-full mt-4 bg-text-primary text-white rounded-xl py-3 font-semibold text-sm hover:bg-gray-800 transition-colors"
