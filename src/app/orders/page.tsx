@@ -30,7 +30,7 @@ function getStepIndex(status: string) {
 }
 
 export default function OrdersPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { addItem, clearCart } = useCart();
   const router = useRouter();
 
@@ -68,7 +68,7 @@ export default function OrdersPage() {
         .then((s) => setFreeLitres(s.freeLitres))
         .catch(() => {});
     }
-  }, [user?.id]);
+  }, [user?.id, session]); // Re-fetch when Supabase session arrives (fixes empty orders on refresh)
 
   // Fetch orders on mount and when user changes
   useEffect(() => {
