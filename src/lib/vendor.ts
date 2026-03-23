@@ -319,45 +319,89 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
   }
 
-  // Race against timeout to prevent hanging on slow network
-  try {
-    const result = await Promise.race([
-      (async () => {
-        const { data: order } = await supabase.from("orders").select("vendors_tried, brand_preference").eq("id", orderId).single();
-        if (!order) return null;
+  // Supabase path: fetch order, vendors + locations, score, assign
+  const attempt = async (): Promise<{ vendorId: string; vendorName: string } | null> => {
+    const { data: order } = await supabase
+      .from("orders")
+      .select("vendors_tried, brand_preference, delivery_address_details")
+      .eq("id", orderId)
+      .single();
+    if (!order) return null;
 
-        const triedIds = (order.vendors_tried as string[]) || [];
-        const brandPref = (order.brand_preference as string[]) || [];
-        const { data: vendors } = await supabase
-          .from("vendors").select("id, name, brands").eq("active", true).order("rating", { ascending: false });
+    const triedIds = (order.vendors_tried as string[]) || [];
+    const brandPref = (order.brand_preference as string[]) || [];
+    const addrDetails = order.delivery_address_details as { lat?: number; lng?: number; neighbourhood?: string } | null;
+    const deliveryLat = addrDetails?.lat;
+    const deliveryLng = addrDetails?.lng;
+    const deliveryArea = addrDetails?.neighbourhood || "";
 
-        if (!vendors) return null;
+    const { data: vendors } = await supabase
+      .from("vendors")
+      .select("id, name, brands, areas_served, rating, vendor_locations(lat, lng)")
+      .eq("active", true);
 
-        // Prefer vendors that carry requested brands
-        const untried = vendors.filter((v: { id: string }) => !triedIds.includes(v.id));
-        let next = untried[0];
+    if (!vendors || vendors.length === 0) return null;
+
+    // Score each untried vendor
+    type VendorRow = { id: string; name: string; brands?: string[]; areas_served?: string[]; rating?: number; vendor_locations?: Array<{ lat: number; lng: number }> };
+    const candidates = (vendors as VendorRow[])
+      .filter((v) => !triedIds.includes(v.id))
+      .map((v) => {
+        let score = 0;
+
+        // Brand match: +10 per matching brand
         if (brandPref.length > 0) {
-          const brandMatch = untried.find((v: { brands?: string[] }) =>
-            brandPref.some((b: string) => (v.brands || []).includes(b))
-          );
-          if (brandMatch) next = brandMatch;
+          const matches = brandPref.filter((b) => (v.brands || []).includes(b)).length;
+          score += matches * 10;
         }
-        if (!next) return null;
 
-        await supabase.from("orders").update({
-          current_vendor_offer: next.id,
-          updated_at: new Date().toISOString(),
-        }).eq("id", orderId);
+        // Area match: +8 if vendor serves delivery neighbourhood
+        if (deliveryArea && (v.areas_served || []).some((a) => a.toLowerCase() === deliveryArea.toLowerCase())) {
+          score += 8;
+        }
 
-        return { vendorId: next.id, vendorName: next.name };
-      })(),
-      new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 10000)),
-    ]);
-    return result;
-  } catch (e) {
-    console.error("assignOrderToVendor Supabase error:", e);
-    return null;
+        // Proximity: closer = higher score (max 5 points)
+        if (deliveryLat && deliveryLng && v.vendor_locations && v.vendor_locations.length > 0) {
+          let minDist = Infinity;
+          for (const loc of v.vendor_locations) {
+            const d = haversineKm(deliveryLat, deliveryLng, loc.lat, loc.lng);
+            if (d < minDist) minDist = d;
+          }
+          score += Math.max(0, 5 - minDist);
+        }
+
+        // Rating bonus
+        score += Number(v.rating) || 0;
+
+        return { vendor: v, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (candidates.length === 0) return null;
+    const next = candidates[0].vendor;
+
+    await supabase.from("orders").update({
+      current_vendor_offer: next.id,
+      updated_at: new Date().toISOString(),
+    }).eq("id", orderId);
+
+    return { vendorId: next.id, vendorName: next.name };
+  };
+
+  // Retry up to 2 times with timeout
+  for (let i = 0; i < 2; i++) {
+    try {
+      const result = await Promise.race([
+        attempt(),
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 10000)),
+      ]);
+      return result;
+    } catch (e) {
+      console.error(`assignOrderToVendor attempt ${i + 1} failed:`, e);
+      if (i === 0) await new Promise((r) => setTimeout(r, 1000)); // brief delay before retry
+    }
   }
+  return null;
 }
 
 export async function acceptOrder(
