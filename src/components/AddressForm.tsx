@@ -22,9 +22,14 @@ const LOCATION_TYPES: { value: LocationType; label: string; icon: typeof Home }[
   { value: "other", label: "Other", icon: MapPin },
 ];
 
-const NAIROBI_NEIGHBOURHOODS = [
-  "Lavington", "Kilimani", "Karen", "Westlands",
+import { NAIROBI_AREAS } from "@/data/products";
+
+const POPULAR_AREAS = [
+  "Kilimani", "Westlands", "Lavington", "Karen", "CBD", "South C", "South B", "Kileleshwa",
 ];
+
+// Use the full NAIROBI_AREAS list (45+ areas) for the dropdown
+const NAIROBI_NEIGHBOURHOODS = NAIROBI_AREAS;
 
 interface AddressFormProps {
   /** Called when user submits the form */
@@ -148,19 +153,21 @@ export default function AddressForm({
           types: ["address", "establishment"],
         },
         (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
             setPredictions(results);
             setShowPredictions(true);
           } else {
+            // Google returned no results — fallback to Nominatim
             setPredictions([]);
-            setShowPredictions(false);
+            if (nominatimTimerRef.current) clearTimeout(nominatimTimerRef.current);
+            nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 300);
           }
         }
       );
     } else {
-      // Fallback to Nominatim (debounced to respect rate limits)
+      // No Google Maps — use Nominatim (debounced to respect rate limits)
       if (nominatimTimerRef.current) clearTimeout(nominatimTimerRef.current);
-      nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 500);
+      nominatimTimerRef.current = setTimeout(() => searchNominatim(value), 400);
     }
   }, [searchNominatim]);
 
@@ -325,12 +332,12 @@ export default function AddressForm({
   };
 
   return (
-    <div className="bg-surface shadow-card rounded-xl p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-sm text-text-primary">
+    <div className="bg-surface shadow-card rounded-2xl p-5 space-y-0">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="font-bold text-base text-text-primary">
           {initial?.id ? "Edit Address" : "New Delivery Address"}
         </h3>
-        <button onClick={onCancel} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+        <button onClick={onCancel} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
           <X size={16} className="text-text-secondary" />
         </button>
       </div>
@@ -338,8 +345,8 @@ export default function AddressForm({
       {/* Hidden div for PlacesService */}
       <div ref={mapDivRef} className="hidden" />
 
-      {/* Google Maps Search */}
-      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
+      {/* Location Search */}
+      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">
         Search Location
       </label>
       <div className="relative mb-3">
@@ -404,14 +411,14 @@ export default function AddressForm({
         )}
       </div>
 
-      {!mapsLoaded && !nominatimResults.length && (
-        <p className="text-xs text-text-secondary mb-3 bg-primary-light rounded-lg px-3 py-2">
-          Enter your delivery address manually below or search for your location.
+      {!mapsLoaded && !nominatimResults.length && searchQuery.length < 3 && (
+        <p className="text-xs text-text-secondary mb-4 bg-primary-light rounded-lg px-3 py-2.5">
+          Start typing an address above to search, or fill in the details below.
         </p>
       )}
 
       {/* Divider between search and address details */}
-      <div className="border-t border-gray-100 my-4" />
+      <div className="border-t border-gray-100 my-5" />
 
       {/* Address Label */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
@@ -473,9 +480,27 @@ export default function AddressForm({
       </div>
 
       {/* Neighbourhood / Area */}
-      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
+      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">
         Neighbourhood / Area *
       </label>
+      {/* Popular areas as quick-select buttons */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {POPULAR_AREAS.map((area) => (
+          <button
+            key={area}
+            type="button"
+            onClick={() => { setNeighbourhood(area); setIsCustomNeighbourhood(false); setCustomNeighbourhood(""); }}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              neighbourhood === area && !isCustomNeighbourhood
+                ? "bg-primary text-white"
+                : "bg-gray-100 text-text-secondary hover:bg-gray-200 border border-gray-200"
+            }`}
+          >
+            {area}
+          </button>
+        ))}
+      </div>
+      {/* Full dropdown with all Nairobi areas */}
       <select
         value={isCustomNeighbourhood ? "__other__" : neighbourhood}
         onChange={(e) => {
@@ -490,11 +515,11 @@ export default function AddressForm({
         }}
         className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary outline-none focus:border-primary text-sm mb-2 bg-white"
       >
-        <option value="" disabled>Select area...</option>
+        <option value="" disabled>All Nairobi areas...</option>
         {NAIROBI_NEIGHBOURHOODS.map((area) => (
           <option key={area} value={area}>{area}</option>
         ))}
-        <option value="__other__">Other</option>
+        <option value="__other__">Other (type manually)</option>
       </select>
       {isCustomNeighbourhood && (
         <input
@@ -506,18 +531,18 @@ export default function AddressForm({
           autoFocus
         />
       )}
-      {!isCustomNeighbourhood && <div className="mb-1" />}
+      {!isCustomNeighbourhood && <div className="mb-2" />}
 
       {/* Street Name */}
-      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
+      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">
         Street Name
       </label>
       <input
         type="text"
         value={streetName}
         onChange={(e) => setStreetName(e.target.value)}
-        placeholder="Street name"
-        className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-3"
+        placeholder="e.g. Ngong Road, Argwings Kodhek Road"
+        className="rounded-xl border border-gray-200 h-11 px-4 w-full text-text-primary placeholder:text-text-secondary outline-none focus:border-primary text-sm mb-4"
       />
 
       {/* Building Name — show for apartment/office */}
@@ -608,22 +633,22 @@ export default function AddressForm({
 
       {/* Save for future checkbox */}
       {showSaveCheckbox && (
-        <label className="flex items-center gap-2 mb-4 cursor-pointer">
+        <label className="flex items-center gap-2 mb-5 cursor-pointer bg-primary-light rounded-xl px-4 py-3">
           <input
             type="checkbox"
             checked={saveForFuture}
             onChange={(e) => handleSaveChange(e.target.checked)}
             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
-          <span className="text-sm text-text-secondary">Save this location for future orders</span>
+          <span className="text-sm text-text-primary font-medium">Save this location for future orders</span>
         </label>
       )}
 
       {/* Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-3 pt-2">
         <button
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-text-secondary"
+          className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-text-secondary hover:bg-gray-50 transition-colors"
         >
           Cancel
         </button>

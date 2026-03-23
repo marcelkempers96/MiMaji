@@ -70,7 +70,26 @@ export default function ConfirmOrderPage() {
   const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mpesa-app");
-  const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "awaiting_code" | "confirmed" | "error">("idle");
+  // Restore payment status from sessionStorage (survives app-switching on mobile)
+  const [paymentStatus, setPaymentStatusRaw] = useState<"idle" | "loading" | "awaiting_code" | "confirmed" | "error">(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = sessionStorage.getItem("mimaji_payment_status");
+        if (saved === "awaiting_code") return "awaiting_code";
+      }
+    } catch {}
+    return "idle";
+  });
+  const setPaymentStatus = (status: "idle" | "loading" | "awaiting_code" | "confirmed" | "error") => {
+    setPaymentStatusRaw(status);
+    try {
+      if (status === "awaiting_code") {
+        sessionStorage.setItem("mimaji_payment_status", status);
+      } else {
+        sessionStorage.removeItem("mimaji_payment_status");
+      }
+    } catch {}
+  };
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
@@ -92,6 +111,16 @@ export default function ConfirmOrderPage() {
     router.push("/login?redirect=/delivery");
     return null;
   }
+
+  // Restore pending order data from sessionStorage (survives app-switching)
+  useEffect(() => {
+    if (paymentStatus === "awaiting_code" && !pendingOrderRef.current) {
+      try {
+        const saved = sessionStorage.getItem("mimaji_pending_order");
+        if (saved) pendingOrderRef.current = JSON.parse(saved);
+      } catch {}
+    }
+  }, [paymentStatus]);
 
   // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
   if (!authLoading && user && items.length === 0 && paymentStatus === "idle") {
@@ -284,7 +313,11 @@ export default function ConfirmOrderPage() {
     } catch {}
 
     clearCart();
-    try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}
+    try {
+      sessionStorage.removeItem("mimaji_scheduled_delivery");
+      sessionStorage.removeItem("mimaji_pending_order");
+      sessionStorage.removeItem("mimaji_payment_status");
+    } catch {}
   };
 
   const handleConfirm = async () => {
@@ -359,6 +392,8 @@ export default function ConfirmOrderPage() {
         }
       } else if (paymentMethod === "mpesa-app") {
         // M-PESA App: go to code entry screen, order created when code submitted or skipped
+        // Save pending order to sessionStorage so it survives app-switching
+        try { sessionStorage.setItem("mimaji_pending_order", JSON.stringify(pendingOrderRef.current)); } catch {}
         setPaymentStatus("awaiting_code");
       } else {
         // Cash on Delivery: create order immediately

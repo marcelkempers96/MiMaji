@@ -3,6 +3,8 @@
  *
  * Rules:
  * - New users get 1L free on signup.
+ * - Every 1L ordered earns 0.2L off the next order (order rewards).
+ * - Free litres can accumulate up to a maximum of 1000L.
  * - Each user has a unique referral code (derived from their ID).
  * - When a referred friend signs up AND places an order of >= 10L,
  *   both the referrer and the friend get 5L free.
@@ -264,15 +266,24 @@ export function processOrderRewards(
   let userRewarded = false;
   let milestoneHit = false;
 
+  // ── Order-based reward: every 1L ordered earns 0.2L free ──
+  const MAX_FREE_LITRES = 1000;
+  if (litres > 0) {
+    const earned = Math.round(litres * 0.2 * 10) / 10; // 0.2L per litre, round to 1 decimal
+    const newTotal = Math.min(rewards.freeLitres + earned, MAX_FREE_LITRES);
+    rewards.freeLitres = newTotal;
+  }
+
+  // ── Referral reward ──
   if (rewards.referredByUserId && !rewards.referralQualified && litres >= 10) {
     const referrer = all[rewards.referredByUserId];
     if (referrer) {
       if (referrer.totalEarnedFromReferrals < 50) {
-        referrer.freeLitres += 5;
+        referrer.freeLitres = Math.min(referrer.freeLitres + 5, MAX_FREE_LITRES);
         referrer.totalEarnedFromReferrals += 5;
 
         if (referrer.totalEarnedFromReferrals >= 50 && !referrer.milestoneBonusAwarded) {
-          referrer.freeLitres += 10;
+          referrer.freeLitres = Math.min(referrer.freeLitres + 10, MAX_FREE_LITRES);
           referrer.milestoneBonusAwarded = true;
           milestoneHit = true;
         }
@@ -285,7 +296,7 @@ export function processOrderRewards(
         referrerRewarded = true;
       }
 
-      rewards.freeLitres += 5;
+      rewards.freeLitres = Math.min(rewards.freeLitres + 5, MAX_FREE_LITRES);
       userRewarded = true;
     }
     rewards.referralQualified = true;
@@ -300,6 +311,19 @@ async function processOrderRewardsAsync(
   orderItems: Array<{ name: string; quantity: number }>
 ): Promise<void> {
   const litres = calculateOrderLitres(orderItems);
+
+  // ── Order-based reward: every 1L ordered earns 0.2L free (max 1000L) ──
+  if (litres > 0) {
+    const earned = Math.round(litres * 0.2 * 10) / 10;
+    try {
+      const { data: currentReward } = await supabase.from("rewards").select("free_litres").eq("user_id", userId).maybeSingle();
+      if (currentReward) {
+        const newTotal = Math.min(Number(currentReward.free_litres) + earned, 1000);
+        await supabase.from("rewards").update({ free_litres: newTotal }).eq("user_id", userId);
+      }
+    } catch (e) { console.error("Order reward async failed:", e); }
+  }
+
   if (litres < 10) return;
 
   // Check if user was referred and hasn't qualified yet

@@ -103,6 +103,10 @@ export default function AccountSettingsPage() {
         existing.email = email.trim();
         existing.mpesaNumber = mpesaToSave;
         if (profilePicUrl) existing.profilePicUrl = profilePicUrl;
+        // Also persist corporate data in main save
+        if (corpBusinessName) existing.businessName = corpBusinessName;
+        if (corpBusinessReg) existing.businessRegNo = corpBusinessReg;
+        if (corpBusinessName || corpBusinessReg) existing.isCorporate = true;
         localStorage.setItem(profileKey, JSON.stringify(existing));
       } catch {}
     }

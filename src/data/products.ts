@@ -55,8 +55,8 @@ export const products: Product[] = [
 
   // ── Hard Bottles (dispenser-ready) ──
   { id: "h10",  name: "Hard Jug",     size: "10L",   litres: 10,   priceNew: 180,  priceRefill: 0,   image: hard10L, category: "hard", description: "Compact dispenser-ready jug. Durable, reusable, and easy to handle.", pricePerLitre: 18.0 },
-  { id: "h189", name: "Hard Jug",     size: "18.9L", litres: 18.9, priceNew: 470,  priceRefill: 250, image: hard20L, category: "hard", description: "Best value for hard jugs. Fits all standard dispensers. Built to last.", pricePerLitre: 13.2, badge: "Best Value" },
-  { id: "h20",  name: "Hard Jug",     size: "20L",   litres: 20,   priceNew: 500,  priceRefill: 290, image: hard20L, category: "hard", description: "Our flagship dispenser jug. The standard for homes and offices across Nairobi.", pricePerLitre: 14.5, badge: "Most Popular" },
+  { id: "h189", name: "Hard Jug",     size: "18.9L", litres: 18.9, priceNew: 1400, priceRefill: 250, image: hard20L, category: "hard", description: "Best value for hard jugs. Fits all standard dispensers. Built to last.", pricePerLitre: 74.1, badge: "Best Value" },
+  { id: "h20",  name: "Hard Jug",     size: "20L",   litres: 20,   priceNew: 1500, priceRefill: 290, image: hard20L, category: "hard", description: "Our flagship dispenser jug. The standard for homes and offices across Nairobi.", pricePerLitre: 75.0, badge: "Most Popular" },
 ];
 
 /** Get product image from a cart item ID (e.g. "h20-new") or item name (e.g. "Hard Jug 20L — New") */

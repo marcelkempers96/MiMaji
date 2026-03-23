@@ -66,8 +66,8 @@ export function defaultServiceTimes(): ServiceDay[] {
 // Default product catalog for new vendors
 export function defaultVendorProducts(): VendorProduct[] {
   return [
-    { id: "vp-20l-hard", name: "20L Hard Jug", size: "20L", priceNew: 500, priceRefill: 290, available: true },
-    { id: "vp-189l-hard", name: "18.9L Hard Jug", size: "18.9L", priceNew: 470, priceRefill: 250, available: true },
+    { id: "vp-20l-hard", name: "20L Hard Jug", size: "20L", priceNew: 1500, priceRefill: 290, available: true },
+    { id: "vp-189l-hard", name: "18.9L Hard Jug", size: "18.9L", priceNew: 1400, priceRefill: 250, available: true },
     { id: "vp-20l-soft", name: "20L Soft Bottle", size: "20L", priceNew: 500, priceRefill: 280, available: true },
     { id: "vp-189l-soft", name: "18.9L Soft Bottle", size: "18.9L", priceNew: 450, priceRefill: 240, available: true },
     { id: "vp-10l-hard", name: "10L Hard Jug", size: "10L", priceNew: 180, priceRefill: 0, available: false },

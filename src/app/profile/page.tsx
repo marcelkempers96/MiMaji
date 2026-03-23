@@ -131,36 +131,10 @@ function ProfileContent({ user, editMode, setEditMode, editName, setEditName, on
           </div>
           <div className="flex-1">
             {user ? (
-              editMode ? (
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="h-9 px-3 rounded-lg border border-gray-200 text-sm text-text-primary outline-none focus:border-primary"
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditMode(false)}
-                      className="text-primary text-xs font-semibold"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditMode(false)}
-                      className="text-text-secondary text-xs"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p className="font-bold text-lg text-text-primary">{user.name}</p>
-                  <p className="text-text-secondary text-sm">{user.phone}</p>
-                </>
-              )
+              <>
+                <p className="font-bold text-lg text-text-primary">{user.name}</p>
+                <p className="text-text-secondary text-sm">{user.phone}</p>
+              </>
             ) : (
               <>
                 <p className="font-bold text-text-primary">Guest</p>
@@ -170,11 +144,6 @@ function ProfileContent({ user, editMode, setEditMode, editName, setEditName, on
               </>
             )}
           </div>
-          {user && !editMode && (
-            <button onClick={() => setEditMode(true)} className="text-primary">
-              <Edit2 size={18} />
-            </button>
-          )}
         </div>
       </div>
 
