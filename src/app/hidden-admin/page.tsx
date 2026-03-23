@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
-import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, registerVendorAuth, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay } from "@/lib/vendorStore";
+import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, registerVendorAuth, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay, mapSupabaseToVendor } from "@/lib/vendorStore";
 import { supabase } from "@/lib/supabase";
 
 const hasSupabaseConfig =
@@ -170,7 +170,7 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
     try {
       const savedCode = sessionStorage.getItem("mimaji_admin_code");
       if (savedCode) {
-        fetch(`/api/admin?code=${encodeURIComponent(savedCode)}&type=orders`)
+        fetch(`/api/admin?code=${encodeURIComponent(savedCode)}&type=auth`)
           .then((res) => { if (res.ok) setAuthenticated(true); else sessionStorage.removeItem("mimaji_admin_code"); })
           .catch(() => {});
       }
@@ -182,7 +182,7 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
     setChecking(true);
     try {
       // Validate code server-side — never compare on the client
-      const res = await fetch(`/api/admin?code=${encodeURIComponent(code)}&type=orders`);
+      const res = await fetch(`/api/admin?code=${encodeURIComponent(code)}&type=auth`);
       if (res.ok) {
         setAuthenticated(true);
         try { sessionStorage.setItem("mimaji_admin_code", code); } catch {}
@@ -273,9 +273,21 @@ function AdminDashboardInner() {
   const [deleteStoreVendorConfirm, setDeleteStoreVendorConfirm] = useState<string | null>(null);
 
   function loadVendorStoreList() {
-    // Load from cache immediately, then refresh from Supabase
+    // Show cache immediately while fetching from server
     setVendorStoreList(loadVendorStore());
-    loadVendorStoreAsync().then((vendors) => setVendorStoreList(vendors)).catch(console.error);
+    // Always fetch from admin API (service role, bypasses RLS) for cross-device consistency
+    adminFetch("vendors").then(({ data, ok }) => {
+      if (ok && data.length > 0) {
+        const vendors = (data as Record<string, unknown>[]).map(mapSupabaseToVendor);
+        setVendorStoreList(vendors);
+        saveVendorStore(vendors); // update local cache
+      } else {
+        // Fallback: try anon key Supabase
+        loadVendorStoreAsync().then((vendors) => setVendorStoreList(vendors)).catch(console.error);
+      }
+    }).catch(() => {
+      loadVendorStoreAsync().then((vendors) => setVendorStoreList(vendors)).catch(console.error);
+    });
   }
 
   async function handleQuickCreateVendor() {
