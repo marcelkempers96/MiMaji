@@ -25,105 +25,101 @@ interface Plan {
 
 const plans: Plan[] = [
   {
-    id: "everyday",
-    name: "Everyday Plan",
-    description: "2–20 Jugs / Month",
-    price: 560,
-    pricePerJug: 280,
-    deliveries: "Flexible — choose 2 to 20 jugs per month",
+    id: "starter",
+    name: "Starter",
+    description: "Individuals & Couples",
+    price: 500,
+    pricePerJug: 250,
+    deliveries: "2x 20L/month (or 2x 18.9L for KES 430)",
     benefits: [
-      "20L purified water (hard or soft)",
-      "Choose your own quantity (2-20 jugs)",
-      "Choose refill (exchange) or new bottles",
-      "KES 280/jug refill — save vs one-off (KES 300)",
+      "2x 20L purified water per month",
+      "Or 2x 18.9L for KES 430/mo (save 37%)",
+      "Choose hard or soft bottles",
       "Free delivery on all orders",
-      "Flexible delivery schedule",
-      "Cancel or pause anytime",
-      "WhatsApp order support",
+      "M-Pesa auto-pay",
+      "Pause or cancel anytime",
+      "Save 34% vs one-off orders",
     ],
   },
   {
-    id: "basic",
-    name: "Basic Plan",
-    description: "20 Jugs / Month",
-    price: 5200,
-    pricePerJug: 260,
-    deliveries: "4 deliveries/month (5 jugs each)",
-    benefits: [
-      "20L purified water (hard or soft)",
-      "Refill (exchange) or new bottles",
-      "KES 260/jug — save KES 40 per jug",
-      "Weekly delivery schedule",
-      "Free delivery on all orders",
-      "Basic rewards (1.5x points)",
-      "WhatsApp order support",
-    ],
-  },
-  {
-    id: "standard",
-    name: "Standard Plan",
-    description: "40 Jugs / Month",
-    price: 9600,
-    pricePerJug: 240,
+    id: "family",
+    name: "Family",
+    description: "3–6 People",
+    price: 900,
+    pricePerJug: 225,
     popular: true,
-    deliveries: "8 deliveries/month (5 jugs each)",
+    deliveries: "4x 20L/month (or 4x 18.9L for KES 800)",
     benefits: [
-      "20L purified water (hard or soft)",
-      "Refill (exchange) or new bottles",
-      "KES 240/jug — save KES 60 per jug",
-      "Twice-weekly delivery schedule",
+      "4x 20L purified water per month",
+      "Or 4x 18.9L for KES 800/mo (save 41%)",
+      "Choose hard or soft bottles",
       "Free delivery on all orders",
-      "Enhanced rewards (2x points)",
-      "Priority delivery (under 30 min)",
-      "Flexible reschedule anytime",
-      "10% off additional orders",
+      "M-Pesa auto-pay",
+      "Pause or cancel anytime",
+      "Save 41% vs one-off orders",
+      "Priority delivery",
     ],
   },
   {
-    id: "premium",
-    name: "Premium Plan",
-    description: "60 Jugs / Month",
-    price: 13200,
-    pricePerJug: 220,
-    deliveries: "12 deliveries/month (5 jugs each)",
+    id: "family-plus",
+    name: "Family+",
+    description: "Large Households",
+    price: 1600,
+    pricePerJug: 200,
+    deliveries: "8x 20L/month (or 8x 18.9L for KES 1,450)",
     benefits: [
-      "20L purified water (hard or soft)",
-      "Refill (exchange) or new bottles",
-      "KES 220/jug — best price, save KES 80 per jug",
-      "3x weekly delivery schedule",
+      "8x 20L purified water per month",
+      "Or 8x 18.9L for KES 1,450/mo (save 47%)",
+      "Choose hard or soft bottles",
       "Free delivery on all orders",
-      "Premium rewards (3x points)",
-      "Priority delivery (under 20 min)",
+      "M-Pesa auto-pay",
+      "Pause or cancel anytime",
+      "Save 47% vs one-off orders",
+      "Priority delivery",
       "Flexible reschedule anytime",
-      "15% off additional orders",
-      "Free 5L bottles for office/events",
+    ],
+  },
+  {
+    id: "office",
+    name: "Office",
+    description: "Businesses",
+    price: 2200,
+    pricePerJug: 183,
+    deliveries: "12x 20L/month (or 20x for KES 3,400)",
+    benefits: [
+      "12x 20L purified water per month",
+      "Or scale to 20x 20L for KES 3,400/mo (save 55%)",
+      "Choose hard or soft bottles",
+      "Free delivery on all orders",
+      "M-Pesa auto-pay",
+      "Pause or cancel anytime",
+      "Save 52% vs one-off orders",
+      "Priority delivery (under 30 min)",
+      "Monthly invoicing available",
       "Dedicated account manager",
-      "Water Warrior status included",
     ],
   },
 ];
 
 export default function SubscriptionsPage() {
-  const [selectedPlan, setSelectedPlan] = useState<string>("standard");
+  const [selectedPlan, setSelectedPlan] = useState<string>("family");
   const [jugsCount, setJugsCount] = useState(4);
   const [subscribed, setSubscribed] = useState(false);
-  const [activeSub, setActiveSub] = useState<{ planName: string; jugs?: number } | null>(null);
-  const router = useRouter();
-  const { user } = useAuth();
-
-  // Check for active subscription
-  useState(() => {
+  const [activeSub, setActiveSub] = useState<{ planName: string; jugs?: number } | null>(() => {
     try {
-      const raw = localStorage.getItem("mimaji_subscription");
-      if (raw) {
-        const sub = JSON.parse(raw);
-        if (sub && user && sub.userId === user?.id) {
-          setActiveSub({ planName: sub.planName, jugs: sub.jugsPerMonth });
-          setSubscribed(true);
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("mimaji_subscription");
+        if (raw) {
+          const sub = JSON.parse(raw);
+          // We can't check user here (not yet available), will re-check in effect
+          if (sub) return { planName: sub.planName, jugs: sub.jugsPerMonth };
         }
       }
     } catch {}
+    return null;
   });
+  const router = useRouter();
+  const { user } = useAuth();
 
   // Water preference for subscriptions
   const [waterType, setWaterType] = useState<"soft" | "hard">("soft");
@@ -133,11 +129,11 @@ export default function SubscriptionsPage() {
     const plan = plans.find((p) => p.id === selectedPlan);
     if (!plan) return;
 
-    const isEveryday = selectedPlan === "everyday";
-    const displayTotal = isEveryday ? jugsCount * plan.pricePerJug : plan.price;
-    const planDesc = isEveryday
-      ? `Everyday Plan (${jugsCount} jugs/month at KES ${plan.pricePerJug}/jug = KES ${displayTotal}/month)`
-      : `${plan.name} — ${plan.description} at KES ${plan.price.toLocaleString()}/month`;
+    const isCustom = selectedPlan === "custom";
+    const displayTotal = isCustom ? jugsCount * 280 : plan.price;
+    const planDesc = isCustom
+      ? `Custom Plan (${jugsCount} x 20L jugs/month = KES ${displayTotal}/month)`
+      : `${plan.name} Plan — ${plan.description} at KES ${plan.price.toLocaleString()}/month`;
 
     const msg = encodeURIComponent(
       `Hi MiMaji! I'd like to subscribe to the ${planDesc}.\n\n` +
@@ -266,8 +262,7 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
       {/* Plans */}
       <div className={desktop ? "grid grid-cols-2 lg:grid-cols-4 gap-5" : "flex flex-col gap-3"}>
         {plans.map((plan) => {
-          const isEveryday = plan.id === "everyday";
-          const displayPrice = isEveryday ? jugsCount * (plans.find(p => p.id === "everyday")?.pricePerJug || 280) : plan.price;
+          const displayPrice = plan.price;
           return (
           <div
             key={plan.id}
@@ -285,22 +280,16 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
                       Most Popular
                     </span>
                   )}
-                  {isEveryday && (
-                    <span className="bg-[#2ECC71] text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
-                      For Everyone
-                    </span>
-                  )}
                 </div>
                 <p className="text-text-secondary text-sm">{plan.description}</p>
                 <p className="text-text-secondary text-xs mt-0.5">{plan.deliveries}</p>
               </div>
               {!desktop && (
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <span className="font-extrabold text-xl text-text-primary">
                     KES {displayPrice.toLocaleString()}
                   </span>
                   <p className="text-text-secondary text-xs">/month</p>
-                  {isEveryday && <p className="text-[#2ECC71] text-[10px] font-semibold">KES 280/jug</p>}
                 </div>
               )}
             </div>
@@ -311,30 +300,6 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
                   KES {displayPrice.toLocaleString()}
                 </span>
                 <span className="text-text-secondary text-sm">/month</span>
-                {isEveryday && <p className="text-[#2ECC71] text-xs font-semibold mt-0.5">KES 280/jug</p>}
-              </div>
-            )}
-
-            {/* Everyday Plan Jug Selector */}
-            {isEveryday && selectedPlan === "everyday" && (
-              <div className="mt-3 mb-2 bg-primary-light rounded-lg p-3" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-text-primary">Jugs per month</span>
-                  <span className="text-sm font-bold text-primary">{jugsCount} jugs</span>
-                </div>
-                <input
-                  type="range"
-                  min={2}
-                  max={20}
-                  value={jugsCount}
-                  onChange={(e) => setJugsCount(parseInt(e.target.value))}
-                  className="w-full accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-text-secondary mt-1">
-                  <span>2</span>
-                  <span>10</span>
-                  <span>20</span>
-                </div>
               </div>
             )}
 
@@ -364,16 +329,93 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
         })}
       </div>
 
+      {/* Custom Plan with Slider */}
+      <div className="mt-5">
+        <div
+          onClick={() => setSelectedPlan("custom")}
+          className={`bg-surface shadow-card rounded-xl p-5 cursor-pointer transition-all ${
+            selectedPlan === "custom" ? "border-2 border-[#2ECC71]" : "border-2 border-transparent"
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-bold text-text-primary text-base">Custom Plan</span>
+            <span className="bg-[#2ECC71] text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">Flexible</span>
+          </div>
+          <p className="text-text-secondary text-sm">Choose exactly how many bottles you need per month.</p>
+
+          <div className="mt-3 bg-primary-light rounded-lg p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-text-primary">20L Jugs per month</span>
+              <span className="text-sm font-bold text-primary">{jugsCount} jugs — KES {(jugsCount * 280).toLocaleString()}/mo</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={25}
+              value={jugsCount}
+              onChange={(e) => { setJugsCount(parseInt(e.target.value)); setSelectedPlan("custom"); }}
+              className="w-full accent-primary"
+            />
+            <div className="flex justify-between text-[10px] text-text-secondary mt-1">
+              <span>1</span>
+              <span>5</span>
+              <span>10</span>
+              <span>15</span>
+              <span>20</span>
+              <span>25</span>
+            </div>
+          </div>
+
+          <ul className="mt-3 space-y-2">
+            {["Choose any quantity (1-25 jugs/month)", "Free delivery on all orders", "M-Pesa auto-pay", "Pause or cancel anytime", "KES 280 per 20L jug refill"].map((b) => (
+              <li key={b} className="flex items-start gap-2 text-xs text-text-secondary">
+                <Check size={14} className="text-[#2ECC71] flex-shrink-0 mt-0.5" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Estate & Tank Subscriptions */}
+      <div className="mt-5 bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-xl p-5">
+        <h3 className="font-bold text-text-primary text-base mb-1">Estate & Tank Subscriptions</h3>
+        <p className="text-text-secondary text-sm mb-3">For large volumes — estates, compounds, and commercial properties.</p>
+        <div className={`${desktop ? "grid grid-cols-4" : "grid grid-cols-2"} gap-3 mb-4`}>
+          {[
+            { vol: "1,000L", price: "KES 3,000", rate: "KES 3.0/L" },
+            { vol: "2,000L", price: "KES 3,500", rate: "KES 1.75/L" },
+            { vol: "5,000L", price: "KES 7,500", rate: "KES 1.50/L" },
+            { vol: "10,000L", price: "KES 12,000", rate: "KES 1.20/L" },
+          ].map((t) => (
+            <div key={t.vol} className="bg-white/70 rounded-lg p-3 text-center">
+              <p className="font-extrabold text-text-primary">{t.vol}</p>
+              <p className="font-bold text-primary text-sm">{t.price}</p>
+              <p className="text-[#2ECC71] text-[10px] font-semibold">{t.rate}</p>
+            </div>
+          ))}
+        </div>
+        <a
+          href="https://wa.me/254758434076"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-[#F5A623] text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-[#e09520] transition-colors"
+        >
+          <MessageCircle size={16} />
+          Enquire via WhatsApp
+        </a>
+      </div>
+
       <div className={desktop ? "max-w-md mx-auto mt-8" : "mt-6"}>
         <button
           onClick={onSubscribe}
           className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1fb855] text-white rounded-xl py-3.5 font-bold text-sm transition-colors"
         >
           <MessageCircle size={18} />
-          Subscribe via WhatsApp — KES {(selectedPlan === "everyday" ? jugsCount * (plans.find(p => p.id === "everyday")?.pricePerJug || 280) : plans.find((p) => p.id === selectedPlan)?.price || 0).toLocaleString()}/mo
+          Subscribe via WhatsApp — KES {(selectedPlan === "custom" ? jugsCount * 280 : plans.find((p) => p.id === selectedPlan)?.price || 0).toLocaleString()}/mo
         </button>
         <p className="text-text-secondary text-xs text-center mt-3">
-          Message us on WhatsApp to activate your subscription. We&apos;ll set it up and confirm within minutes. Cancel or pause anytime.
+          All subscriptions include free delivery, M-Pesa auto-pay, and you can pause or cancel anytime.
         </p>
       </div>
     </>
