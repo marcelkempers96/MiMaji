@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
+import { getVendorSettingsByUserId, updateVendor as updateVendorStore, VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
 
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -49,6 +50,15 @@ export default function VendorPortalPage() {
   const [settingsCustomProduct, setSettingsCustomProduct] = useState("");
   const [settingsSaved, setSettingsSaved] = useState(false);
 
+  // New: Product catalog with prices
+  const [settingsProductCatalog, setSettingsProductCatalog] = useState<VendorProduct[]>(defaultVendorProducts());
+  const [customProductName, setCustomProductName] = useState("");
+  const [customProductSize, setCustomProductSize] = useState("");
+  const [customProductPrice, setCustomProductPrice] = useState("");
+
+  // New: Service times (Mon-Sun)
+  const [settingsServiceTimes, setSettingsServiceTimes] = useState<ServiceDay[]>(defaultServiceTimes());
+
   const handleSaveSettings = async () => {
     try {
       const vendorSettings = {
@@ -62,7 +72,33 @@ export default function VendorPortalPage() {
         brands: settingsBrands,
         products: settingsProducts,
         areasServed: settingsAreasServed,
+        productCatalog: settingsProductCatalog,
+        serviceTimes: settingsServiceTimes,
       };
+
+      // Save to vendorStore (shared with admin)
+      if (user?.id) {
+        updateVendorStore(user.id, {
+          name: settingsBusinessName,
+          businessRegNo: settingsBusinessReg,
+          mpesaNumber: settingsMpesaNumber,
+          phoneNumbers: settingsPhoneNumbers.filter(Boolean),
+          locations: settingsLocations.filter((l) => l.name).map((l, i) => ({
+            id: `${user.id}-loc${i}`,
+            name: l.name,
+            area: l.area,
+            lat: l.lat,
+            lng: l.lng,
+          })),
+          deliveryRadius: settingsRadius,
+          brands: settingsBrands,
+          areasServed: settingsAreasServed,
+          products: settingsProductCatalog,
+          serviceTimes: settingsServiceTimes,
+          description: "",
+        });
+      }
+
       // Save to Supabase if available
       if (user?.id) {
         try {
@@ -127,6 +163,27 @@ export default function VendorPortalPage() {
 
     loadFromSupabase().then((loaded) => {
       if (loaded) return;
+
+      // Check vendorStore (shared with admin)
+      const storeVendor = getVendorSettingsByUserId(user.id);
+      if (storeVendor) {
+        setSettingsBusinessName(storeVendor.name || "");
+        setSettingsBusinessReg(storeVendor.businessRegNo || "");
+        setSettingsMpesaNumber(storeVendor.mpesaNumber || "");
+        setSettingsPhoneNumbers(storeVendor.phoneNumbers?.length > 0 ? storeVendor.phoneNumbers : [""]);
+        setSettingsLocations(storeVendor.locations?.length > 0 ? storeVendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
+        if (storeVendor.locations?.[0]?.id) setSelectedStoreId(storeVendor.locations[0].id);
+        setSettingsBrands(storeVendor.brands || []);
+        setSettingsAreasServed(storeVendor.areasServed || []);
+        if (storeVendor.products) setSettingsProductCatalog(storeVendor.products);
+        if (storeVendor.serviceTimes) setSettingsServiceTimes(storeVendor.serviceTimes);
+        // Also set legacy products list from catalog
+        setSettingsProducts(storeVendor.products.filter((p) => p.available).map((p) => `${p.size} ${p.name.includes("Hard") ? "Hard" : p.name.includes("Soft") ? "Soft" : p.name}`));
+        const hours = storeVendor.serviceTimes?.find((t) => t.open);
+        if (hours) setSettingsHours(`${hours.openTime} - ${hours.closeTime}`);
+        return;
+      }
+
       // Fallback: localStorage
       const savedRaw = localStorage.getItem(`mimaji_vendor_settings_${user.id}`);
       if (savedRaw) {
@@ -142,6 +199,8 @@ export default function VendorPortalPage() {
           if (saved.brands) setSettingsBrands(saved.brands);
           if (saved.products) setSettingsProducts(saved.products);
           if (saved.areasServed) setSettingsAreasServed(saved.areasServed);
+          if (saved.productCatalog) setSettingsProductCatalog(saved.productCatalog);
+          if (saved.serviceTimes) setSettingsServiceTimes(saved.serviceTimes);
         } catch { /* fall through to mock */ }
       } else {
         const vendor = MOCK_VENDORS.find((v) => v.id === user.id) || MOCK_VENDORS[0];
@@ -375,32 +434,93 @@ export default function VendorPortalPage() {
         )}
       </div>
 
-      {/* Product Types */}
+      {/* Product Catalog with Prices */}
       <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Product Types</label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].map((pt) => {
-            const isSelected = settingsProducts.includes(pt);
-            return (
-              <button
-                key={pt}
-                type="button"
-                onClick={() => setSettingsProducts(isSelected ? settingsProducts.filter((p) => p !== pt) : [...settingsProducts, pt])}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isSelected ? "bg-[#1a5a9a] text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"}`}
-              >
-                {pt}
-              </button>
-            );
-          })}
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Products & Prices</label>
+        <p className="text-[10px] text-text-secondary mb-3">Toggle products on/off and set your prices. Customers see your prices when ordering.</p>
+        <div className="space-y-2">
+          {settingsProductCatalog.map((product, idx) => (
+            <div key={product.id} className={`rounded-lg border p-3 transition-colors ${product.available ? "bg-white border-primary/30" : "bg-gray-50 border-gray-200 opacity-60"}`}>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={product.available}
+                  onChange={(e) => {
+                    const updated = [...settingsProductCatalog];
+                    updated[idx] = { ...updated[idx], available: e.target.checked };
+                    setSettingsProductCatalog(updated);
+                  }}
+                  className="rounded"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-text-primary">{product.name}</span>
+                    <span className="text-[10px] bg-gray-100 text-text-secondary px-1.5 py-0.5 rounded">{product.size}</span>
+                  </div>
+                  <div className="flex gap-4 mt-2">
+                    <div>
+                      <label className="text-[10px] text-text-secondary">New/Sealed (KES)</label>
+                      <input
+                        type="number"
+                        value={product.priceNew}
+                        onChange={(e) => {
+                          const updated = [...settingsProductCatalog];
+                          updated[idx] = { ...updated[idx], priceNew: Number(e.target.value) };
+                          setSettingsProductCatalog(updated);
+                        }}
+                        className="w-24 h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm font-mono text-text-primary outline-none focus:border-primary bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-text-secondary">Refill (KES)</label>
+                      <input
+                        type="number"
+                        value={product.priceRefill}
+                        onChange={(e) => {
+                          const updated = [...settingsProductCatalog];
+                          updated[idx] = { ...updated[idx], priceRefill: Number(e.target.value) };
+                          setSettingsProductCatalog(updated);
+                        }}
+                        placeholder="0 = N/A"
+                        className="w-24 h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm font-mono text-text-primary outline-none focus:border-primary bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {/* Delete button for custom products */}
+                {!["vp-20l-hard", "vp-189l-hard", "vp-20l-soft", "vp-189l-soft", "vp-10l-hard", "vp-10l-soft", "vp-5l-soft", "vp-15l", "vp-1l", "vp-500ml"].includes(product.id) && (
+                  <button
+                    onClick={() => setSettingsProductCatalog(settingsProductCatalog.filter((_, i) => i !== idx))}
+                    className="text-red-400 hover:text-red-600 p-1"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="flex gap-2">
-          <input type="text" value={settingsCustomProduct} onChange={(e) => setSettingsCustomProduct(e.target.value)} placeholder="Add custom product type..." className="flex-1 h-8 px-3 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
+        {/* Add custom product */}
+        <div className="mt-3 flex gap-2">
+          <input type="text" value={customProductName} onChange={(e) => setCustomProductName(e.target.value)} placeholder="Product name" className="flex-1 h-8 px-3 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
+          <input type="text" value={customProductSize} onChange={(e) => setCustomProductSize(e.target.value)} placeholder="Size (e.g. 5L)" className="w-20 h-8 px-2 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
+          <input type="number" value={customProductPrice} onChange={(e) => setCustomProductPrice(e.target.value)} placeholder="Price" className="w-20 h-8 px-2 rounded-lg border border-[#E0E0E0] text-xs font-mono text-text-primary outline-none focus:border-primary bg-white" />
           <button
             type="button"
             onClick={() => {
-              if (settingsCustomProduct.trim() && !settingsProducts.includes(settingsCustomProduct.trim())) {
-                setSettingsProducts([...settingsProducts, settingsCustomProduct.trim()]);
-                setSettingsCustomProduct("");
+              if (customProductName.trim()) {
+                const newProduct: VendorProduct = {
+                  id: `vp-custom-${Date.now()}`,
+                  name: customProductName.trim(),
+                  size: customProductSize.trim() || "Custom",
+                  priceNew: Number(customProductPrice) || 0,
+                  priceRefill: 0,
+                  available: true,
+                };
+                setSettingsProductCatalog([...settingsProductCatalog, newProduct]);
+                setCustomProductName("");
+                setCustomProductSize("");
+                setCustomProductPrice("");
               }
             }}
             className="px-3 h-8 bg-[#1a5a9a] text-white rounded-lg text-xs font-semibold"
@@ -408,15 +528,52 @@ export default function VendorPortalPage() {
             Add
           </button>
         </div>
-        {settingsProducts.filter((p) => !["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].includes(p)).length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {settingsProducts.filter((p) => !["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].includes(p)).map((p) => (
-              <span key={p} className="bg-blue-50 text-[#1a5a9a] text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                {p} <button onClick={() => setSettingsProducts(settingsProducts.filter((x) => x !== p))} className="hover:text-red-600">&times;</button>
-              </span>
-            ))}
-          </div>
-        )}
+      </div>
+
+      {/* Service Times (Mon-Sun) */}
+      <div>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Service Hours (Monday - Sunday)</label>
+        <div className="space-y-2">
+          {settingsServiceTimes.map((st, idx) => (
+            <div key={st.day} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${st.open ? "bg-white border border-primary/20" : "bg-gray-50 border border-gray-200"}`}>
+              <input
+                type="checkbox"
+                checked={st.open}
+                onChange={(e) => {
+                  const updated = [...settingsServiceTimes];
+                  updated[idx] = { ...updated[idx], open: e.target.checked };
+                  setSettingsServiceTimes(updated);
+                }}
+                className="rounded"
+              />
+              <span className={`text-sm font-semibold w-24 ${st.open ? "text-text-primary" : "text-text-secondary"}`}>{st.day}</span>
+              <input
+                type="time"
+                value={st.openTime}
+                disabled={!st.open}
+                onChange={(e) => {
+                  const updated = [...settingsServiceTimes];
+                  updated[idx] = { ...updated[idx], openTime: e.target.value };
+                  setSettingsServiceTimes(updated);
+                }}
+                className="h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-white disabled:opacity-40 disabled:bg-gray-100"
+              />
+              <span className="text-text-secondary text-xs">to</span>
+              <input
+                type="time"
+                value={st.closeTime}
+                disabled={!st.open}
+                onChange={(e) => {
+                  const updated = [...settingsServiceTimes];
+                  updated[idx] = { ...updated[idx], closeTime: e.target.value };
+                  setSettingsServiceTimes(updated);
+                }}
+                className="h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-white disabled:opacity-40 disabled:bg-gray-100"
+              />
+              {!st.open && <span className="text-xs text-red-400 font-medium">Closed</span>}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Areas Served */}

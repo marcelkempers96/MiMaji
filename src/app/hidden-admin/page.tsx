@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
+import { VendorRecord, loadVendorStore, saveVendorStore, createVendor, updateVendor, deleteVendor as deleteVendorFromStore, registerVendorAuth, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay } from "@/lib/vendorStore";
 
 const hasSupabaseConfig =
   typeof process !== "undefined" &&
@@ -275,6 +276,47 @@ function AdminDashboardInner() {
     deliveryRadius: "", description: "", minOrder: "",
   });
   const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
+
+  // Vendor Store (new system - shared across admin/vendor portal/devices)
+  const [vendorStoreList, setVendorStoreList] = useState<VendorRecord[]>([]);
+  const [newVendorName, setNewVendorName] = useState("");
+  const [newVendorPhone, setNewVendorPhone] = useState("");
+  const [createdVendorCredentials, setCreatedVendorCredentials] = useState<{ name: string; phone: string; pin: string; id: string } | null>(null);
+  const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
+  const [editingStoreVendor, setEditingStoreVendor] = useState<string | null>(null);
+  const [storeVendorEdits, setStoreVendorEdits] = useState<Partial<VendorRecord>>({});
+  const [deleteStoreVendorConfirm, setDeleteStoreVendorConfirm] = useState<string | null>(null);
+
+  function loadVendorStoreList() {
+    setVendorStoreList(loadVendorStore());
+  }
+
+  function handleQuickCreateVendor() {
+    if (!newVendorName.trim() || !newVendorPhone.trim()) return;
+    const vendor = createVendor(newVendorName.trim(), newVendorPhone.trim());
+    setCreatedVendorCredentials({
+      name: vendor.name,
+      phone: formatPhoneDisplay(vendor.credentials.phone),
+      pin: vendor.credentials.pin,
+      id: vendor.id,
+    });
+    setNewVendorName("");
+    setNewVendorPhone("");
+    loadVendorStoreList();
+  }
+
+  function handleSaveStoreVendor(vendorId: string) {
+    updateVendor(vendorId, storeVendorEdits);
+    setEditingStoreVendor(null);
+    setStoreVendorEdits({});
+    loadVendorStoreList();
+  }
+
+  function handleDeleteStoreVendor(vendorId: string) {
+    deleteVendorFromStore(vendorId);
+    loadVendorStoreList();
+    setDeleteStoreVendorConfirm(null);
+  }
 
   async function loadVendors() {
     // Always try server API first
@@ -567,6 +609,7 @@ function AdminDashboardInner() {
     loadOrders();
     loadUsers();
     loadVendors();
+    loadVendorStoreList();
     loadSubscriptions();
     const orderInterval = setInterval(loadOrders, 10_000);
     const clockInterval = setInterval(() => setKenyaTime(getKenyaTime()), 1_000);
@@ -1171,23 +1214,377 @@ function AdminDashboardInner() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-text-primary">
-                Registered Vendors ({allVendors.length})
+                Vendors ({vendorStoreList.length + allVendors.length})
               </h2>
+            </div>
+
+            {/* ── Quick Create Vendor (Step 1: name + phone) ── */}
+            <div className="bg-surface shadow-card rounded-2xl p-6 mb-6">
+              <h3 className="font-semibold text-text-primary mb-1 flex items-center gap-2">
+                <Plus size={18} className="text-primary" />
+                Create New Vendor
+              </h3>
+              <p className="text-xs text-text-secondary mb-4">Enter vendor name and phone. A login PIN will be auto-generated. Send these credentials to the vendor so they can log into the Vendor Portal and complete their profile.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Vendor/Business Name *</label>
+                  <input type="text" value={newVendorName} onChange={(e) => setNewVendorName(e.target.value)}
+                    placeholder="e.g. AquaPure Kilimani" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary" />
+                </div>
+                <div>
+                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Phone Number *</label>
+                  <input type="text" value={newVendorPhone} onChange={(e) => setNewVendorPhone(e.target.value)}
+                    placeholder="e.g. 0712 345 678" className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary"
+                    onKeyDown={(e) => e.key === "Enter" && handleQuickCreateVendor()} />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={handleQuickCreateVendor}
+                    disabled={!newVendorName.trim() || !newVendorPhone.trim()}
+                    className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors ${
+                      newVendorName.trim() && newVendorPhone.trim()
+                        ? "bg-primary text-white hover:bg-[#1a5a9a]"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    Create Vendor Account
+                  </button>
+                </div>
+              </div>
+
+              {/* Show generated credentials */}
+              {createdVendorCredentials && (
+                <div className="mt-4 bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                  <h4 className="font-bold text-green-800 text-sm mb-2 flex items-center gap-2">
+                    <CheckCircle2 size={16} /> Vendor Account Created!
+                  </h4>
+                  <p className="text-xs text-green-700 mb-3">Send these credentials to <strong>{createdVendorCredentials.name}</strong> so they can log in at <strong>/vendor-login</strong>:</p>
+                  <div className="bg-white rounded-lg p-3 space-y-1.5 font-mono text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Phone:</span>
+                      <span className="font-bold text-text-primary">{createdVendorCredentials.phone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">PIN:</span>
+                      <span className="font-bold text-primary text-lg">{createdVendorCredentials.pin}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => {
+                        const text = `MiMaji Vendor Login\nPhone: ${createdVendorCredentials.phone}\nPIN: ${createdVendorCredentials.pin}\nLogin at: /vendor-login`;
+                        navigator.clipboard.writeText(text).catch(() => {});
+                      }}
+                      className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors"
+                    >
+                      Copy Credentials
+                    </button>
+                    <button
+                      onClick={() => setCreatedVendorCredentials(null)}
+                      className="px-4 py-2 bg-gray-100 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Vendor Store Vendors (created via admin) ── */}
+            {vendorStoreList.length > 0 && (
+              <>
+                <h3 className="text-sm font-semibold text-primary mb-3">Your Vendors ({vendorStoreList.length})</h3>
+                <div className="space-y-4 mb-6">
+                  {vendorStoreList.map((vendor) => {
+                    const isExpanded = expandedVendorId === vendor.id;
+                    const isEditing = editingStoreVendor === vendor.id;
+                    const v = isEditing ? { ...vendor, ...storeVendorEdits } : vendor;
+                    return (
+                      <div key={vendor.id} className="bg-surface shadow-card rounded-2xl border-2 border-primary/20 overflow-hidden">
+                        {/* Header row - always visible */}
+                        <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpandedVendorId(isExpanded ? null : vendor.id)}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center">
+                              <Store size={18} className="text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
+                              <p className="text-xs text-text-secondary">{formatPhoneDisplay(vendor.phone)} &middot; PIN: <span className="font-mono font-bold text-primary">{vendor.credentials.pin}</span></p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-medium">{vendor.products.filter((p) => p.available).length} products</span>
+                            <ChevronDown size={16} className={`text-text-secondary transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                          </div>
+                        </div>
+
+                        {/* Expanded detail view */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-100 p-4 space-y-4">
+                            {/* Login Credentials */}
+                            <div className="bg-blue-50 rounded-lg p-3">
+                              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Vendor Login Credentials</p>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <span className="text-xs text-text-secondary">Phone:</span>
+                                  <p className="font-mono font-bold">{formatPhoneDisplay(vendor.credentials.phone)}</p>
+                                </div>
+                                <div>
+                                  <span className="text-xs text-text-secondary">PIN:</span>
+                                  <p className="font-mono font-bold text-primary text-lg">{vendor.credentials.pin}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Basic Info */}
+                            <div>
+                              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Business Details</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {isEditing ? (
+                                  <>
+                                    <div>
+                                      <label className="text-[10px] text-text-secondary">Business Name</label>
+                                      <input type="text" value={v.name} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, name: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-text-secondary">Area</label>
+                                      <input type="text" value={v.area} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, area: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="e.g. Kilimani, Nairobi" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-text-secondary">Business Reg No</label>
+                                      <input type="text" value={v.businessRegNo} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, businessRegNo: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-text-secondary">M-Pesa Number</label>
+                                      <input type="text" value={v.mpesaNumber} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, mpesaNumber: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-text-secondary">Description</label>
+                                      <input type="text" value={v.description} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, description: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] text-text-secondary">Delivery Radius (km)</label>
+                                      <input type="number" value={v.deliveryRadius} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, deliveryRadius: Number(e.target.value) })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                                    <div className="flex justify-between"><span className="text-text-secondary">Area</span><span className="text-text-primary">{vendor.area || "Not set"}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Biz Reg No</span><span className="font-mono text-text-primary">{vendor.businessRegNo || "Not set"}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">M-Pesa</span><span className="font-mono text-text-primary">{vendor.mpesaNumber || "Not set"}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Radius</span><span className="text-text-primary">{vendor.deliveryRadius} km</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Phone(s)</span><span className="text-text-primary">{vendor.phoneNumbers.filter(Boolean).join(", ") || vendor.phone}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Description</span><span className="text-text-primary">{vendor.description || "Not set"}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Created</span><span className="text-text-primary">{new Date(vendor.createdAt).toLocaleDateString()}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Last Updated</span><span className="text-text-primary">{new Date(vendor.updatedAt).toLocaleDateString()}</span></div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Products & Prices */}
+                            <div>
+                              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Products & Prices</p>
+                              {isEditing ? (
+                                <div className="space-y-2">
+                                  {(storeVendorEdits.products || vendor.products).map((product, pi) => (
+                                    <div key={product.id} className="bg-gray-50 rounded-lg p-3 flex items-center gap-3">
+                                      <input type="checkbox" checked={product.available}
+                                        onChange={(e) => {
+                                          const prods = [...(storeVendorEdits.products || vendor.products)];
+                                          prods[pi] = { ...prods[pi], available: e.target.checked };
+                                          setStoreVendorEdits({ ...storeVendorEdits, products: prods });
+                                        }}
+                                        className="rounded" />
+                                      <span className="text-xs font-semibold min-w-[120px]">{product.name}</span>
+                                      <div className="flex gap-2 flex-1">
+                                        <div>
+                                          <label className="text-[10px] text-text-secondary">New (KES)</label>
+                                          <input type="number" value={product.priceNew}
+                                            onChange={(e) => {
+                                              const prods = [...(storeVendorEdits.products || vendor.products)];
+                                              prods[pi] = { ...prods[pi], priceNew: Number(e.target.value) };
+                                              setStoreVendorEdits({ ...storeVendorEdits, products: prods });
+                                            }}
+                                            className="w-20 border border-gray-200 rounded px-2 py-1 text-xs font-mono outline-none focus:border-primary" />
+                                        </div>
+                                        <div>
+                                          <label className="text-[10px] text-text-secondary">Refill (KES)</label>
+                                          <input type="number" value={product.priceRefill}
+                                            onChange={(e) => {
+                                              const prods = [...(storeVendorEdits.products || vendor.products)];
+                                              prods[pi] = { ...prods[pi], priceRefill: Number(e.target.value) };
+                                              setStoreVendorEdits({ ...storeVendorEdits, products: prods });
+                                            }}
+                                            className="w-20 border border-gray-200 rounded px-2 py-1 text-xs font-mono outline-none focus:border-primary" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead><tr className="text-text-secondary text-left border-b"><th className="pb-1 pr-4">Product</th><th className="pb-1 pr-4">Size</th><th className="pb-1 pr-4">New Price</th><th className="pb-1 pr-4">Refill Price</th><th className="pb-1">Status</th></tr></thead>
+                                    <tbody>
+                                      {vendor.products.map((p) => (
+                                        <tr key={p.id} className={`border-b border-gray-50 ${!p.available ? "opacity-40" : ""}`}>
+                                          <td className="py-1.5 pr-4 font-medium">{p.name}</td>
+                                          <td className="py-1.5 pr-4">{p.size}</td>
+                                          <td className="py-1.5 pr-4 font-mono">KES {p.priceNew}</td>
+                                          <td className="py-1.5 pr-4 font-mono">{p.priceRefill > 0 ? `KES ${p.priceRefill}` : "N/A"}</td>
+                                          <td className="py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${p.available ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500"}`}>{p.available ? "Active" : "Inactive"}</span></td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Service Times */}
+                            <div>
+                              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Service Times</p>
+                              {isEditing ? (
+                                <div className="space-y-2">
+                                  {(storeVendorEdits.serviceTimes || vendor.serviceTimes).map((st, si) => (
+                                    <div key={st.day} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
+                                      <input type="checkbox" checked={st.open}
+                                        onChange={(e) => {
+                                          const times = [...(storeVendorEdits.serviceTimes || vendor.serviceTimes)];
+                                          times[si] = { ...times[si], open: e.target.checked };
+                                          setStoreVendorEdits({ ...storeVendorEdits, serviceTimes: times });
+                                        }}
+                                        className="rounded" />
+                                      <span className="text-xs font-semibold w-20">{st.day.slice(0, 3)}</span>
+                                      <input type="time" value={st.openTime} disabled={!st.open}
+                                        onChange={(e) => {
+                                          const times = [...(storeVendorEdits.serviceTimes || vendor.serviceTimes)];
+                                          times[si] = { ...times[si], openTime: e.target.value };
+                                          setStoreVendorEdits({ ...storeVendorEdits, serviceTimes: times });
+                                        }}
+                                        className="border border-gray-200 rounded px-2 py-1 text-xs outline-none focus:border-primary disabled:opacity-40" />
+                                      <span className="text-text-secondary text-xs">to</span>
+                                      <input type="time" value={st.closeTime} disabled={!st.open}
+                                        onChange={(e) => {
+                                          const times = [...(storeVendorEdits.serviceTimes || vendor.serviceTimes)];
+                                          times[si] = { ...times[si], closeTime: e.target.value };
+                                          setStoreVendorEdits({ ...storeVendorEdits, serviceTimes: times });
+                                        }}
+                                        className="border border-gray-200 rounded px-2 py-1 text-xs outline-none focus:border-primary disabled:opacity-40" />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                  {vendor.serviceTimes.map((st) => (
+                                    <div key={st.day} className={`text-xs px-3 py-2 rounded-lg ${st.open ? "bg-green-50 text-green-800" : "bg-gray-50 text-gray-400"}`}>
+                                      <span className="font-semibold">{st.day.slice(0, 3)}</span>
+                                      {st.open ? <span className="ml-1">{st.openTime} - {st.closeTime}</span> : <span className="ml-1">Closed</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Brands & Areas */}
+                            {!isEditing && (
+                              <div className="space-y-2">
+                                {vendor.brands.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1">Brands</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {vendor.brands.map((b) => (
+                                        <span key={b} className="bg-primary-light text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full">{waterBrands.find((wb) => wb.id === b)?.name || b}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {vendor.areasServed.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1">Areas Served</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {vendor.areasServed.map((a) => (
+                                        <span key={a} className="bg-green-50 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">{a}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {vendor.locations.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1">Locations</p>
+                                    {vendor.locations.map((loc) => (
+                                      <div key={loc.id} className="text-xs text-text-primary flex items-center gap-1 mb-0.5">
+                                        <MapPin size={10} className="text-primary" /> {loc.name} {loc.area && `(${loc.area})`}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Action buttons */}
+                            <div className="pt-3 border-t border-gray-100 flex gap-2">
+                              {isEditing ? (
+                                <>
+                                  <button onClick={() => handleSaveStoreVendor(vendor.id)}
+                                    className="flex-1 flex items-center justify-center gap-1 text-xs py-2.5 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg font-medium transition-colors">
+                                    <CheckCircle2 size={14} /> Save Changes
+                                  </button>
+                                  <button onClick={() => { setEditingStoreVendor(null); setStoreVendorEdits({}); }}
+                                    className="flex-1 flex items-center justify-center gap-1 text-xs py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => { setEditingStoreVendor(vendor.id); setStoreVendorEdits({}); }}
+                                    className="flex-1 flex items-center justify-center gap-1 text-xs py-2.5 bg-blue-50 hover:bg-blue-100 text-primary rounded-lg font-medium transition-colors">
+                                    <Edit3 size={14} /> Edit Details
+                                  </button>
+                                  {deleteStoreVendorConfirm === vendor.id ? (
+                                    <div className="flex gap-1">
+                                      <button onClick={() => handleDeleteStoreVendor(vendor.id)}
+                                        className="px-4 py-2.5 bg-red-500 text-white rounded-lg text-xs font-medium">Confirm Delete</button>
+                                      <button onClick={() => setDeleteStoreVendorConfirm(null)}
+                                        className="px-4 py-2.5 bg-gray-100 rounded-lg text-xs font-medium">Cancel</button>
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => setDeleteStoreVendorConfirm(vendor.id)}
+                                      className="flex items-center justify-center gap-1 text-xs py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors">
+                                      <Trash2 size={14} /> Delete
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* Legacy: Add vendor form for backward compat with old system */}
+            <div className="flex items-center justify-between mb-4 mt-6">
+              <h3 className="text-sm font-semibold text-text-secondary">Legacy Vendors</h3>
               <button
                 onClick={() => setShowAddVendor(!showAddVendor)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-text-secondary rounded-lg text-xs font-medium transition-colors"
               >
-                <Plus size={14} />
-                Add Vendor
+                <Plus size={12} />
+                Add Legacy Vendor
               </button>
             </div>
 
-            {/* ── Add Vendor Form ── */}
+            {/* ── Legacy Add Vendor Form ── */}
             {showAddVendor && (
               <div className="bg-surface shadow-card rounded-2xl p-6 mb-6">
                 <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
                   <Store size={18} className="text-primary" />
-                  Add New Vendor
+                  Add Legacy Vendor
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
