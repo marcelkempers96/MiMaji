@@ -394,16 +394,26 @@ export async function POST(req: NextRequest) {
           console.error("Auth user creation failed:", e);
         }
 
+        // Create/update profile (best-effort — check result)
+        let profileOk = false;
         if (profileId) {
-          await sb.from("profiles").upsert({
+          const { error: profileErr } = await sb.from("profiles").upsert({
             id: profileId,
             phone,
             full_name: body.name,
             role: "vendor",
           }, { onConflict: "id" });
+          if (profileErr) {
+            console.error("Profile upsert failed:", profileErr.message);
+          } else {
+            profileOk = true;
+          }
         }
 
-        const { data: vendorData, error } = await sb.from("vendors").insert({
+        // Insert vendor record — the critical step.
+        // Use profile_id only if the profile was successfully created/updated,
+        // otherwise set null to avoid foreign key violations.
+        const vendorRow = {
           name: body.name,
           area: "",
           rating: 5.0,
@@ -416,14 +426,28 @@ export async function POST(req: NextRequest) {
           delivery_radius_km: 10,
           active: true,
           verified: false,
-          profile_id: profileId,
+          profile_id: profileOk ? profileId : null,
           business_reg_no: "",
           mpesa_number: "",
           description: "",
           min_order: "",
           pin,
-        }).select("id").single();
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        };
+
+        let { data: vendorData, error } = await sb.from("vendors").insert(vendorRow).select("id").single();
+
+        // If insert failed (e.g. FK constraint on profile_id), retry without profile_id
+        if (error && profileId) {
+          console.error("Vendor insert failed, retrying without profile_id:", error.message);
+          const retryResult = await sb.from("vendors").insert({ ...vendorRow, profile_id: null }).select("id").single();
+          vendorData = retryResult.data;
+          error = retryResult.error;
+        }
+
+        if (error) {
+          console.error("Vendor insert failed:", error.message);
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
 
         if (vendorData?.id) {
           await sb.from("vendor_products").insert(DEFAULT_PRODUCTS.map((p) => ({ ...p, vendor_id: vendorData.id })));

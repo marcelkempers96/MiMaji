@@ -185,28 +185,49 @@ export function loadVendorStore(): VendorRecord[] {
 }
 
 /**
- * Async load: fetches from Supabase and updates local cache.
+ * Async load: fetches from Supabase (via admin API or direct) and updates local cache.
  */
 export async function loadVendorStoreAsync(): Promise<VendorRecord[]> {
-  if (!hasSupabaseConfig) return loadLocalCache();
-
+  // Try admin API first (works even if client-side Supabase config is missing)
   try {
-    const { data, error } = await supabase
-      .from("vendors")
-      .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
-      .eq("active", true)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    if (!data || data.length === 0) return loadLocalCache();
-
-    const vendors = data.map((v: Record<string, unknown>) => mapSupabaseToVendor(v));
-    saveLocalCache(vendors); // Update cache
-    return vendors;
+    let adminCode = "";
+    try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
+    if (adminCode) {
+      const res = await fetch(`/api/admin?code=${encodeURIComponent(adminCode)}&type=vendors`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const vendors = data.map((v: Record<string, unknown>) => mapSupabaseToVendor(v));
+          saveLocalCache(vendors);
+          return vendors;
+        }
+      }
+    }
   } catch (e) {
-    console.error("Failed to load vendors from Supabase:", e);
-    return loadLocalCache();
+    console.error("Admin API vendor load failed:", e);
   }
+
+  // Fallback: direct Supabase client (if config available)
+  if (hasSupabaseConfig) {
+    try {
+      const { data, error } = await supabase
+        .from("vendors")
+        .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
+        .eq("active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const vendors = data.map((v: Record<string, unknown>) => mapSupabaseToVendor(v));
+        saveLocalCache(vendors);
+        return vendors;
+      }
+    } catch (e) {
+      console.error("Failed to load vendors from Supabase:", e);
+    }
+  }
+
+  return loadLocalCache();
 }
 
 export function saveVendorStore(vendors: VendorRecord[]) {
@@ -218,8 +239,6 @@ export function getVendorById(vendorId: string): VendorRecord | null {
 }
 
 export async function getVendorByIdAsync(vendorId: string): Promise<VendorRecord | null> {
-  if (!hasSupabaseConfig) return getVendorById(vendorId);
-
   try {
     const { data, error } = await supabase
       .from("vendors")
@@ -240,8 +259,6 @@ export function getVendorByPhone(phone: string): VendorRecord | null {
 }
 
 export async function getVendorByPhoneAsync(phone: string): Promise<VendorRecord | null> {
-  if (!hasSupabaseConfig) return getVendorByPhone(phone);
-
   const normalized = normalizePhone(phone);
   try {
     const { data, error } = await supabase
@@ -270,70 +287,66 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
   const pin = generatePin();
   const now = new Date().toISOString();
 
-  if (hasSupabaseConfig) {
-    try {
-      // Call server-side API to create vendor (uses service role — bypasses RLS,
-      // creates auth user without affecting admin session)
-      // Read admin code from localStorage (survives mobile app switching)
-      let adminCode = "";
-      try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
-      const res = await fetch("/api/admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: adminCode,
-          action: "create_vendor",
-          name,
-          phone: normalizedPhone,
-          pin,
-        }),
-      });
-      const result = await res.json();
-      if (!res.ok || result.error) throw new Error(result.error || "Failed to create vendor");
-
-      const vendorId = result.vendorId;
-      const defaultProducts = defaultVendorProducts();
-      const defaultTimes = defaultServiceTimes();
-
-      // Build the local record (server already created everything in Supabase)
-      const vendor: VendorRecord = {
-        id: vendorId,
+  // Always try the server API first — it has the service role key and can
+  // write to Supabase regardless of whether client-side env vars are set.
+  try {
+    let adminCode = "";
+    try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
+    const res = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: adminCode,
+        action: "create_vendor",
         name,
-        area: "",
         phone: normalizedPhone,
-        credentials: { phone: normalizedPhone, pin },
-        businessRegNo: "",
-        mpesaNumber: "",
-        phoneNumbers: [normalizedPhone],
-        rating: 5.0,
-        reviews: 0,
-        products: defaultProducts,
-        brands: [],
-        areasServed: [],
-        serviceTimes: defaultTimes,
-        locations: [],
-        deliveryRadius: 10,
-        description: "",
-        minOrder: "",
-        createdAt: now,
-        updatedAt: now,
-      };
+        pin,
+      }),
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) throw new Error(result.error || "Failed to create vendor");
 
-      // Update local cache
-      const cached = loadLocalCache();
-      cached.push(vendor);
-      saveLocalCache(cached);
+    const vendorId = result.vendorId;
+    console.log("Vendor created in Supabase:", vendorId);
 
-      // Also register in mock signups as fallback
-      registerVendorAuth(vendor);
+    // Build the local record (server already created everything in Supabase)
+    const vendor: VendorRecord = {
+      id: vendorId,
+      name,
+      area: "",
+      phone: normalizedPhone,
+      credentials: { phone: normalizedPhone, pin },
+      businessRegNo: "",
+      mpesaNumber: "",
+      phoneNumbers: [normalizedPhone],
+      rating: 5.0,
+      reviews: 0,
+      products: defaultVendorProducts(),
+      brands: [],
+      areasServed: [],
+      serviceTimes: defaultServiceTimes(),
+      locations: [],
+      deliveryRadius: 10,
+      description: "",
+      minOrder: "",
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      return vendor;
-    } catch (e) {
-      console.error("Supabase vendor creation failed, falling back to localStorage:", e);
-    }
+    // Update local cache
+    const cached = loadLocalCache();
+    cached.push(vendor);
+    saveLocalCache(cached);
+
+    // Also register in mock signups as fallback
+    registerVendorAuth(vendor);
+
+    return vendor;
+  } catch (e) {
+    console.error("Server vendor creation failed, falling back to localStorage:", e);
   }
 
-  // Fallback: localStorage-only
+  // Fallback: localStorage-only (offline or API unreachable)
   return createVendorLocal(name, phone);
 }
 
@@ -409,31 +422,35 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
   // Always update local cache first for instant feedback
   const localResult = updateVendorLocal(vendorId, updates);
 
-  if (!hasSupabaseConfig || !localResult) return localResult;
+  if (!localResult) return localResult;
 
+  // Sync to Supabase via server API (has service role key, works regardless of client env vars)
   try {
-    // Update main vendor fields
-    const vendorUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (updates.name !== undefined) vendorUpdate.name = updates.name;
-    if (updates.area !== undefined) vendorUpdate.area = updates.area;
-    if (updates.businessRegNo !== undefined) vendorUpdate.business_reg_no = updates.businessRegNo;
-    if (updates.mpesaNumber !== undefined) vendorUpdate.mpesa_number = updates.mpesaNumber;
-    if (updates.phoneNumbers !== undefined) vendorUpdate.phone_numbers = updates.phoneNumbers;
-    if (updates.brands !== undefined) vendorUpdate.brands = updates.brands;
-    if (updates.areasServed !== undefined) vendorUpdate.areas_served = updates.areasServed;
-    if (updates.deliveryRadius !== undefined) vendorUpdate.delivery_radius_km = updates.deliveryRadius;
-    if (updates.description !== undefined) vendorUpdate.description = updates.description;
-    if (updates.minOrder !== undefined) vendorUpdate.min_order = updates.minOrder;
-    if (updates.rating !== undefined) vendorUpdate.rating = updates.rating;
-    if (updates.reviews !== undefined) vendorUpdate.reviews = updates.reviews;
+    let adminCode = "";
+    try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
 
-    if (Object.keys(vendorUpdate).length > 1) {
-      await supabase.from("vendors").update(vendorUpdate).eq("id", vendorId);
-    }
+    const vendorUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (updates.name !== undefined) vendorUpdates.name = updates.name;
+    if (updates.area !== undefined) vendorUpdates.area = updates.area;
+    if (updates.businessRegNo !== undefined) vendorUpdates.business_reg_no = updates.businessRegNo;
+    if (updates.mpesaNumber !== undefined) vendorUpdates.mpesa_number = updates.mpesaNumber;
+    if (updates.phoneNumbers !== undefined) vendorUpdates.phone_numbers = updates.phoneNumbers;
+    if (updates.brands !== undefined) vendorUpdates.brands = updates.brands;
+    if (updates.areasServed !== undefined) vendorUpdates.areas_served = updates.areasServed;
+    if (updates.deliveryRadius !== undefined) vendorUpdates.delivery_radius_km = updates.deliveryRadius;
+    if (updates.description !== undefined) vendorUpdates.description = updates.description;
+    if (updates.minOrder !== undefined) vendorUpdates.min_order = updates.minOrder;
+    if (updates.rating !== undefined) vendorUpdates.rating = updates.rating;
+    if (updates.reviews !== undefined) vendorUpdates.reviews = updates.reviews;
 
-    // Update products if provided
-    if (updates.products) {
-      // Delete existing and re-insert
+    await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: adminCode, action: "update_vendor", vendorId, updates: vendorUpdates }),
+    });
+
+    // Update products via direct Supabase if config available
+    if (hasSupabaseConfig && updates.products) {
       await supabase.from("vendor_products").delete().eq("vendor_id", vendorId);
       if (updates.products.length > 0) {
         await supabase.from("vendor_products").insert(
@@ -450,8 +467,8 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
       }
     }
 
-    // Update service times if provided
-    if (updates.serviceTimes) {
+    // Update service times via direct Supabase if config available
+    if (hasSupabaseConfig && updates.serviceTimes) {
       await supabase.from("vendor_service_times").delete().eq("vendor_id", vendorId);
       if (updates.serviceTimes.length > 0) {
         await supabase.from("vendor_service_times").insert(
@@ -466,8 +483,8 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
       }
     }
 
-    // Update locations if provided
-    if (updates.locations) {
+    // Update locations via direct Supabase if config available
+    if (hasSupabaseConfig && updates.locations) {
       await supabase.from("vendor_locations").delete().eq("vendor_id", vendorId);
       if (updates.locations.length > 0) {
         await supabase.from("vendor_locations").insert(
@@ -492,8 +509,8 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
 /** Synchronous local-only update */
 export function updateVendor(vendorId: string, updates: Partial<VendorRecord>): VendorRecord | null {
   const result = updateVendorLocal(vendorId, updates);
-  // Fire-and-forget Supabase sync
-  if (hasSupabaseConfig && result) {
+  // Fire-and-forget server sync
+  if (result) {
     updateVendorAsync(vendorId, updates).catch(console.error);
   }
   return result;
@@ -520,13 +537,17 @@ function updateVendorLocal(vendorId: string, updates: Partial<VendorRecord>): Ve
 export async function deleteVendorAsync(vendorId: string): Promise<VendorRecord[]> {
   const remaining = deleteVendorLocal(vendorId);
 
-  if (hasSupabaseConfig) {
-    try {
-      // Cascade deletes vendor_products, vendor_service_times, vendor_locations
-      await supabase.from("vendors").delete().eq("id", vendorId);
-    } catch (e) {
-      console.error("Failed to delete vendor from Supabase:", e);
-    }
+  // Delete from Supabase via server API
+  try {
+    let adminCode = "";
+    try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
+    await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: adminCode, action: "delete_vendor", vendorId }),
+    });
+  } catch (e) {
+    console.error("Failed to delete vendor from Supabase:", e);
   }
 
   return remaining;
@@ -534,9 +555,7 @@ export async function deleteVendorAsync(vendorId: string): Promise<VendorRecord[
 
 export function deleteVendor(vendorId: string): VendorRecord[] {
   const result = deleteVendorLocal(vendorId);
-  if (hasSupabaseConfig) {
-    deleteVendorAsync(vendorId).catch(console.error);
-  }
+  deleteVendorAsync(vendorId).catch(console.error);
   return result;
 }
 
@@ -570,8 +589,6 @@ export function getVendorSettingsByUserId(userId: string): VendorRecord | null {
 }
 
 export async function getVendorSettingsByUserIdAsync(userId: string): Promise<VendorRecord | null> {
-  if (!hasSupabaseConfig) return getVendorSettingsByUserId(userId);
-
   try {
     // Try by vendor ID first
     let { data } = await supabase

@@ -51,52 +51,9 @@ export default function VendorLoginPage() {
     const result = await login(cleaned, pin);
     if (!result.error) return;
 
-    // Fallback: try server-side vendor auth (checks vendors table PIN directly)
-    try {
-      const res = await fetch("/api/vendor-auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleaned, pin }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.vendor) {
-          // Store vendor session so AuthContext picks it up
-          const vendorUser = {
-            id: data.vendor.id,
-            phone: data.vendor.phone,
-            name: data.vendor.name,
-            role: "vendor" as const,
-          };
-          try {
-            // Must match the format expected by AuthContext.loadUserCache():
-            // { user, isMock, expiresAt }
-            const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
-            localStorage.setItem("mimaji_user_cache", JSON.stringify({
-              user: vendorUser,
-              isMock: true,
-              expiresAt: Date.now() + SESSION_EXPIRY_MS,
-            }));
-            // Also save under legacy key for backwards compat
-            localStorage.setItem("mimaji_mock_user", JSON.stringify({
-              user: vendorUser,
-              isMock: true,
-              expiresAt: Date.now() + SESSION_EXPIRY_MS,
-            }));
-            // Also register in mock signups for subsequent logins
-            const raw = localStorage.getItem("mimaji_mock_signups");
-            const signups = raw ? JSON.parse(raw) : {};
-            signups[cleaned] = { pin, user: vendorUser };
-            if (cleaned.startsWith("254")) signups["0" + cleaned.slice(3)] = { pin, user: vendorUser };
-            localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-          } catch {}
-          // Force reload to pick up the new session
-          window.location.href = "/vendor-portal";
-          return;
-        }
-      }
-    } catch {}
-
+    // The SupabaseAuthProvider.login() now includes vendor-auth API fallback,
+    // so if we reach here, all auth methods have been exhausted.
+    // Show the error from the login attempt.
     setError(result.error || "Invalid phone number or PIN");
     setLoading(false);
   };
