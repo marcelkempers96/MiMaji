@@ -118,21 +118,52 @@ export async function fetchAllOrders(): Promise<OrderRecord[]> {
 }
 
 export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
+  // Always check localStorage for mock orders first as a baseline
+  let mockOrders: OrderRecord[] = [];
+  try {
+    mockOrders = getMockOrders().filter((o) => o.customer_id === userId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } catch (e) {
+    console.error("Error reading mock orders:", e);
+  }
+
   if (!hasSupabaseConfig) {
-    return getMockOrders().filter((o) => o.customer_id === userId).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return mockOrders;
   }
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("customer_id", userId)
-    .order("created_at", { ascending: false });
+  // Try Supabase, fall back to localStorage mock orders on failure
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
-  if (error) {
-    console.error("Error fetching orders:", error);
-    return [];
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("customer_id", userId)
+      .order("created_at", { ascending: false })
+      .abortSignal(controller.signal);
+
+    clearTimeout(timeout);
+
+    if (error) {
+      console.error("Error fetching orders from Supabase:", error);
+      // Fall back to localStorage mock orders
+      return mockOrders;
+    }
+
+    const supabaseOrders = (data || []).map(mapSupabaseOrder);
+
+    // Merge: return Supabase orders + any mock orders not already in Supabase
+    // This handles the case where some orders were created in mock mode
+    const supabaseIds = new Set(supabaseOrders.map((o) => o.id));
+    const uniqueMockOrders = mockOrders.filter((o) => !supabaseIds.has(o.id));
+    const merged = [...supabaseOrders, ...uniqueMockOrders];
+    return merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } catch (e) {
+    clearTimeout(timeout);
+    console.error("Error fetching orders:", e);
+    // Fall back to localStorage mock orders
+    return mockOrders;
   }
-  return (data || []).map(mapSupabaseOrder);
 }
 
 function mapSupabaseOrder(row: Record<string, unknown>): OrderRecord {
@@ -253,75 +284,124 @@ export async function createOrder(params: {
     return { orderId, error: null };
   }
 
-  // Ensure the customer has a profile (foreign key requirement)
-  const { data: profile, error: profileCheckErr } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", params.customerId)
-    .maybeSingle();
+  // Add timeout to prevent hanging forever on network issues
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
-  if (!profile || profileCheckErr) {
-    // Profile missing or unreadable — create a minimal one so the order can proceed
-    const { error: profileErr } = await supabase
-      .from("profiles")
-      .upsert({ id: params.customerId, role: "customer" }, { onConflict: "id" });
-    if (profileErr) {
-      console.error("Error ensuring profile exists:", profileErr);
-      return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
-    }
-
-    // Verify the profile was actually created (upsert can silently fail under RLS)
-    const { data: verifyProfile } = await supabase
+  try {
+    // Ensure the customer has a profile (foreign key requirement)
+    const { data: profile, error: profileCheckErr } = await supabase
       .from("profiles")
       .select("id")
       .eq("id", params.customerId)
       .maybeSingle();
 
-    if (!verifyProfile) {
-      console.error("Profile still missing after upsert for customer:", params.customerId);
-      return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
-    }
-  }
+    if (!profile || profileCheckErr) {
+      // Profile missing or unreadable — create a minimal one so the order can proceed
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .upsert({ id: params.customerId, role: "customer" }, { onConflict: "id" });
+      if (profileErr) {
+        console.error("Error ensuring profile exists:", profileErr);
+        clearTimeout(timeout);
+        return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
+      }
 
-  // Generate a temporary ID for the delivery code, then use the real DB id
-  const tempId = crypto.randomUUID();
-  const { data, error } = await supabase
-    .from("orders")
-    .insert({
-      customer_id: params.customerId,
-      delivery_address: params.deliveryAddress,
-      delivery_address_details: params.deliveryAddressDetails || null,
-      quantity: Math.min(params.quantity, 10),
-      price_total: params.priceTotal,
-      product_name: params.productName,
-      order_items: params.orderItems,
-      status,
-      mpesa_ref: params.mpesaRef || null,
-      vendor_id: null,
-      vendor_name: null,
-      vendor_location: null,
-      vendors_tried: [],
-      current_vendor_offer: null,
-      scheduled_date: params.scheduledDate || null,
-      scheduled_time: params.scheduledTime || null,
-      delivery_code: generateDeliveryCode(tempId),
-      payment_method: params.paymentMethod || null,
-      brand_preference: params.brandPreference || [],
-      customer_name: params.customerName || "",
-      customer_phone: params.customerPhone || "",
-    })
-    .select("id")
-    .single();
+      // Verify the profile was actually created (upsert can silently fail under RLS)
+      const { data: verifyProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", params.customerId)
+        .maybeSingle();
 
-  if (error) {
-    console.error("Error creating order:", error);
-    // Return a user-friendly message instead of raw DB errors
-    if (error.message?.includes("foreign key constraint")) {
-      return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
+      if (!verifyProfile) {
+        console.error("Profile still missing after upsert for customer:", params.customerId);
+        clearTimeout(timeout);
+        return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
+      }
     }
-    return { orderId: null, error: "Failed to place order. Please try again." };
+
+    // Generate a temporary ID for the delivery code, then use the real DB id
+    const tempId = crypto.randomUUID();
+    const { data, error } = await supabase
+      .from("orders")
+      .insert({
+        customer_id: params.customerId,
+        delivery_address: params.deliveryAddress,
+        delivery_address_details: params.deliveryAddressDetails || null,
+        quantity: Math.min(params.quantity, 10),
+        price_total: params.priceTotal,
+        product_name: params.productName,
+        order_items: params.orderItems,
+        status,
+        mpesa_ref: params.mpesaRef || null,
+        vendor_id: null,
+        vendor_name: null,
+        vendor_location: null,
+        vendors_tried: [],
+        current_vendor_offer: null,
+        scheduled_date: params.scheduledDate || null,
+        scheduled_time: params.scheduledTime || null,
+        delivery_code: generateDeliveryCode(tempId),
+        payment_method: params.paymentMethod || null,
+        brand_preference: params.brandPreference || [],
+        customer_name: params.customerName || "",
+        customer_phone: params.customerPhone || "",
+      })
+      .select("id")
+      .single();
+
+    clearTimeout(timeout);
+
+    if (error) {
+      console.error("Error creating order:", error);
+      // Return a user-friendly message instead of raw DB errors
+      if (error.message?.includes("foreign key constraint")) {
+        return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
+      }
+      return { orderId: null, error: "Failed to place order. Please try again." };
+    }
+
+    // Also save a local backup in localStorage so orders survive Supabase outages
+    try {
+      const backupOrder: OrderRecord = {
+        id: data.id,
+        customer_id: params.customerId,
+        delivery_address: params.deliveryAddress,
+        delivery_address_details: params.deliveryAddressDetails || null,
+        quantity: Math.min(params.quantity, 10),
+        price_total: params.priceTotal,
+        product_name: params.productName,
+        order_items: params.orderItems,
+        status,
+        mpesa_ref: params.mpesaRef || null,
+        estimated_delivery_minutes: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        vendor_id: null,
+        vendor_name: null,
+        vendor_location: null,
+        vendors_tried: [],
+        current_vendor_offer: null,
+        scheduled_date: params.scheduledDate || null,
+        scheduled_time: params.scheduledTime || null,
+        delivery_code: params.deliveryCode || generateDeliveryCode(data.id),
+        payment_method: params.paymentMethod || null,
+        brand_preference: params.brandPreference || [],
+        customer_name: params.customerName || undefined,
+        customer_phone: params.customerPhone || undefined,
+      };
+      const mockOrders = getMockOrders();
+      mockOrders.push(backupOrder);
+      saveMockOrders(mockOrders);
+    } catch {}
+
+    return { orderId: data.id, error: null };
+  } catch (e) {
+    clearTimeout(timeout);
+    console.error("Order creation failed:", e);
+    return { orderId: null, error: "Connection issue. Please check your internet and try again." };
   }
-  return { orderId: data.id, error: null };
 }
 
 export async function updateOrderStatus(orderId: string, status: string, mpesaRef?: string) {

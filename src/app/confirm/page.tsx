@@ -100,14 +100,14 @@ export default function ConfirmOrderPage() {
   }
 
   // Scheduled delivery
-  const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(null);
-  useState(() => {
+  const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(() => {
     try {
-      const raw = sessionStorage.getItem("mimaji_scheduled_delivery");
-      if (raw) {
-        setScheduledDelivery(JSON.parse(raw));
+      if (typeof window !== "undefined") {
+        const raw = sessionStorage.getItem("mimaji_scheduled_delivery");
+        if (raw) return JSON.parse(raw);
       }
     } catch {}
+    return null;
   });
 
   // Rewards
@@ -175,8 +175,11 @@ export default function ConfirmOrderPage() {
 
   /** Create the real order, assign vendor, process rewards, clear cart */
   const finalizeOrder = async (mpesaRef: string | null) => {
-    if (!user?.phone || !user?.id || !pendingOrderRef.current) {
-      throw new Error("Missing user or order data. Please try again.");
+    if (!user?.phone || !user?.id) {
+      throw new Error("You are not logged in. Please log in and try again.");
+    }
+    if (!pendingOrderRef.current) {
+      throw new Error("Order data missing. Please go back and try again.");
     }
 
     const pending = pendingOrderRef.current;
@@ -347,8 +350,14 @@ export default function ConfirmOrderPage() {
         setPaymentStatus("awaiting_code");
       } else {
         // Cash on Delivery: create order immediately
-        await finalizeOrder(null);
-        setPaymentStatus("confirmed");
+        try {
+          await finalizeOrder(null);
+          setPaymentStatus("confirmed");
+        } catch (codErr) {
+          setPaymentStatus("error");
+          setErrorMsg(codErr instanceof Error ? codErr.message : "Failed to place order. Please try again.");
+          return;
+        }
       }
     } catch (err) {
       setPaymentStatus("error");
@@ -384,7 +393,7 @@ export default function ConfirmOrderPage() {
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
-      setPaymentStatus("error");
+      // Stay on awaiting_code screen and show error there (don't jump back to main screen)
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
     } finally {
       setCreatingOrder(false);
@@ -399,7 +408,7 @@ export default function ConfirmOrderPage() {
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
-      setPaymentStatus("error");
+      // Stay on awaiting_code screen and show error there (don't jump back to main screen)
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
     } finally {
       setCreatingOrder(false);
@@ -487,6 +496,14 @@ export default function ConfirmOrderPage() {
               We recommend you take a screenshot of this page for your records.
             </p>
           </div>
+
+          {/* Error Message */}
+          {errorMsg && (
+            <div className="bg-[#FFEBEE] rounded-xl p-4 text-center mb-4">
+              <p className="text-cta-alt font-bold text-sm">Order Error</p>
+              <p className="text-text-secondary text-xs mt-1">{errorMsg}</p>
+            </div>
+          )}
 
           <button
             onClick={handleMpesaCodeSubmit}

@@ -418,16 +418,14 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
           setUser(enriched);
           saveUserCache(enriched, false);
         } else if (event === "INITIAL_SESSION") {
-          // No Supabase session on load — keep cached user if it was a mock
+          // No Supabase session on load — keep ANY cached user so they stay logged in.
+          // The cache has its own 24h expiry. Don't force-logout just because Supabase
+          // session is gone (could be flaky network, expired token, etc.).
           const cached = loadUserCache();
-          if (cached?.isMock) {
-            isMockUserRef.current = true;
+          if (cached) {
+            isMockUserRef.current = cached.isMock;
             setUser(cached.user);
-          } else if (cached && !cached.isMock) {
-            // Session expired — clear the cache
-            clearUserCache();
-            setUser(null);
-          } else if (!cached) {
+          } else {
             setUser(null);
           }
         } else if (event === "SIGNED_OUT") {
