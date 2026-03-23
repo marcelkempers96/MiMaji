@@ -79,14 +79,7 @@ const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
     pin: "1234",
     user: { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
   },
-  "0712345678": {
-    pin: "5678",
-    user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
-  },
-  "254712345678": {
-    pin: "5678",
-    user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
-  },
+  // AquaPure mock account removed — vendors authenticate via Supabase or /api/vendor-auth
   "0700000001": {
     pin: "1111",
     user: { id: "v8c3d0e2-4f6a-5b9c-c7e5-2a0f1b8d6c3e", phone: "254700000001", name: "MiMaji Vendor", role: "vendor" },

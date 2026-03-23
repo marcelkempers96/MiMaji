@@ -424,20 +424,9 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
 
   if (!localResult) return localResult;
 
-  // Resolve the actual vendor record ID from Supabase.
-  // vendorId might be a profile/auth UUID rather than the vendors.id UUID.
-  let resolvedVendorId = vendorId;
-  try {
-    // Try direct match on vendors.id first
-    let { data: v } = await supabase.from("vendors").select("id").eq("id", vendorId).maybeSingle();
-    if (!v) {
-      // If not found, vendorId is likely a profile_id
-      const res = await supabase.from("vendors").select("id").eq("profile_id", vendorId).maybeSingle();
-      if (res.data) resolvedVendorId = res.data.id;
-    }
-  } catch {}
-
-  // Sync to Supabase via server API (has service role key, works regardless of client env vars)
+  // Sync ALL vendor data to Supabase via the admin API (service role, bypasses RLS).
+  // Client-side Supabase (anon key) can't write to vendor sub-tables due to RLS,
+  // so we route everything through the server.
   try {
     let adminCode = "";
     try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
@@ -456,61 +445,53 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
     if (updates.rating !== undefined) vendorUpdates.rating = updates.rating;
     if (updates.reviews !== undefined) vendorUpdates.reviews = updates.reviews;
 
-    await fetch("/api/admin", {
+    // Build the full payload — admin API handles products/serviceTimes/locations
+    // server-side with service role (bypasses RLS)
+    const payload: Record<string, unknown> = {
+      code: adminCode,
+      action: "update_vendor",
+      vendorId,
+      updates: vendorUpdates,
+    };
+
+    if (updates.products) {
+      payload.products = updates.products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        size: p.size,
+        price_new: p.priceNew,
+        price_refill: p.priceRefill,
+        available: p.available,
+      }));
+    }
+
+    if (updates.serviceTimes) {
+      payload.serviceTimes = updates.serviceTimes.map((st) => ({
+        day: st.day,
+        open: st.open,
+        open_time: st.openTime,
+        close_time: st.closeTime,
+      }));
+    }
+
+    if (updates.locations) {
+      payload.locations = updates.locations.map((l) => ({
+        id: l.id,
+        name: l.name,
+        area: l.area,
+        lat: l.lat,
+        lng: l.lng,
+      }));
+    }
+
+    const res = await fetch("/api/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: adminCode, action: "update_vendor", vendorId, updates: vendorUpdates }),
+      body: JSON.stringify(payload),
     });
-
-    // Update products via direct Supabase
-    if (updates.products) {
-      await supabase.from("vendor_products").delete().eq("vendor_id", resolvedVendorId);
-      if (updates.products.length > 0) {
-        await supabase.from("vendor_products").insert(
-          updates.products.map((p) => ({
-            id: p.id,
-            vendor_id: resolvedVendorId,
-            name: p.name,
-            size: p.size,
-            price_new: p.priceNew,
-            price_refill: p.priceRefill,
-            available: p.available,
-          }))
-        );
-      }
-    }
-
-    // Update service times via direct Supabase
-    if (updates.serviceTimes) {
-      await supabase.from("vendor_service_times").delete().eq("vendor_id", resolvedVendorId);
-      if (updates.serviceTimes.length > 0) {
-        await supabase.from("vendor_service_times").insert(
-          updates.serviceTimes.map((st) => ({
-            vendor_id: resolvedVendorId,
-            day: st.day,
-            open: st.open,
-            open_time: st.openTime,
-            close_time: st.closeTime,
-          }))
-        );
-      }
-    }
-
-    // Update locations via direct Supabase
-    if (updates.locations) {
-      await supabase.from("vendor_locations").delete().eq("vendor_id", resolvedVendorId);
-      if (updates.locations.length > 0) {
-        await supabase.from("vendor_locations").insert(
-          updates.locations.map((l) => ({
-            id: l.id,
-            vendor_id: resolvedVendorId,
-            name: l.name,
-            area: l.area,
-            lat: l.lat,
-            lng: l.lng,
-          }))
-        );
-      }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error("Admin API update_vendor failed:", err.error || res.status);
     }
   } catch (e) {
     console.error("Failed to sync vendor update to Supabase:", e);

@@ -487,12 +487,55 @@ export async function POST(req: NextRequest) {
       }
 
       if (action === "update_vendor") {
-        // vendorId could be either the vendor record UUID or the profile/auth UUID.
-        // Use .or() to match on either column.
-        const { error } = await sb.from("vendors")
-          .update(body.updates)
-          .or(`id.eq.${body.vendorId},profile_id.eq.${body.vendorId}`);
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        // Resolve the actual vendor record ID (vendorId could be profile_id)
+        let realVendorId = body.vendorId as string;
+        {
+          const { data: v } = await sb.from("vendors").select("id").eq("id", realVendorId).maybeSingle();
+          if (!v) {
+            const { data: v2 } = await sb.from("vendors").select("id").eq("profile_id", realVendorId).maybeSingle();
+            if (v2) realVendorId = v2.id;
+          }
+        }
+
+        // Update main vendor record
+        if (body.updates && Object.keys(body.updates).length > 0) {
+          const { error } = await sb.from("vendors").update(body.updates).eq("id", realVendorId);
+          if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        // Update products (delete + re-insert, uses service role to bypass RLS)
+        if (body.products) {
+          await sb.from("vendor_products").delete().eq("vendor_id", realVendorId);
+          if (body.products.length > 0) {
+            const { error } = await sb.from("vendor_products").insert(
+              body.products.map((p: Record<string, unknown>) => ({ ...p, vendor_id: realVendorId }))
+            );
+            if (error) console.error("vendor_products insert error:", error.message);
+          }
+        }
+
+        // Update service times
+        if (body.serviceTimes) {
+          await sb.from("vendor_service_times").delete().eq("vendor_id", realVendorId);
+          if (body.serviceTimes.length > 0) {
+            const { error } = await sb.from("vendor_service_times").insert(
+              body.serviceTimes.map((st: Record<string, unknown>) => ({ ...st, vendor_id: realVendorId }))
+            );
+            if (error) console.error("vendor_service_times insert error:", error.message);
+          }
+        }
+
+        // Update locations
+        if (body.locations) {
+          await sb.from("vendor_locations").delete().eq("vendor_id", realVendorId);
+          if (body.locations.length > 0) {
+            const { error } = await sb.from("vendor_locations").insert(
+              body.locations.map((l: Record<string, unknown>) => ({ ...l, vendor_id: realVendorId }))
+            );
+            if (error) console.error("vendor_locations insert error:", error.message);
+          }
+        }
+
         return NextResponse.json({ success: true });
       }
 
