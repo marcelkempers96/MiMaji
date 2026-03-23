@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { OrderRecord, updateOrder } from "./orders";
+import { loadVendorStore } from "./vendorStore";
 
 const hasSupabaseConfig =
   typeof process !== "undefined" &&
@@ -108,7 +109,29 @@ export const MOCK_VENDORS: VendorInfo[] = [
 
 // ── Fetch all active vendors ──
 export async function fetchVendors(): Promise<VendorInfo[]> {
-  if (!hasSupabaseConfig) return MOCK_VENDORS;
+  if (!hasSupabaseConfig) {
+    // Combine mock vendors with dynamically-created vendors from vendorStore
+    const storeVendors = loadVendorStore();
+    const storeVendorInfos: VendorInfo[] = storeVendors.map((v) => ({
+      id: v.id,
+      name: v.name,
+      area: v.area || "",
+      distance: "",
+      rating: v.rating,
+      reviews: v.reviews,
+      hours: v.serviceTimes?.find((t) => t.open) ? `${v.serviceTimes.find((t) => t.open)!.openTime} - ${v.serviceTimes.find((t) => t.open)!.closeTime}` : "7AM - 8PM",
+      products: v.products.filter((p) => p.available).map((p) => `${p.size} ${p.name.includes("Hard") ? "Hard" : p.name.includes("Soft") ? "Soft" : p.name}`),
+      brands: v.brands || [],
+      areasServed: v.areasServed || [],
+      businessRegNo: v.businessRegNo || "",
+      mpesaNumber: v.mpesaNumber || "",
+      phoneNumbers: v.phoneNumbers || [],
+      locations: v.locations || [],
+    }));
+    // Deduplicate by ID (vendorStore vendors take precedence)
+    const storeIds = new Set(storeVendorInfos.map((v) => v.id));
+    return [...storeVendorInfos, ...MOCK_VENDORS.filter((v) => !storeIds.has(v.id))];
+  }
 
   const { data: vendors, error } = await supabase
     .from("vendors")
@@ -264,8 +287,9 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     const deliveryLat = order.delivery_address_details?.lat;
     const deliveryLng = order.delivery_address_details?.lng;
 
-    // Score each untried vendor
-    const candidates = MOCK_VENDORS
+    // Score each untried vendor (including vendorStore vendors)
+    const allVendors = await fetchVendors();
+    const candidates = allVendors
       .filter((v) => !triedIds.includes(v.id))
       .map((v) => {
         let score = 0;
@@ -343,13 +367,15 @@ export async function acceptOrder(
   storeLocationId?: string
 ): Promise<void> {
   if (!hasSupabaseConfig) {
-    const vendor = MOCK_VENDORS.find((v) => v.id === vendorId);
+    // Look up vendor from all sources: vendorStore (dynamic) + mock vendors
+    const allVendors = await fetchVendors();
+    const vendor = allVendors.find((v) => v.id === vendorId);
     if (!vendor) return;
     let store: StoreLocation;
     if (storeLocationId) {
       store = vendor.locations.find((l) => l.id === storeLocationId) || vendor.locations[0];
     } else {
-      store = vendor.locations[0];
+      store = vendor.locations[0] || { id: "", name: vendor.name, area: vendor.area, lat: -1.2921, lng: 36.8219 };
     }
     await updateOrder(orderId, {
       vendor_id: vendorId,

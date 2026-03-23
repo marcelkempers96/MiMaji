@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
-import { getVendorSettingsByUserId, updateVendor as updateVendorStore, VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
+import { getVendorSettingsByUserId, getVendorSettingsByUserIdAsync, updateVendor as updateVendorStore, updateVendorAsync, VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
 
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -76,9 +76,9 @@ export default function VendorPortalPage() {
         serviceTimes: settingsServiceTimes,
       };
 
-      // Save to vendorStore (shared with admin)
+      // Save to vendorStore + Supabase (async, handles both)
       if (user?.id) {
-        updateVendorStore(user.id, {
+        await updateVendorAsync(user.id, {
           name: settingsBusinessName,
           businessRegNo: settingsBusinessReg,
           mpesaNumber: settingsMpesaNumber,
@@ -97,24 +97,6 @@ export default function VendorPortalPage() {
           serviceTimes: settingsServiceTimes,
           description: "",
         });
-      }
-
-      // Save to Supabase if available
-      if (user?.id) {
-        try {
-          const { supabase } = await import("@/lib/supabase");
-          await supabase.from("vendors").update({
-            name: settingsBusinessName,
-            business_reg_no: settingsBusinessReg,
-            mpesa_number: settingsMpesaNumber,
-            phone_numbers: settingsPhoneNumbers.filter(Boolean),
-            hours: settingsHours,
-            delivery_radius_km: settingsRadius,
-            brands: settingsBrands,
-            products: settingsProducts,
-            areas_served: settingsAreasServed,
-          }).eq("profile_id", user.id);
-        } catch {}
       }
       // Also save to localStorage as cache
       localStorage.setItem(`mimaji_vendor_settings_${user?.id || "default"}`, JSON.stringify(vendorSettings));
@@ -161,48 +143,43 @@ export default function VendorPortalPage() {
       return false;
     };
 
-    loadFromSupabase().then((loaded) => {
-      if (loaded) return;
+    // Try Supabase first (via vendorStore async), then localStorage, then Supabase direct, then mock
+    const applyVendorData = (storeVendor: { name: string; businessRegNo: string; mpesaNumber: string; phoneNumbers: string[]; locations: Array<{ id?: string; name: string; area: string; lat: number; lng: number }>; brands: string[]; areasServed: string[]; products: VendorProduct[]; serviceTimes: ServiceDay[]; deliveryRadius?: number }) => {
+      setSettingsBusinessName(storeVendor.name || "");
+      setSettingsBusinessReg(storeVendor.businessRegNo || "");
+      setSettingsMpesaNumber(storeVendor.mpesaNumber || "");
+      setSettingsPhoneNumbers(storeVendor.phoneNumbers?.length > 0 ? storeVendor.phoneNumbers : [""]);
+      setSettingsLocations(storeVendor.locations?.length > 0 ? storeVendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
+      if (storeVendor.locations?.[0] && "id" in storeVendor.locations[0] && storeVendor.locations[0].id) setSelectedStoreId(storeVendor.locations[0].id);
+      if (storeVendor.deliveryRadius) setSettingsRadius(storeVendor.deliveryRadius);
+      setSettingsBrands(storeVendor.brands || []);
+      setSettingsAreasServed(storeVendor.areasServed || []);
+      if (storeVendor.products?.length > 0) setSettingsProductCatalog(storeVendor.products);
+      if (storeVendor.serviceTimes?.length > 0) setSettingsServiceTimes(storeVendor.serviceTimes);
+      setSettingsProducts(storeVendor.products.filter((p) => p.available).map((p) => `${p.size} ${p.name.includes("Hard") ? "Hard" : p.name.includes("Soft") ? "Soft" : p.name}`));
+      const hours = storeVendor.serviceTimes?.find((t) => t.open);
+      if (hours) setSettingsHours(`${hours.openTime} - ${hours.closeTime}`);
+    };
 
-      // Check vendorStore (shared with admin)
-      const storeVendor = getVendorSettingsByUserId(user.id);
+    // Primary: load from vendorStore (Supabase-first with localStorage cache)
+    getVendorSettingsByUserIdAsync(user.id).then((storeVendor) => {
       if (storeVendor) {
-        setSettingsBusinessName(storeVendor.name || "");
-        setSettingsBusinessReg(storeVendor.businessRegNo || "");
-        setSettingsMpesaNumber(storeVendor.mpesaNumber || "");
-        setSettingsPhoneNumbers(storeVendor.phoneNumbers?.length > 0 ? storeVendor.phoneNumbers : [""]);
-        setSettingsLocations(storeVendor.locations?.length > 0 ? storeVendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
-        if (storeVendor.locations?.[0]?.id) setSelectedStoreId(storeVendor.locations[0].id);
-        setSettingsBrands(storeVendor.brands || []);
-        setSettingsAreasServed(storeVendor.areasServed || []);
-        if (storeVendor.products) setSettingsProductCatalog(storeVendor.products);
-        if (storeVendor.serviceTimes) setSettingsServiceTimes(storeVendor.serviceTimes);
-        // Also set legacy products list from catalog
-        setSettingsProducts(storeVendor.products.filter((p) => p.available).map((p) => `${p.size} ${p.name.includes("Hard") ? "Hard" : p.name.includes("Soft") ? "Soft" : p.name}`));
-        const hours = storeVendor.serviceTimes?.find((t) => t.open);
-        if (hours) setSettingsHours(`${hours.openTime} - ${hours.closeTime}`);
+        applyVendorData(storeVendor);
         return;
       }
 
-      // Fallback: localStorage
-      const savedRaw = localStorage.getItem(`mimaji_vendor_settings_${user.id}`);
-      if (savedRaw) {
-        try {
-          const saved = JSON.parse(savedRaw);
-          setSettingsBusinessName(saved.businessName || "");
-          setSettingsBusinessReg(saved.businessReg || "");
-          setSettingsMpesaNumber(saved.mpesaNumber || "");
-          setSettingsPhoneNumbers(saved.phoneNumbers?.length > 0 ? saved.phoneNumbers : [""]);
-          setSettingsLocations(saved.locations?.length > 0 ? saved.locations.map((l: Record<string, unknown>) => ({ name: (l.name as string) || "", area: (l.area as string) || "", address: (l.address as string) || "", lat: (l.lat as number) || 0, lng: (l.lng as number) || 0 })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
-          if (saved.hours) setSettingsHours(saved.hours);
-          if (saved.radius) setSettingsRadius(saved.radius);
-          if (saved.brands) setSettingsBrands(saved.brands);
-          if (saved.products) setSettingsProducts(saved.products);
-          if (saved.areasServed) setSettingsAreasServed(saved.areasServed);
-          if (saved.productCatalog) setSettingsProductCatalog(saved.productCatalog);
-          if (saved.serviceTimes) setSettingsServiceTimes(saved.serviceTimes);
-        } catch { /* fall through to mock */ }
-      } else {
+      // Secondary: try direct Supabase query
+      loadFromSupabase().then((loaded) => {
+        if (loaded) return;
+
+        // Tertiary: localStorage cache
+        const cachedVendor = getVendorSettingsByUserId(user.id);
+        if (cachedVendor) {
+          applyVendorData(cachedVendor);
+          return;
+        }
+
+        // Last resort: mock data
         const vendor = MOCK_VENDORS.find((v) => v.id === user.id) || MOCK_VENDORS[0];
         if (vendor) {
           setSettingsBusinessName(vendor.name);
@@ -215,7 +192,7 @@ export default function VendorPortalPage() {
           setSettingsProducts(vendor.products || []);
           setSettingsAreasServed(vendor.areasServed || []);
         }
-      }
+      });
     });
   }, [user?.id]);
 

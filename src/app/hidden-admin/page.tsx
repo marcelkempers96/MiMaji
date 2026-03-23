@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
-import { VendorRecord, loadVendorStore, saveVendorStore, createVendor, updateVendor, deleteVendor as deleteVendorFromStore, registerVendorAuth, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay } from "@/lib/vendorStore";
+import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, registerVendorAuth, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay } from "@/lib/vendorStore";
 
 const hasSupabaseConfig =
   typeof process !== "undefined" &&
@@ -288,12 +288,14 @@ function AdminDashboardInner() {
   const [deleteStoreVendorConfirm, setDeleteStoreVendorConfirm] = useState<string | null>(null);
 
   function loadVendorStoreList() {
+    // Load from cache immediately, then refresh from Supabase
     setVendorStoreList(loadVendorStore());
+    loadVendorStoreAsync().then((vendors) => setVendorStoreList(vendors)).catch(console.error);
   }
 
-  function handleQuickCreateVendor() {
+  async function handleQuickCreateVendor() {
     if (!newVendorName.trim() || !newVendorPhone.trim()) return;
-    const vendor = createVendor(newVendorName.trim(), newVendorPhone.trim());
+    const vendor = await createVendorAsync(newVendorName.trim(), newVendorPhone.trim());
     setCreatedVendorCredentials({
       name: vendor.name,
       phone: formatPhoneDisplay(vendor.credentials.phone),
@@ -305,15 +307,15 @@ function AdminDashboardInner() {
     loadVendorStoreList();
   }
 
-  function handleSaveStoreVendor(vendorId: string) {
-    updateVendor(vendorId, storeVendorEdits);
+  async function handleSaveStoreVendor(vendorId: string) {
+    await updateVendorAsync(vendorId, storeVendorEdits);
     setEditingStoreVendor(null);
     setStoreVendorEdits({});
     loadVendorStoreList();
   }
 
-  function handleDeleteStoreVendor(vendorId: string) {
-    deleteVendorFromStore(vendorId);
+  async function handleDeleteStoreVendor(vendorId: string) {
+    await deleteVendorAsync(vendorId);
     loadVendorStoreList();
     setDeleteStoreVendorConfirm(null);
   }
