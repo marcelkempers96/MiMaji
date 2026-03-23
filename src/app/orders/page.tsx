@@ -36,6 +36,7 @@ export default function OrdersPage() {
 
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
   const [freeLitres, setFreeLitres] = useState(0);
 
   useEffect(() => {
@@ -47,11 +48,20 @@ export default function OrdersPage() {
   const loadOrders = useCallback(() => {
     if (user?.id) {
       setLoadingOrders(true);
-      fetchUserOrders(user.id).then((data) => {
-        setOrders(data);
-        setLoadingOrders(false);
-      });
-      getRewardsSummaryAsync(user.id).then((s) => setFreeLitres(s.freeLitres));
+      setOrdersError(null);
+      fetchUserOrders(user.id)
+        .then((data) => {
+          setOrders(data);
+          setLoadingOrders(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load orders:", err);
+          setLoadingOrders(false);
+          setOrdersError("Failed to load orders. Pull down to retry.");
+        });
+      getRewardsSummaryAsync(user.id)
+        .then((s) => setFreeLitres(s.freeLitres))
+        .catch(() => {});
     }
   }, [user?.id]);
 
@@ -133,6 +143,15 @@ export default function OrdersPage() {
       {loadingOrders ? (
         <div className="flex items-center justify-center py-12">
           <Droplets size={32} className="text-primary animate-pulse" />
+        </div>
+      ) : ordersError ? (
+        <div className="bg-surface shadow-card rounded-xl p-8 text-center mb-5">
+          <Droplets size={40} className="text-cta-alt mx-auto mb-3" />
+          <p className="text-text-primary font-bold mb-1">Could not load orders</p>
+          <p className="text-text-secondary text-sm mb-4">{ordersError}</p>
+          <button onClick={loadOrders} className="text-primary font-semibold text-sm">
+            Try Again
+          </button>
         </div>
       ) : (
         <>
