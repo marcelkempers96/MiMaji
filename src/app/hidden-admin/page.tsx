@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
 import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, registerVendorAuth, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay } from "@/lib/vendorStore";
+import { supabase } from "@/lib/supabase";
 
 const hasSupabaseConfig =
   typeof process !== "undefined" &&
@@ -452,9 +453,18 @@ function AdminDashboardInner() {
     loadVendors();
     loadVendorStoreList();
     loadSubscriptions();
-    const orderInterval = setInterval(loadOrders, 10_000);
+    // Realtime subscription for instant order updates
+    const channel = supabase
+      .channel("admin-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        loadOrders();
+      })
+      .subscribe();
+    // Fallback polling at 30s
+    const orderInterval = setInterval(loadOrders, 30_000);
     const clockInterval = setInterval(() => setKenyaTime(getKenyaTime()), 1_000);
     return () => {
+      supabase.removeChannel(channel);
       clearInterval(orderInterval);
       clearInterval(clockInterval);
     };

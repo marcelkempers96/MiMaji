@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
+import { supabase } from "@/lib/supabase";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
 import { getVendorSettingsByUserId, getVendorSettingsByUserIdAsync, updateVendor as updateVendorStore, updateVendorAsync, VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
 
@@ -219,11 +220,37 @@ export default function VendorPortalPage() {
   useEffect(() => { loadOrders(); }, [loadOrders]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  // Poll for new orders every 10 seconds
+  // Subscribe to order changes via Supabase realtime, fallback to 30s polling
   useEffect(() => {
-    const interval = setInterval(() => { loadOrders(); }, 10000);
-    return () => clearInterval(interval);
-  }, [loadOrders]);
+    if (!user?.id) return;
+
+    // Realtime subscription for instant updates
+    const channel = supabase
+      .channel(`vendor-orders-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        (payload) => {
+          // Only reload if this order is relevant to this vendor
+          const row = payload.new as Record<string, unknown> | undefined;
+          if (
+            row &&
+            (row.current_vendor_offer === user.id || row.vendor_id === user.id)
+          ) {
+            loadOrders();
+          }
+        }
+      )
+      .subscribe();
+
+    // Fallback polling at 30s in case realtime connection drops
+    const interval = setInterval(() => { loadOrders(); }, 30000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [user?.id, loadOrders]);
 
   // Get current vendor's locations for the store picker
   const currentVendor = MOCK_VENDORS.find((v) => v.id === user?.id) || MOCK_VENDORS[0];
