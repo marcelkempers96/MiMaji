@@ -258,8 +258,9 @@ export async function getVendorByPhoneAsync(phone: string): Promise<VendorRecord
 
 /**
  * Create a new vendor with just name + phone.
- * Creates in Supabase (auth user + vendor record + products + service times)
- * and localStorage cache. Returns the vendor with login credentials.
+ * Creates vendor record + products + service times in Supabase.
+ * Does NOT create a Supabase auth user — the vendor will authenticate
+ * via the PIN system (mock auth fallback) or sign up themselves later.
  */
 export async function createVendorAsync(name: string, phone: string): Promise<VendorRecord> {
   const normalizedPhone = normalizePhone(phone);
@@ -268,34 +269,7 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
 
   if (hasSupabaseConfig) {
     try {
-      // 1. Create Supabase auth user for vendor
-      const email = `${normalizedPhone}@mimaji.co.ke`;
-      const password = `MiMaji${pin}`;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name, phone: normalizedPhone, role: "vendor" } },
-      });
-
-      // If signUp fails because user already exists, that's okay
-      let profileId = authData?.user?.id;
-
-      if (authError && !authError.message.includes("already registered")) {
-        console.error("Supabase auth signUp error:", authError);
-      }
-
-      // 2. Create profile if we got a user ID
-      if (profileId) {
-        await supabase.from("profiles").upsert({
-          id: profileId,
-          phone: normalizedPhone,
-          full_name: name,
-          role: "vendor",
-        }, { onConflict: "id" }).then(() => {});
-      }
-
-      // 3. Create vendor record
+      // 1. Create vendor record in Supabase (no auth user needed)
       const { data: vendorData, error: vendorError } = await supabase
         .from("vendors")
         .insert({
@@ -311,7 +285,7 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
           delivery_radius_km: 10,
           active: true,
           verified: false,
-          profile_id: profileId || null,
+          profile_id: null,
           business_reg_no: "",
           mpesa_number: "",
           description: "",

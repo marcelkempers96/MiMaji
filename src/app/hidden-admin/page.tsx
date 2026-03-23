@@ -37,25 +37,6 @@ import {
   MapPin,
 } from "lucide-react";
 
-// ── Vendor storage (localStorage) ──
-const CUSTOM_VENDORS_KEY = "mimaji_custom_vendors";
-
-function loadCustomVendors(): VendorInfo[] {
-  try {
-    const raw = localStorage.getItem(CUSTOM_VENDORS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveCustomVendors(vendors: VendorInfo[]) {
-  try { localStorage.setItem(CUSTOM_VENDORS_KEY, JSON.stringify(vendors)); } catch {}
-}
-
-function deleteCustomVendor(vendorId: string) {
-  const vendors = loadCustomVendors().filter((v) => v.id !== vendorId);
-  saveCustomVendors(vendors);
-  return vendors;
-}
 
 // ── Types ──
 type Tab = "overview" | "orders" | "vendors" | "analytics" | "users" | "subscriptions";
@@ -257,27 +238,7 @@ function AdminDashboardInner() {
   const [newUser, setNewUser] = useState({ phone: "", name: "", password: "", role: "customer" });
   const [showPasswords, setShowPasswords] = useState(false);
 
-  // Vendor management
-  const [editingVendor, setEditingVendor] = useState<string | null>(null);
-  const [vendorEdits, setVendorEdits] = useState<Partial<VendorInfo>>({});
-  const [customVendors, setCustomVendors] = useState<VendorInfo[]>([]);
-  const [showAddVendor, setShowAddVendor] = useState(false);
-  const [deleteVendorConfirm, setDeleteVendorConfirm] = useState<string | null>(null);
-  const [newVendor, setNewVendor] = useState({
-    name: "", area: "", rating: "4.5", reviews: "0", hours: "7AM - 8PM",
-    products: [] as string[], businessRegNo: "", mpesaNumber: "",
-    phoneNumbers: "", // comma-separated
-    locationName: "", locationArea: "", locationLat: "", locationLng: "",
-    // Product prices
-    productPrices: {} as Record<string, { min: string; max: string; main: string }>,
-    // Multiple locations
-    additionalLocations: [] as Array<{ name: string; area: string; lat: string; lng: string }>,
-    // Other vendor info
-    deliveryRadius: "", description: "", minOrder: "",
-  });
-  const allProductOptions = ["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Soft"];
-
-  // Vendor Store (new system - shared across admin/vendor portal/devices)
+  // Vendor management (Supabase-backed)
   const [vendorStoreList, setVendorStoreList] = useState<VendorRecord[]>([]);
   const [newVendorName, setNewVendorName] = useState("");
   const [newVendorPhone, setNewVendorPhone] = useState("");
@@ -320,131 +281,9 @@ function AdminDashboardInner() {
     setDeleteStoreVendorConfirm(null);
   }
 
+  // Legacy vendor loading (for order vendor assignment dropdown)
   async function loadVendors() {
-    // Always try server API first
-    const { data: raw, ok } = await adminFetch("vendors");
-    if (ok && raw.length > 0) {
-      setCustomVendors((raw as Record<string, unknown>[]).map((v) => ({
-        id: v.id as string,
-        name: (v.name as string) || "",
-        area: (v.area as string) || "",
-        distance: "",
-        rating: Number(v.rating) || 0,
-        reviews: Number(v.reviews) || 0,
-        hours: (v.hours as string) || "7AM - 8PM",
-        products: (v.products as string[]) || [],
-        brands: (v.brands as string[]) || [],
-        areasServed: (v.areas_served as string[]) || [],
-        businessRegNo: (v.business_reg_no as string) || "",
-        mpesaNumber: (v.mpesa_number as string) || "",
-        phoneNumbers: (v.phone_numbers as string[]) || [],
-        locations: ((v.vendor_locations as Array<Record<string, unknown>>) || []).map((l) => ({
-          id: l.id as string,
-          name: l.name as string,
-          area: (l.area as string) || "",
-          lat: Number(l.lat),
-          lng: Number(l.lng),
-        })),
-      })));
-      return;
-    }
-    // Fallback: mock vendors from localStorage
-    setCustomVendors(loadCustomVendors());
-  }
-
-  async function handleAddVendor() {
-    const locations = [];
-    if (newVendor.locationName) {
-      locations.push({
-        name: newVendor.locationName,
-        area: newVendor.locationArea || newVendor.area,
-        lat: parseFloat(newVendor.locationLat) || -1.2864,
-        lng: parseFloat(newVendor.locationLng) || 36.8172,
-      });
-    }
-    for (const loc of newVendor.additionalLocations.filter((l) => l.name)) {
-      locations.push({
-        name: loc.name,
-        area: loc.area || newVendor.area,
-        lat: parseFloat(loc.lat) || -1.2864,
-        lng: parseFloat(loc.lng) || 36.8172,
-      });
-    }
-    const result = await adminPost({
-      action: "add_vendor",
-      name: newVendor.name,
-      area: newVendor.area,
-      rating: parseFloat(newVendor.rating) || 4.5,
-      reviews: parseInt(newVendor.reviews) || 0,
-      hours: newVendor.hours,
-      products: newVendor.products,
-      businessRegNo: newVendor.businessRegNo,
-      mpesaNumber: newVendor.mpesaNumber,
-      phoneNumbers: newVendor.phoneNumbers.split(",").map((p: string) => p.trim()).filter(Boolean),
-      deliveryRadius: parseInt(newVendor.deliveryRadius) || 10,
-      locations,
-    });
-    if (result.success) {
-      await loadVendors();
-    } else {
-      const id = `cv-${Date.now()}`;
-      const vendor: VendorInfo = {
-        id,
-        name: newVendor.name,
-        area: newVendor.area,
-        distance: "",
-        rating: parseFloat(newVendor.rating) || 4.5,
-        reviews: parseInt(newVendor.reviews) || 0,
-        hours: newVendor.hours,
-        products: newVendor.products,
-        brands: [],
-        areasServed: [],
-        businessRegNo: newVendor.businessRegNo,
-        mpesaNumber: newVendor.mpesaNumber,
-        phoneNumbers: newVendor.phoneNumbers.split(",").map((p) => p.trim()).filter(Boolean),
-        locations: [
-          ...(newVendor.locationName ? [{
-            id: `${id}-loc1`,
-            name: newVendor.locationName,
-            area: newVendor.locationArea || newVendor.area,
-            lat: parseFloat(newVendor.locationLat) || -1.2864,
-            lng: parseFloat(newVendor.locationLng) || 36.8172,
-          }] : []),
-          ...newVendor.additionalLocations
-            .filter((l) => l.name)
-            .map((l, i) => ({
-              id: `${id}-loc${i + 2}`,
-              name: l.name,
-              area: l.area || newVendor.area,
-              lat: parseFloat(l.lat) || -1.2864,
-              lng: parseFloat(l.lng) || 36.8172,
-            })),
-        ],
-      };
-      const vendors = loadCustomVendors();
-      vendors.push(vendor);
-      saveCustomVendors(vendors);
-      setCustomVendors(vendors);
-    }
-
-    setNewVendor({
-      name: "", area: "", rating: "4.5", reviews: "0", hours: "7AM - 8PM",
-      products: [], businessRegNo: "", mpesaNumber: "",
-      phoneNumbers: "", locationName: "", locationArea: "", locationLat: "", locationLng: "",
-      productPrices: {}, additionalLocations: [], deliveryRadius: "", description: "", minOrder: "",
-    });
-    setShowAddVendor(false);
-  }
-
-  async function handleDeleteCustomVendor(vendorId: string) {
-    const result = await adminPost({ action: "delete_vendor", vendorId });
-    if (result.success) {
-      await loadVendors();
-    } else {
-      const remaining = deleteCustomVendor(vendorId);
-      setCustomVendors(remaining);
-    }
-    setDeleteVendorConfirm(null);
+    loadVendorStoreList();
   }
 
   // Demo account IDs (used to identify built-in accounts)
@@ -636,8 +475,14 @@ function AdminDashboardInner() {
   const activeOrders = orders.filter(
     (o: OrderRecord) => o.status !== "delivered" && o.status !== "cancelled"
   ).length;
-  const allVendors = hasSupabaseConfig ? customVendors : [...MOCK_VENDORS, ...customVendors];
-  const totalVendors = allVendors.length;
+  // Build unified vendor list for order assignment dropdowns
+  const allVendors: VendorInfo[] = vendorStoreList.map((v) => ({
+    id: v.id, name: v.name, area: v.area || "", distance: "", rating: v.rating, reviews: v.reviews,
+    hours: "7AM - 8PM", products: v.products.filter((p) => p.available).map((p) => p.name),
+    brands: v.brands || [], areasServed: v.areasServed || [], businessRegNo: v.businessRegNo || "",
+    mpesaNumber: v.mpesaNumber || "", phoneNumbers: v.phoneNumbers || [], locations: v.locations || [],
+  }));
+  const totalVendors = vendorStoreList.length;
 
   const statusCounts: Record<string, number> = {};
   for (const o of orders) {
@@ -1216,7 +1061,7 @@ function AdminDashboardInner() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-text-primary">
-                Vendors ({vendorStoreList.length + allVendors.length})
+                Vendors ({vendorStoreList.length})
               </h2>
             </div>
 
@@ -1489,7 +1334,138 @@ function AdminDashboardInner() {
                               )}
                             </div>
 
-                            {/* Brands & Areas */}
+                            {/* Brands & Areas (edit mode) */}
+                            {isEditing && (
+                              <div className="space-y-4">
+                                {/* Brands */}
+                                <div>
+                                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Brands Stocked</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {waterBrands.map((brand) => {
+                                      const brands = storeVendorEdits.brands ?? vendor.brands;
+                                      const isSelected = brands.includes(brand.id);
+                                      return (
+                                        <button key={brand.id}
+                                          onClick={() => {
+                                            const current = [...(storeVendorEdits.brands ?? vendor.brands)];
+                                            setStoreVendorEdits({ ...storeVendorEdits, brands: isSelected ? current.filter((b) => b !== brand.id) : [...current, brand.id] });
+                                          }}
+                                          className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors ${isSelected ? "bg-primary text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"}`}
+                                        >
+                                          {brand.name}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Areas Served */}
+                                <div>
+                                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Areas Served</p>
+                                  <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                                    {NAIROBI_AREAS.map((area) => {
+                                      const areas = storeVendorEdits.areasServed ?? vendor.areasServed;
+                                      const isSelected = areas.includes(area);
+                                      return (
+                                        <button key={area}
+                                          onClick={() => {
+                                            const current = [...(storeVendorEdits.areasServed ?? vendor.areasServed)];
+                                            setStoreVendorEdits({ ...storeVendorEdits, areasServed: isSelected ? current.filter((a) => a !== area) : [...current, area] });
+                                          }}
+                                          className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${isSelected ? "bg-[#2ECC71] text-white" : "bg-gray-50 text-text-secondary hover:bg-gray-100"}`}
+                                        >
+                                          {area}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Store Locations */}
+                                <div>
+                                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Store Locations</p>
+                                  {(storeVendorEdits.locations ?? vendor.locations).map((loc, li) => (
+                                    <div key={li} className="bg-gray-50 rounded-lg p-3 mb-2">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-[10px] font-semibold text-text-secondary">Location {li + 1}</span>
+                                        {(storeVendorEdits.locations ?? vendor.locations).length > 1 && (
+                                          <button onClick={() => {
+                                            const locs = [...(storeVendorEdits.locations ?? vendor.locations)];
+                                            locs.splice(li, 1);
+                                            setStoreVendorEdits({ ...storeVendorEdits, locations: locs });
+                                          }} className="text-red-500 hover:text-red-700"><Trash2 size={12} /></button>
+                                        )}
+                                      </div>
+                                      <input type="text" value={loc.name}
+                                        onChange={(e) => {
+                                          const locs = [...(storeVendorEdits.locations ?? vendor.locations)];
+                                          locs[li] = { ...locs[li], name: e.target.value };
+                                          setStoreVendorEdits({ ...storeVendorEdits, locations: locs });
+                                        }}
+                                        placeholder="Location name"
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary mb-2" />
+                                      <AddressSearch
+                                        placeholder="Search address..."
+                                        initialValue={loc.area}
+                                        onSelect={(result) => {
+                                          const locs = [...(storeVendorEdits.locations ?? vendor.locations)];
+                                          locs[li] = { ...locs[li], area: result.area || result.displayName.split(",").slice(1, 3).join(",").trim(), lat: result.lat, lng: result.lng };
+                                          setStoreVendorEdits({ ...storeVendorEdits, locations: locs });
+                                        }}
+                                      />
+                                      {loc.lat !== 0 && loc.lng !== 0 && (
+                                        <p className="text-[10px] text-text-secondary font-mono mt-1">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => {
+                                      const locs = [...(storeVendorEdits.locations ?? vendor.locations)];
+                                      locs.push({ id: `${vendor.id}-loc${locs.length + 1}`, name: "", area: "", lat: 0, lng: 0 });
+                                      setStoreVendorEdits({ ...storeVendorEdits, locations: locs });
+                                    }}
+                                    className="text-primary text-xs font-semibold flex items-center gap-1 mt-1"
+                                  >
+                                    <Plus size={12} /> Add Location
+                                  </button>
+                                </div>
+
+                                {/* Phone Numbers */}
+                                <div>
+                                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Phone Numbers</p>
+                                  {(storeVendorEdits.phoneNumbers ?? vendor.phoneNumbers).map((ph, pi) => (
+                                    <div key={pi} className="flex items-center gap-2 mb-2">
+                                      <input type="text" value={ph}
+                                        onChange={(e) => {
+                                          const phones = [...(storeVendorEdits.phoneNumbers ?? vendor.phoneNumbers)];
+                                          phones[pi] = e.target.value;
+                                          setStoreVendorEdits({ ...storeVendorEdits, phoneNumbers: phones });
+                                        }}
+                                        placeholder="e.g. 0712345678"
+                                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" />
+                                      {(storeVendorEdits.phoneNumbers ?? vendor.phoneNumbers).length > 1 && (
+                                        <button onClick={() => {
+                                          const phones = [...(storeVendorEdits.phoneNumbers ?? vendor.phoneNumbers)];
+                                          phones.splice(pi, 1);
+                                          setStoreVendorEdits({ ...storeVendorEdits, phoneNumbers: phones });
+                                        }} className="text-red-500"><Trash2 size={12} /></button>
+                                      )}
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => {
+                                      const phones = [...(storeVendorEdits.phoneNumbers ?? vendor.phoneNumbers), ""];
+                                      setStoreVendorEdits({ ...storeVendorEdits, phoneNumbers: phones });
+                                    }}
+                                    className="text-primary text-xs font-semibold flex items-center gap-1"
+                                  >
+                                    <Plus size={12} /> Add Phone
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Brands, Areas, Locations (read-only view) */}
                             {!isEditing && (
                               <div className="space-y-2">
                                 {vendor.brands.length > 0 && (
@@ -1569,665 +1545,13 @@ function AdminDashboardInner() {
               </>
             )}
 
-            {/* Legacy: Add vendor form for backward compat with old system */}
-            <div className="flex items-center justify-between mb-4 mt-6">
-              <h3 className="text-sm font-semibold text-text-secondary">Legacy Vendors</h3>
-              <button
-                onClick={() => setShowAddVendor(!showAddVendor)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-text-secondary rounded-lg text-xs font-medium transition-colors"
-              >
-                <Plus size={12} />
-                Add Legacy Vendor
-              </button>
-            </div>
-
-            {/* ── Legacy Add Vendor Form ── */}
-            {showAddVendor && (
-              <div className="bg-surface shadow-card rounded-2xl p-6 mb-6">
-                <h3 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
-                  <Store size={18} className="text-primary" />
-                  Add Legacy Vendor
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Vendor Name *</label>
-                    <input type="text" value={newVendor.name} onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
-                      placeholder="e.g. AquaPure Kilimani" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Area *</label>
-                    <input type="text" value={newVendor.area} onChange={(e) => setNewVendor({ ...newVendor, area: e.target.value })}
-                      placeholder="e.g. Kilimani, Nairobi" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Business Registration No</label>
-                    <input type="text" value={newVendor.businessRegNo} onChange={(e) => setNewVendor({ ...newVendor, businessRegNo: e.target.value })}
-                      placeholder="e.g. BN-2024-001234" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">M-Pesa Number</label>
-                    <input type="text" value={newVendor.mpesaNumber} onChange={(e) => setNewVendor({ ...newVendor, mpesaNumber: e.target.value })}
-                      placeholder="e.g. 254700111222" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Phone Numbers (comma-separated)</label>
-                    <input type="text" value={newVendor.phoneNumbers} onChange={(e) => setNewVendor({ ...newVendor, phoneNumbers: e.target.value })}
-                      placeholder="e.g. +254700111222, +254700111223" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Operating Hours</label>
-                    <input type="text" value={newVendor.hours} onChange={(e) => setNewVendor({ ...newVendor, hours: e.target.value })}
-                      placeholder="e.g. 7AM - 8PM" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Rating (1-5)</label>
-                    <input type="number" step="0.1" min="1" max="5" value={newVendor.rating} onChange={(e) => setNewVendor({ ...newVendor, rating: e.target.value })}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Reviews Count</label>
-                    <input type="number" min="0" value={newVendor.reviews} onChange={(e) => setNewVendor({ ...newVendor, reviews: e.target.value })}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                  </div>
-                </div>
-
-                {/* Products */}
-                <div className="mt-4">
-                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">Products Available</label>
-                  <div className="flex flex-wrap gap-2">
-                    {allProductOptions.map((product) => (
-                      <button key={product}
-                        onClick={() => {
-                          const prods = newVendor.products.includes(product)
-                            ? newVendor.products.filter((p) => p !== product)
-                            : [...newVendor.products, product];
-                          setNewVendor({ ...newVendor, products: prods });
-                        }}
-                        className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
-                          newVendor.products.includes(product)
-                            ? "bg-primary text-white"
-                            : "bg-gray-100 text-text-secondary hover:bg-gray-200"
-                        }`}
-                      >
-                        {product}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Product Prices */}
-                {newVendor.products.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">Product Prices (KES)</label>
-                    <div className="space-y-3">
-                      {newVendor.products.map((product) => (
-                        <div key={product} className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-xs font-semibold text-text-primary mb-2">{product}</p>
-                          <div className="grid grid-cols-3 gap-2">
-                            <div>
-                              <label className="text-[10px] text-text-secondary block mb-1">Main Price</label>
-                              <input
-                                type="number"
-                                value={newVendor.productPrices[product]?.main || ""}
-                                onChange={(e) => setNewVendor({ ...newVendor, productPrices: { ...newVendor.productPrices, [product]: { ...(newVendor.productPrices[product] || { min: "", max: "", main: "" }), main: e.target.value } } })}
-                                placeholder="e.g. 250"
-                                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary font-mono"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-text-secondary block mb-1">Min Price</label>
-                              <input
-                                type="number"
-                                value={newVendor.productPrices[product]?.min || ""}
-                                onChange={(e) => setNewVendor({ ...newVendor, productPrices: { ...newVendor.productPrices, [product]: { ...(newVendor.productPrices[product] || { min: "", max: "", main: "" }), min: e.target.value } } })}
-                                placeholder="e.g. 200"
-                                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary font-mono"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-text-secondary block mb-1">Max Price</label>
-                              <input
-                                type="number"
-                                value={newVendor.productPrices[product]?.max || ""}
-                                onChange={(e) => setNewVendor({ ...newVendor, productPrices: { ...newVendor.productPrices, [product]: { ...(newVendor.productPrices[product] || { min: "", max: "", main: "" }), max: e.target.value } } })}
-                                placeholder="e.g. 300"
-                                className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary font-mono"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Additional Vendor Info */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block">Additional Info</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <input type="text" value={newVendor.description} onChange={(e) => setNewVendor({ ...newVendor, description: e.target.value })}
-                        placeholder="Short description of vendor" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                    </div>
-                    <div>
-                      <input type="text" value={newVendor.deliveryRadius} onChange={(e) => setNewVendor({ ...newVendor, deliveryRadius: e.target.value })}
-                        placeholder="Delivery radius (e.g. 5km)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                    </div>
-                    <div>
-                      <input type="text" value={newVendor.minOrder} onChange={(e) => setNewVendor({ ...newVendor, minOrder: e.target.value })}
-                        placeholder="Min order (e.g. 1 jug)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Primary Location */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-2 block flex items-center gap-1">
-                    <MapPin size={12} /> Primary Store Location
-                  </label>
-
-                  {/* Address Search */}
-                  <div className="mb-3">
-                    <AddressSearch
-                      placeholder="Search for store address..."
-                      onSelect={(result) => {
-                        setNewVendor({
-                          ...newVendor,
-                          locationName: result.displayName.split(",")[0] || "",
-                          locationArea: result.area || newVendor.area,
-                          locationLat: result.lat.toString(),
-                          locationLng: result.lng.toString(),
-                        });
-                      }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <input type="text" value={newVendor.locationName} onChange={(e) => setNewVendor({ ...newVendor, locationName: e.target.value })}
-                        placeholder="Location name" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                    </div>
-                    <div>
-                      <input type="text" value={newVendor.locationArea} onChange={(e) => setNewVendor({ ...newVendor, locationArea: e.target.value })}
-                        placeholder="Location area" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
-                    </div>
-                    <div>
-                      <input type="text" value={newVendor.locationLat} onChange={(e) => setNewVendor({ ...newVendor, locationLat: e.target.value })}
-                        placeholder="Latitude (e.g. -1.2864)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
-                    </div>
-                    <div>
-                      <input type="text" value={newVendor.locationLng} onChange={(e) => setNewVendor({ ...newVendor, locationLng: e.target.value })}
-                        placeholder="Longitude (e.g. 36.8172)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
-                    </div>
-                  </div>
-
-                  {/* OpenStreetMap for location selection */}
-                  <div className="mt-3">
-                    <p className="text-[10px] text-text-secondary mb-1">Click the map to select coordinates, or enter them manually above.</p>
-                    <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: "250px" }}>
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                          newVendor.locationLng ? Number(newVendor.locationLng) - 0.02 : 36.7972
-                        }%2C${
-                          newVendor.locationLat ? Number(newVendor.locationLat) - 0.015 : -1.3014
-                        }%2C${
-                          newVendor.locationLng ? Number(newVendor.locationLng) + 0.02 : 36.8372
-                        }%2C${
-                          newVendor.locationLat ? Number(newVendor.locationLat) + 0.015 : -1.2714
-                        }&layer=mapnik${
-                          newVendor.locationLat && newVendor.locationLng
-                            ? `&marker=${newVendor.locationLat}%2C${newVendor.locationLng}`
-                            : "&marker=-1.2864%2C36.8172"
-                        }`}
-                      />
-                    </div>
-                    <a
-                      href={`https://www.openstreetmap.org/#map=15/${newVendor.locationLat || "-1.2864"}/${newVendor.locationLng || "36.8172"}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary text-[10px] font-semibold mt-1 inline-block hover:underline"
-                    >
-                      Open full map to find exact coordinates →
-                    </a>
-                  </div>
-                </div>
-
-                {/* Additional Locations */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide flex items-center gap-1">
-                      <MapPin size={12} /> Additional Locations
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setNewVendor({ ...newVendor, additionalLocations: [...newVendor.additionalLocations, { name: "", area: "", lat: "", lng: "" }] })}
-                      className="text-xs text-primary font-semibold flex items-center gap-1"
-                    >
-                      <Plus size={12} /> Add Location
-                    </button>
-                  </div>
-                  {newVendor.additionalLocations.map((loc, idx) => (
-                    <div key={idx} className="bg-gray-50 rounded-lg p-3 mb-2">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-text-secondary">Location {idx + 2}</span>
-                        <button
-                          onClick={() => {
-                            const updated = [...newVendor.additionalLocations];
-                            updated.splice(idx, 1);
-                            setNewVendor({ ...newVendor, additionalLocations: updated });
-                          }}
-                          className="text-red-500 text-[10px] font-semibold"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input type="text" value={loc.name}
-                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].name = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
-                          placeholder="Name" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary" />
-                        <input type="text" value={loc.area}
-                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].area = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
-                          placeholder="Area" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary" />
-                        <input type="text" value={loc.lat}
-                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].lat = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
-                          placeholder="Latitude" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-mono outline-none focus:border-primary" />
-                        <input type="text" value={loc.lng}
-                          onChange={(e) => { const updated = [...newVendor.additionalLocations]; updated[idx].lng = e.target.value; setNewVendor({ ...newVendor, additionalLocations: updated }); }}
-                          placeholder="Longitude" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-mono outline-none focus:border-primary" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Submit */}
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={handleAddVendor}
-                    disabled={!newVendor.name || !newVendor.area}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-                      newVendor.name && newVendor.area
-                        ? "bg-primary text-white hover:bg-[#1a5a9a]"
-                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    Add Vendor
-                  </button>
-                  <button
-                    onClick={() => setShowAddVendor(false)}
-                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-text-primary hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
+            {vendorStoreList.length === 0 && (
+              <div className="bg-gray-50 rounded-xl p-8 text-center">
+                <Store size={32} className="text-text-secondary mx-auto mb-3 opacity-50" />
+                <p className="text-text-secondary text-sm">No vendors yet. Create your first vendor above.</p>
               </div>
             )}
 
-            {/* Custom Vendors (added via admin) */}
-            {customVendors.length > 0 && (
-              <>
-                <h3 className="text-sm font-semibold text-primary mb-3 mt-2">Your Added Vendors ({customVendors.length})</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-                  {customVendors.map((vendor) => (
-                    <div key={vendor.id} className="bg-surface shadow-card rounded-2xl p-5 space-y-3 border-2 border-primary/20">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
-                          <p className="text-sm text-text-secondary">{vendor.area}</p>
-                        </div>
-                        <div className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-lg">
-                          <span className="text-rating text-sm">&#9733;</span>
-                          <span className="text-xs font-semibold text-text-primary">{vendor.rating}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {vendor.products.map((p) => (
-                          <span key={p} className="bg-primary-light text-primary text-[10px] px-2 py-0.5 rounded-full font-medium">{p}</span>
-                        ))}
-                      </div>
-
-                      <div className="text-xs space-y-1.5 pt-1 border-t border-gray-100">
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Biz Reg No</span>
-                          <span className="font-mono text-text-primary">{vendor.businessRegNo || "N/A"}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">M-Pesa</span>
-                          <span className="font-mono text-text-primary">{vendor.mpesaNumber || "N/A"}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Hours</span>
-                          <span className="text-text-primary">{vendor.hours}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary">Phone(s)</span>
-                          <span className="text-text-primary">{vendor.phoneNumbers.join(", ") || "N/A"}</span>
-                        </div>
-                        {vendor.locations.length > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-text-secondary">Location</span>
-                            <span className="text-text-primary">{vendor.locations[0].name}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="pt-2 border-t border-gray-100">
-                        {deleteVendorConfirm === vendor.id ? (
-                          <div className="flex gap-2">
-                            <button onClick={() => handleDeleteCustomVendor(vendor.id)}
-                              className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-red-500 text-white rounded-lg font-medium">
-                              Confirm Delete
-                            </button>
-                            <button onClick={() => setDeleteVendorConfirm(null)}
-                              className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-gray-100 rounded-lg font-medium">
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setDeleteVendorConfirm(vendor.id)}
-                            className="w-full flex items-center justify-center gap-1 text-xs py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors">
-                            <Trash2 size={12} /> Remove Vendor
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Default/Mock Vendors - only show when Supabase is not configured */}
-            {!hasSupabaseConfig && (
-            <>
-            <h3 className="text-sm font-semibold text-text-secondary mb-3">Default Vendors ({MOCK_VENDORS.length})</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {MOCK_VENDORS.map((vendor) => (
-                <div key={vendor.id} className="bg-surface shadow-card rounded-2xl p-5 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      {editingVendor === vendor.id ? (
-                        <input
-                          type="text"
-                          value={vendorEdits.name ?? vendor.name}
-                          onChange={(e) => setVendorEdits({ ...vendorEdits, name: e.target.value })}
-                          className="border border-gray-200 rounded-lg px-2 py-1 text-sm font-semibold outline-none focus:border-primary w-full"
-                        />
-                      ) : (
-                        <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
-                      )}
-                      {editingVendor === vendor.id ? (
-                        <input
-                          type="text"
-                          value={vendorEdits.area ?? vendor.area}
-                          onChange={(e) => setVendorEdits({ ...vendorEdits, area: e.target.value })}
-                          className="border border-gray-200 rounded-lg px-2 py-1 text-xs mt-1 outline-none focus:border-primary w-full"
-                        />
-                      ) : (
-                        <p className="text-sm text-text-secondary">{vendor.area}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-lg">
-                      <span className="text-rating text-sm">&#9733;</span>
-                      <span className="text-xs font-semibold text-text-primary">{vendor.rating}</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <p className="text-text-secondary">Locations</p>
-                      <p className="font-semibold text-text-primary">{vendor.locations.length}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <p className="text-text-secondary">Orders</p>
-                      <p className="font-semibold text-text-primary">{vendorOrderCount(vendor.id)}</p>
-                    </div>
-                  </div>
-
-                  <div className="text-xs space-y-1.5 pt-1 border-t border-gray-100">
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Biz Reg No</span>
-                      {editingVendor === vendor.id ? (
-                        <input
-                          type="text"
-                          value={vendorEdits.businessRegNo ?? vendor.businessRegNo}
-                          onChange={(e) => setVendorEdits({ ...vendorEdits, businessRegNo: e.target.value })}
-                          className="border border-gray-200 rounded px-1.5 py-0.5 font-mono text-xs outline-none focus:border-primary w-28 text-right"
-                        />
-                      ) : (
-                        <span className="font-mono text-text-primary">{vendor.businessRegNo}</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">M-Pesa</span>
-                      {editingVendor === vendor.id ? (
-                        <input
-                          type="text"
-                          value={vendorEdits.mpesaNumber ?? vendor.mpesaNumber}
-                          onChange={(e) => setVendorEdits({ ...vendorEdits, mpesaNumber: e.target.value })}
-                          className="border border-gray-200 rounded px-1.5 py-0.5 font-mono text-xs outline-none focus:border-primary w-28 text-right"
-                        />
-                      ) : (
-                        <span className="font-mono text-text-primary">{vendor.mpesaNumber}</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Hours</span>
-                      {editingVendor === vendor.id ? (
-                        <input
-                          type="text"
-                          value={vendorEdits.hours ?? vendor.hours}
-                          onChange={(e) => setVendorEdits({ ...vendorEdits, hours: e.target.value })}
-                          className="border border-gray-200 rounded px-1.5 py-0.5 text-xs outline-none focus:border-primary w-28 text-right"
-                        />
-                      ) : (
-                        <span className="text-text-primary">{vendor.hours}</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Reviews</span>
-                      <span className="text-text-primary">{vendor.reviews}</span>
-                    </div>
-                  </div>
-
-                  {/* Locations editing */}
-                  {editingVendor === vendor.id && (
-                    <div className="pt-2 border-t border-gray-100">
-                      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 flex items-center gap-1"><MapPin size={10} /> Store Locations</p>
-                      {(vendorEdits.locations ?? vendor.locations).map((loc, li) => (
-                        <div key={li} className="bg-gray-50 rounded-lg p-2 mb-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-semibold text-text-secondary">Location {li + 1}</span>
-                            {(vendorEdits.locations ?? vendor.locations).length > 1 && (
-                              <button onClick={() => {
-                                const locs = [...(vendorEdits.locations ?? vendor.locations)];
-                                locs.splice(li, 1);
-                                setVendorEdits({ ...vendorEdits, locations: locs });
-                              }} className="text-cta-alt hover:text-red-700"><Trash2 size={12} /></button>
-                            )}
-                          </div>
-                          <input
-                            type="text"
-                            value={loc.name}
-                            onChange={(e) => {
-                              const locs = [...(vendorEdits.locations ?? vendor.locations)];
-                              locs[li] = { ...locs[li], name: e.target.value };
-                              setVendorEdits({ ...vendorEdits, locations: locs });
-                            }}
-                            placeholder="Location name"
-                            className="w-full border border-gray-200 rounded px-2 py-1 text-xs outline-none focus:border-primary mb-1"
-                          />
-                          <AddressSearch
-                            placeholder="Search address..."
-                            initialValue={loc.area}
-                            onSelect={(result) => {
-                              const locs = [...(vendorEdits.locations ?? vendor.locations)];
-                              locs[li] = { ...locs[li], area: result.area || result.displayName.split(",").slice(1, 3).join(",").trim(), lat: result.lat, lng: result.lng };
-                              setVendorEdits({ ...vendorEdits, locations: locs });
-                            }}
-                          />
-                          {loc.lat !== 0 && loc.lng !== 0 && (
-                            <p className="text-[10px] text-text-secondary font-mono mt-1">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</p>
-                          )}
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => {
-                          const locs = [...(vendorEdits.locations ?? vendor.locations)];
-                          locs.push({ id: `${vendor.id}-loc${locs.length + 1}`, name: "", area: "", lat: 0, lng: 0 });
-                          setVendorEdits({ ...vendorEdits, locations: locs });
-                        }}
-                        className="text-primary text-[10px] font-semibold flex items-center gap-1 mt-1"
-                      >
-                        <Plus size={10} /> Add Location
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Locations display (non-edit mode) */}
-                  {editingVendor !== vendor.id && vendor.locations.length > 0 && (
-                    <div className="pt-2 border-t border-gray-100">
-                      <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Locations</p>
-                      {vendor.locations.map((loc, li) => (
-                        <div key={li} className="text-xs text-text-primary mb-0.5 flex items-center gap-1">
-                          <MapPin size={10} className="text-primary flex-shrink-0" />
-                          <span>{loc.name}</span>
-                          {loc.area && <span className="text-text-secondary">({loc.area})</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Brands & Products editing */}
-                  {editingVendor === vendor.id && (
-                    <div className="pt-2 border-t border-gray-100 space-y-3">
-                      <div>
-                        <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Brands Stocked</p>
-                        <div className="flex flex-wrap gap-1">
-                          {waterBrands.map((brand) => {
-                            const brands = vendorEdits.brands ?? vendor.brands;
-                            const isSelected = brands.includes(brand.id);
-                            return (
-                              <button
-                                key={brand.id}
-                                onClick={() => {
-                                  const current = vendorEdits.brands ?? [...vendor.brands];
-                                  setVendorEdits({ ...vendorEdits, brands: isSelected ? current.filter((b) => b !== brand.id) : [...current, brand.id] });
-                                }}
-                                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${isSelected ? "bg-primary text-white" : "bg-gray-100 text-text-secondary"}`}
-                              >
-                                {brand.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Product Types</p>
-                        <div className="flex flex-wrap gap-1">
-                          {["20L Hard", "20L Soft", "10L Hard", "10L Soft", "5L Hard", "5L Soft"].map((pt) => {
-                            const products = vendorEdits.products ?? vendor.products;
-                            const isSelected = products.includes(pt);
-                            return (
-                              <button
-                                key={pt}
-                                onClick={() => {
-                                  const current = vendorEdits.products ?? [...vendor.products];
-                                  setVendorEdits({ ...vendorEdits, products: isSelected ? current.filter((p) => p !== pt) : [...current, pt] });
-                                }}
-                                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${isSelected ? "bg-[#1a5a9a] text-white" : "bg-gray-100 text-text-secondary"}`}
-                              >
-                                {pt}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wide mb-1">Areas Served</p>
-                        <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                          {NAIROBI_AREAS.map((area) => {
-                            const areas = vendorEdits.areasServed ?? vendor.areasServed;
-                            const isSelected = areas.includes(area);
-                            return (
-                              <button
-                                key={area}
-                                onClick={() => {
-                                  const current = vendorEdits.areasServed ?? [...vendor.areasServed];
-                                  setVendorEdits({ ...vendorEdits, areasServed: isSelected ? current.filter((a) => a !== area) : [...current, area] });
-                                }}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${isSelected ? "bg-[#2ECC71] text-white" : "bg-gray-50 text-text-secondary"}`}
-                              >
-                                {area}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Brands/Products display (non-edit) */}
-                  {editingVendor !== vendor.id && (vendor.brands.length > 0 || vendor.products.length > 0) && (
-                    <div className="pt-2 border-t border-gray-100 space-y-1">
-                      {vendor.brands.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          <span className="text-[10px] text-text-secondary mr-1">Brands:</span>
-                          {vendor.brands.map((b) => (
-                            <span key={b} className="bg-primary-light text-primary text-[10px] font-semibold px-1.5 py-0.5 rounded">{waterBrands.find((wb) => wb.id === b)?.name || b}</span>
-                          ))}
-                        </div>
-                      )}
-                      {vendor.areasServed.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          <span className="text-[10px] text-text-secondary mr-1">Areas:</span>
-                          {vendor.areasServed.map((a) => (
-                            <span key={a} className="bg-green-50 text-[#2ECC71] text-[10px] font-semibold px-1.5 py-0.5 rounded">{a}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Edit/Save buttons */}
-                  <div className="pt-2 border-t border-gray-100 flex gap-2">
-                    {editingVendor === vendor.id ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            // In mock mode, vendor data is in-memory only; edits are visual feedback
-                            Object.assign(vendor, vendorEdits);
-                            setEditingVendor(null);
-                            setVendorEdits({});
-                          }}
-                          className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg font-medium transition-colors"
-                        >
-                          <CheckCircle2 size={12} /> Save
-                        </button>
-                        <button
-                          onClick={() => { setEditingVendor(null); setVendorEdits({}); }}
-                          className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
-                        >
-                          <XCircle size={12} /> Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => { setEditingVendor(vendor.id); setVendorEdits({}); }}
-                        className="flex-1 flex items-center justify-center gap-1 text-xs py-2 bg-blue-50 hover:bg-blue-100 text-primary rounded-lg font-medium transition-colors"
-                      >
-                        <Edit3 size={12} /> Edit Vendor
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            </>
-            )}
           </section>
         )}
 
