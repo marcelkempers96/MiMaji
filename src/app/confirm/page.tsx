@@ -71,19 +71,19 @@ export default function ConfirmOrderPage() {
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mpesa-app");
   // Restore payment status from sessionStorage (survives app-switching on mobile)
-  const [paymentStatus, setPaymentStatusRaw] = useState<"idle" | "loading" | "awaiting_code" | "confirmed" | "error">(() => {
+  const [paymentStatus, setPaymentStatusRaw] = useState<"idle" | "loading" | "awaiting_code" | "awaiting_stk" | "confirmed" | "error">(() => {
     try {
       if (typeof window !== "undefined") {
         const saved = sessionStorage.getItem("mimaji_payment_status");
-        if (saved === "awaiting_code") return "awaiting_code";
+        if (saved === "awaiting_code" || saved === "awaiting_stk") return saved as "awaiting_code" | "awaiting_stk";
       }
     } catch {}
     return "idle";
   });
-  const setPaymentStatus = (status: "idle" | "loading" | "awaiting_code" | "confirmed" | "error") => {
+  const setPaymentStatus = (status: "idle" | "loading" | "awaiting_code" | "awaiting_stk" | "confirmed" | "error") => {
     setPaymentStatusRaw(status);
     try {
-      if (status === "awaiting_code") {
+      if (status === "awaiting_code" || status === "awaiting_stk") {
         sessionStorage.setItem("mimaji_payment_status", status);
       } else {
         sessionStorage.removeItem("mimaji_payment_status");
@@ -93,6 +93,12 @@ export default function ConfirmOrderPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
+  // Track the order ID created during STK push for polling
+  const stkOrderIdRef = useRef<string | null>(
+    typeof window !== "undefined" ? (sessionStorage.getItem("mimaji_stk_order_id") ?? null) : null
+  );
+  const stkPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [stkElapsed, setStkElapsed] = useState(0);
 
   // ── Recalculate cart totals using discount tiers (matches cart page exactly) ──
   const cartWithDiscounts = items.map((item) => {
@@ -114,12 +120,74 @@ export default function ConfirmOrderPage() {
 
   // Restore pending order data from sessionStorage (survives app-switching)
   useEffect(() => {
-    if (paymentStatus === "awaiting_code" && !pendingOrderRef.current) {
+    if ((paymentStatus === "awaiting_code" || paymentStatus === "awaiting_stk") && !pendingOrderRef.current) {
       try {
         const saved = sessionStorage.getItem("mimaji_pending_order");
         if (saved) pendingOrderRef.current = JSON.parse(saved);
       } catch {}
     }
+    // Restore STK order ID
+    if (paymentStatus === "awaiting_stk" && !stkOrderIdRef.current) {
+      try { stkOrderIdRef.current = sessionStorage.getItem("mimaji_stk_order_id"); } catch {}
+    }
+  }, [paymentStatus]);
+
+  // Poll payment status after STK push
+  useEffect(() => {
+    if (paymentStatus !== "awaiting_stk") {
+      if (stkPollTimerRef.current) { clearInterval(stkPollTimerRef.current); stkPollTimerRef.current = null; }
+      return;
+    }
+
+    const orderId = stkOrderIdRef.current;
+    if (!orderId) return;
+
+    let elapsed = 0;
+    const POLL_INTERVAL = 3000; // 3 seconds
+    const MAX_WAIT = 90000; // 90 seconds
+
+    const poll = async () => {
+      elapsed += POLL_INTERVAL;
+      setStkElapsed(elapsed);
+
+      if (elapsed > MAX_WAIT) {
+        // Timed out — payment not confirmed
+        if (stkPollTimerRef.current) { clearInterval(stkPollTimerRef.current); stkPollTimerRef.current = null; }
+        setPaymentStatus("error");
+        setErrorMsg("M-Pesa payment not confirmed within 90 seconds. If you completed the payment, check your orders — it may still be processing.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/mpesa/status?orderId=${orderId}`);
+        const data = await res.json().catch(() => ({ status: "pending" }));
+
+        if (data.status === "success") {
+          if (stkPollTimerRef.current) { clearInterval(stkPollTimerRef.current); stkPollTimerRef.current = null; }
+          // Update confirmed order ref with receipt
+          if (confirmedOrderRef.current) {
+            confirmedOrderRef.current.mpesaRef = data.mpesa_receipt || confirmedOrderRef.current.mpesaRef;
+          }
+          try {
+            sessionStorage.removeItem("mimaji_stk_order_id");
+            sessionStorage.removeItem("mimaji_pending_order");
+            sessionStorage.removeItem("mimaji_payment_status");
+          } catch {}
+          setPaymentStatus("confirmed");
+        } else if (data.status === "failed") {
+          if (stkPollTimerRef.current) { clearInterval(stkPollTimerRef.current); stkPollTimerRef.current = null; }
+          setPaymentStatus("error");
+          setErrorMsg("M-Pesa payment was declined or cancelled. Please try again.");
+        }
+      } catch {
+        // Network error — keep polling
+      }
+    };
+
+    stkPollTimerRef.current = setInterval(poll, POLL_INTERVAL);
+    return () => {
+      if (stkPollTimerRef.current) { clearInterval(stkPollTimerRef.current); stkPollTimerRef.current = null; }
+    };
   }, [paymentStatus]);
 
   // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
@@ -350,40 +418,58 @@ export default function ConfirmOrderPage() {
       };
 
       if (paymentMethod === "stk-push") {
-        // STK Push: process payment first, only create order on success
+        // STK Push: create order as pending_payment, send STK push, then poll for confirmation
         try {
+          // 1. Create order first with pending_payment status
+          let orderId: string | null = null;
+          try {
+            await Promise.race([
+              (async () => {
+                const result = await finalizeOrder(null); // creates with pending_payment
+                return result;
+              })(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out.")), 30000)),
+            ]);
+            orderId = confirmedOrderRef.current?.orderId || null;
+          } catch (orderErr) {
+            setPaymentStatus("error");
+            setErrorMsg(orderErr instanceof Error ? orderErr.message : "Failed to create order. Please try again.");
+            return;
+          }
+
+          // 2. Send STK push with the real order ID
           const res = await fetch("/api/mpesa/stkpush", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               phone: user.phone,
               amount: finalTotal,
-              orderId: "pending", // no order ID yet
+              orderId: orderId || "pending",
             }),
           });
 
           const data = await res.json().catch(() => ({}));
 
           if (data.mock) {
-            // Demo mode — simulate successful payment, NOW create order
+            // Demo mode — simulate successful payment immediately
             const mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-            await Promise.race([
-              finalizeOrder(mpesaRef),
-              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
-            ]);
+            if (confirmedOrderRef.current) {
+              confirmedOrderRef.current.mpesaRef = mpesaRef;
+            }
             setPaymentStatus("confirmed");
           } else if (!res.ok) {
             setStkFailedPopup(true);
             setPaymentStatus("idle");
             return;
           } else {
-            // Real STK push sent — payment confirmed, NOW create order
-            const mpesaRef = data.CheckoutRequestID || null;
-            await Promise.race([
-              finalizeOrder(mpesaRef),
-              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
-            ]);
-            setPaymentStatus("confirmed");
+            // Real STK push sent — show waiting UI and poll for callback
+            if (orderId) {
+              stkOrderIdRef.current = orderId;
+              try { sessionStorage.setItem("mimaji_stk_order_id", orderId); } catch {}
+            }
+            setStkElapsed(0);
+            setPaymentStatus("awaiting_stk");
+            // Polling starts via useEffect below
           }
         } catch (fetchErr) {
           setStkFailedPopup(true);
@@ -468,6 +554,69 @@ export default function ConfirmOrderPage() {
       setCreatingOrder(false);
     }
   };
+
+  // ── STK Push Waiting Screen ──
+  if (paymentStatus === "awaiting_stk") {
+    const progressPct = Math.min((stkElapsed / 90000) * 100, 100);
+    return (
+      <div className="bg-background min-h-screen pb-28">
+        <TopBar title="Processing Payment" />
+        <div className="max-w-md mx-auto md:max-w-lg px-4 mt-6">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 bg-primary-light rounded-full flex items-center justify-center animate-pulse">
+              <Smartphone size={40} className="text-primary" />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-text-primary text-center mb-1">
+            Check Your Phone
+          </h2>
+          <p className="text-text-secondary text-sm text-center mb-6">
+            Enter your M-PESA PIN on the prompt that appeared on your phone to complete the payment.
+          </p>
+
+          {/* Progress bar */}
+          <div className="bg-gray-200 rounded-full h-2 mb-2 overflow-hidden">
+            <div
+              className="bg-primary h-full rounded-full transition-all duration-1000 ease-linear"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <p className="text-text-secondary text-xs text-center mb-6">
+            Waiting for payment confirmation... ({Math.ceil((90000 - stkElapsed) / 1000)}s remaining)
+          </p>
+
+          <div className="bg-[#FFF5EC] rounded-xl p-4 mb-6">
+            <p className="text-[#F5A623] text-xs font-bold mb-2">Tips</p>
+            <ul className="text-text-secondary text-xs space-y-1">
+              <li>• Check your phone for the M-PESA PIN prompt</li>
+              <li>• If the prompt didn&apos;t appear, wait a few seconds and check again</li>
+              <li>• Do not close this page</li>
+            </ul>
+          </div>
+
+          {errorMsg && (
+            <div className="bg-[#FFEBEE] rounded-xl p-4 text-center mb-4">
+              <p className="text-cta-alt font-bold text-sm">Payment Issue</p>
+              <p className="text-text-secondary text-xs mt-1">{errorMsg}</p>
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              if (stkPollTimerRef.current) { clearInterval(stkPollTimerRef.current); stkPollTimerRef.current = null; }
+              try { sessionStorage.removeItem("mimaji_stk_order_id"); } catch {}
+              setPaymentStatus("idle");
+              setStkFailedPopup(true);
+            }}
+            className="w-full mt-3 text-text-secondary text-sm font-medium text-center hover:text-primary transition-colors"
+          >
+            Cancel &amp; choose another payment method
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── M-PESA Code Entry Screen (order not yet created) ──
   if (paymentStatus === "awaiting_code") {
