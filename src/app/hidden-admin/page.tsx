@@ -130,9 +130,12 @@ function getLast7Days(): string[] {
 }
 
 // ── Admin API helpers (bypass RLS via service role) ──
-// Admin code is stored in sessionStorage after server-validated login
+// Admin code is stored in localStorage (not sessionStorage) so it survives
+// mobile app switching where the OS may kill the browser tab.
 function getAdminCode(): string {
-  try { return sessionStorage.getItem("mimaji_admin_code") || ""; } catch { return ""; }
+  try {
+    return localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || "";
+  } catch { return ""; }
 }
 
 async function adminFetch(type: string): Promise<{ data: unknown[]; ok: boolean }> {
@@ -166,12 +169,22 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = React.useState(false);
 
   React.useEffect(() => {
-    // Restore session — verify stored code is still valid
+    // Restore session — check localStorage first (survives app switching), then sessionStorage
     try {
-      const savedCode = sessionStorage.getItem("mimaji_admin_code");
+      const savedCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code");
       if (savedCode) {
         fetch(`/api/admin?code=${encodeURIComponent(savedCode)}&type=auth`)
-          .then((res) => { if (res.ok) setAuthenticated(true); else sessionStorage.removeItem("mimaji_admin_code"); })
+          .then((res) => {
+            if (res.ok) {
+              setAuthenticated(true);
+              // Ensure code is in both storage locations
+              try { localStorage.setItem("mimaji_admin_code", savedCode); } catch {}
+              try { sessionStorage.setItem("mimaji_admin_code", savedCode); } catch {}
+            } else {
+              localStorage.removeItem("mimaji_admin_code");
+              sessionStorage.removeItem("mimaji_admin_code");
+            }
+          })
           .catch(() => {});
       }
     } catch {}
@@ -185,6 +198,7 @@ function AdminLoginGate({ children }: { children: React.ReactNode }) {
       const res = await fetch(`/api/admin?code=${encodeURIComponent(code)}&type=auth`);
       if (res.ok) {
         setAuthenticated(true);
+        try { localStorage.setItem("mimaji_admin_code", code); } catch {}
         try { sessionStorage.setItem("mimaji_admin_code", code); } catch {}
       } else if (res.status === 429) {
         setError("Too many attempts. Try again in 15 minutes.");
@@ -274,19 +288,39 @@ function AdminDashboardInner() {
 
   function loadVendorStoreList() {
     // Show cache immediately while fetching from server
-    setVendorStoreList(loadVendorStore());
+    const cached = loadVendorStore();
+    setVendorStoreList(cached);
     // Always fetch from admin API (service role, bypasses RLS) for cross-device consistency
     adminFetch("vendors").then(({ data, ok }) => {
       if (ok && data.length > 0) {
-        const vendors = (data as Record<string, unknown>[]).map(mapSupabaseToVendor);
-        setVendorStoreList(vendors);
-        saveVendorStore(vendors); // update local cache
+        const apiVendors = (data as Record<string, unknown>[]).map(mapSupabaseToVendor);
+        // Merge: API vendors take priority, but keep any locally-created vendors
+        // that haven't appeared in the API response yet (database write propagation)
+        const apiIds = new Set(apiVendors.map((v) => v.id));
+        const localOnly = cached.filter((v) => !apiIds.has(v.id));
+        const merged = [...apiVendors, ...localOnly];
+        setVendorStoreList(merged);
+        saveVendorStore(merged); // update local cache
+      } else if (ok) {
+        // API returned successfully but empty — may be a fresh database
+        // Keep cached vendors so locally-created ones still show
+        if (cached.length > 0) {
+          setVendorStoreList(cached);
+        }
       } else {
-        // Fallback: try anon key Supabase
-        loadVendorStoreAsync().then((vendors) => setVendorStoreList(vendors)).catch(console.error);
+        // API failed — try anon key Supabase, then fall back to cache
+        loadVendorStoreAsync().then((vendors) => {
+          if (vendors.length > 0) {
+            setVendorStoreList(vendors);
+          } else if (cached.length > 0) {
+            setVendorStoreList(cached);
+          }
+        }).catch(console.error);
       }
     }).catch(() => {
-      loadVendorStoreAsync().then((vendors) => setVendorStoreList(vendors)).catch(console.error);
+      loadVendorStoreAsync().then((vendors) => {
+        if (vendors.length > 0) setVendorStoreList(vendors);
+      }).catch(console.error);
     });
   }
 
@@ -301,7 +335,10 @@ function AdminDashboardInner() {
     });
     setNewVendorName("");
     setNewVendorPhone("");
+    // Refresh immediately from cache (vendor was added to localStorage by createVendorAsync)
     loadVendorStoreList();
+    // Also refresh after a short delay to pick up the vendor from the database
+    setTimeout(() => loadVendorStoreList(), 1500);
   }
 
   async function handleSaveStoreVendor(vendorId: string) {
