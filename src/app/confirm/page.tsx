@@ -70,7 +70,26 @@ export default function ConfirmOrderPage() {
   const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mpesa-app");
-  const [paymentStatus, setPaymentStatus] = useState<"idle" | "loading" | "awaiting_code" | "confirmed" | "error">("idle");
+  // Restore payment status from sessionStorage (survives app-switching on mobile)
+  const [paymentStatus, setPaymentStatusRaw] = useState<"idle" | "loading" | "awaiting_code" | "confirmed" | "error">(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = sessionStorage.getItem("mimaji_payment_status");
+        if (saved === "awaiting_code") return "awaiting_code";
+      }
+    } catch {}
+    return "idle";
+  });
+  const setPaymentStatus = (status: "idle" | "loading" | "awaiting_code" | "confirmed" | "error") => {
+    setPaymentStatusRaw(status);
+    try {
+      if (status === "awaiting_code") {
+        sessionStorage.setItem("mimaji_payment_status", status);
+      } else {
+        sessionStorage.removeItem("mimaji_payment_status");
+      }
+    } catch {}
+  };
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState<string | false>(false);
   const [stkFailedPopup, setStkFailedPopup] = useState(false);
@@ -92,6 +111,16 @@ export default function ConfirmOrderPage() {
     router.push("/login?redirect=/delivery");
     return null;
   }
+
+  // Restore pending order data from sessionStorage (survives app-switching)
+  useEffect(() => {
+    if (paymentStatus === "awaiting_code" && !pendingOrderRef.current) {
+      try {
+        const saved = sessionStorage.getItem("mimaji_pending_order");
+        if (saved) pendingOrderRef.current = JSON.parse(saved);
+      } catch {}
+    }
+  }, [paymentStatus]);
 
   // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
   if (!authLoading && user && items.length === 0 && paymentStatus === "idle") {
@@ -239,18 +268,24 @@ export default function ConfirmOrderPage() {
       throw new Error(orderError || "Failed to create order");
     }
 
-    // Trigger vendor assignment — non-fatal
+    // Trigger vendor assignment — non-fatal, with timeout
     try {
-      await assignOrderToVendor(orderId);
+      await Promise.race([
+        assignOrderToVendor(orderId),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 8000)),
+      ]);
     } catch (e) {
       console.error("Vendor assignment failed:", e);
     }
 
-    // Process referral rewards — non-fatal
+    // Process referral rewards — non-fatal, with timeout
     try {
       processOrderRewards(user.id, pending.orderItems);
       if (claimRewards && rewardsApplied > 0) {
-        await useFreeLitresAsync(user.id, rewardsApplied);
+        await Promise.race([
+          useFreeLitresAsync(user.id, rewardsApplied),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Rewards timeout")), 5000)),
+        ]);
       }
     } catch (e) {
       console.error("Rewards processing failed:", e);
@@ -278,7 +313,11 @@ export default function ConfirmOrderPage() {
     } catch {}
 
     clearCart();
-    try { sessionStorage.removeItem("mimaji_scheduled_delivery"); } catch {}
+    try {
+      sessionStorage.removeItem("mimaji_scheduled_delivery");
+      sessionStorage.removeItem("mimaji_pending_order");
+      sessionStorage.removeItem("mimaji_payment_status");
+    } catch {}
   };
 
   const handleConfirm = async () => {
@@ -328,7 +367,10 @@ export default function ConfirmOrderPage() {
           if (data.mock) {
             // Demo mode — simulate successful payment, NOW create order
             const mpesaRef = `MOCK${Date.now().toString(36).toUpperCase()}`;
-            await finalizeOrder(mpesaRef);
+            await Promise.race([
+              finalizeOrder(mpesaRef),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
+            ]);
             setPaymentStatus("confirmed");
           } else if (!res.ok) {
             setStkFailedPopup(true);
@@ -337,7 +379,10 @@ export default function ConfirmOrderPage() {
           } else {
             // Real STK push sent — payment confirmed, NOW create order
             const mpesaRef = data.CheckoutRequestID || null;
-            await finalizeOrder(mpesaRef);
+            await Promise.race([
+              finalizeOrder(mpesaRef),
+              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
+            ]);
             setPaymentStatus("confirmed");
           }
         } catch (fetchErr) {
@@ -347,11 +392,16 @@ export default function ConfirmOrderPage() {
         }
       } else if (paymentMethod === "mpesa-app") {
         // M-PESA App: go to code entry screen, order created when code submitted or skipped
+        // Save pending order to sessionStorage so it survives app-switching
+        try { sessionStorage.setItem("mimaji_pending_order", JSON.stringify(pendingOrderRef.current)); } catch {}
         setPaymentStatus("awaiting_code");
       } else {
         // Cash on Delivery: create order immediately
         try {
-          await finalizeOrder(null);
+          await Promise.race([
+            finalizeOrder(null),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Please check your orders page.")), 30000)),
+          ]);
           setPaymentStatus("confirmed");
         } catch (codErr) {
           setPaymentStatus("error");
@@ -389,11 +439,13 @@ export default function ConfirmOrderPage() {
     setCreatingOrder(true);
     setErrorMsg("");
     try {
-      await finalizeOrder(mpesaCode.trim().toUpperCase());
+      await Promise.race([
+        finalizeOrder(mpesaCode.trim().toUpperCase()),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
+      ]);
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
-      // Stay on awaiting_code screen and show error there (don't jump back to main screen)
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
     } finally {
       setCreatingOrder(false);
@@ -404,11 +456,13 @@ export default function ConfirmOrderPage() {
     setCreatingOrder(true);
     setErrorMsg("");
     try {
-      await finalizeOrder(null);
+      await Promise.race([
+        finalizeOrder(null),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Please check your orders page.")), 30000)),
+      ]);
       setPaymentStatus("confirmed");
     } catch (e) {
       console.error("Failed to create order:", e);
-      // Stay on awaiting_code screen and show error there (don't jump back to main screen)
       setErrorMsg(e instanceof Error ? e.message : "Failed to place order. Please try again.");
     } finally {
       setCreatingOrder(false);
