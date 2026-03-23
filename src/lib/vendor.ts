@@ -322,11 +322,11 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
   }
 
-  // Supabase path: fetch order, vendors + locations, score, assign
+  // Supabase path: fetch order, vendors + locations + service times, score, assign
   const attempt = async (): Promise<{ vendorId: string; vendorName: string } | null> => {
     const { data: order } = await supabase
       .from("orders")
-      .select("vendors_tried, brand_preference, delivery_address_details")
+      .select("vendors_tried, brand_preference, delivery_address_details, scheduled_date, scheduled_time")
       .eq("id", orderId)
       .single();
     if (!order) return null;
@@ -340,15 +340,40 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
 
     const { data: vendors } = await supabase
       .from("vendors")
-      .select("id, name, brands, areas_served, rating, vendor_locations(lat, lng)")
+      .select("id, name, brands, areas_served, rating, vendor_locations(lat, lng), vendor_service_times(day, open, open_time, close_time)")
       .eq("active", true);
 
     if (!vendors || vendors.length === 0) return null;
 
+    // Determine which day/time to check (Kenya time UTC+3)
+    const kenyaNow = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const currentDay = dayNames[kenyaNow.getUTCDay()];
+    const currentTime = `${kenyaNow.getUTCHours().toString().padStart(2, "0")}:${kenyaNow.getUTCMinutes().toString().padStart(2, "0")}`;
+
+    // For scheduled orders, check the scheduled day/time instead
+    let checkDay = currentDay;
+    let checkTime = currentTime;
+    if (order.scheduled_date) {
+      const schedDate = new Date(order.scheduled_date as string);
+      checkDay = dayNames[schedDate.getDay()];
+      if (order.scheduled_time) checkTime = order.scheduled_time as string;
+    }
+
     // Score each untried vendor
-    type VendorRow = { id: string; name: string; brands?: string[]; areas_served?: string[]; rating?: number; vendor_locations?: Array<{ lat: number; lng: number }> };
+    type ServiceTime = { day: string; open: boolean; open_time: string; close_time: string };
+    type VendorRow = { id: string; name: string; brands?: string[]; areas_served?: string[]; rating?: number; vendor_locations?: Array<{ lat: number; lng: number }>; vendor_service_times?: ServiceTime[] };
     const candidates = (vendors as VendorRow[])
-      .filter((v) => !triedIds.includes(v.id))
+      .filter((v) => {
+        if (triedIds.includes(v.id)) return false;
+        // Check service times — if vendor has schedule data, ensure they're open
+        if (v.vendor_service_times && v.vendor_service_times.length > 0) {
+          const dayEntry = v.vendor_service_times.find((st) => st.day === checkDay);
+          if (!dayEntry || !dayEntry.open) return false;
+          if (checkTime < dayEntry.open_time || checkTime > dayEntry.close_time) return false;
+        }
+        return true;
+      })
       .map((v) => {
         let score = 0;
 
