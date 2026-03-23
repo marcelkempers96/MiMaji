@@ -454,11 +454,11 @@ export async function acceptOrder(
   }).eq("id", orderId);
 }
 
-export async function rejectOrder(orderId: string, vendorId: string): Promise<{ nextVendor: string | null }> {
+export async function rejectOrder(orderId: string, vendorId: string): Promise<{ nextVendor: string | null; allRejected: boolean }> {
   if (!hasSupabaseConfig) {
     const orders = getMockOrders();
     const idx = orders.findIndex((o) => o.id === orderId);
-    if (idx === -1) return { nextVendor: null };
+    if (idx === -1) return { nextVendor: null, allRejected: false };
 
     const order = orders[idx];
     const triedIds = order.vendors_tried || [];
@@ -469,11 +469,17 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
     saveMockOrders(orders);
 
     const result = await assignOrderToVendor(orderId);
-    return { nextVendor: result?.vendorName || null };
+    if (!result) {
+      // All vendors rejected — mark order so admin can see
+      orders[idx].status = "pending_payment"; // revert to pending for admin attention
+      saveMockOrders(orders);
+      return { nextVendor: null, allRejected: true };
+    }
+    return { nextVendor: result.vendorName, allRejected: false };
   }
 
-  const { data: order } = await supabase.from("orders").select("vendors_tried").eq("id", orderId).single();
-  if (!order) return { nextVendor: null };
+  const { data: order } = await supabase.from("orders").select("vendors_tried, customer_id").eq("id", orderId).single();
+  if (!order) return { nextVendor: null, allRejected: false };
 
   const triedIds = (order.vendors_tried as string[]) || [];
   if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
@@ -485,5 +491,20 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
   }).eq("id", orderId);
 
   const result = await assignOrderToVendor(orderId);
-  return { nextVendor: result?.vendorName || null };
+  if (!result) {
+    // All vendors rejected — notify customer and flag for admin
+    try {
+      await supabase.from("notifications").insert({
+        user_id: order.customer_id as string,
+        type: "order_update",
+        title: "Vendor Unavailable",
+        message: "We're having trouble finding a vendor for your order. Our team has been notified and will assign one shortly.",
+        order_id: orderId,
+      });
+    } catch (e) {
+      console.error("Failed to create notification:", e);
+    }
+    return { nextVendor: null, allRejected: true };
+  }
+  return { nextVendor: result.vendorName, allRejected: false };
 }
