@@ -487,7 +487,11 @@ export async function POST(req: NextRequest) {
       }
 
       if (action === "update_vendor") {
-        const { error } = await sb.from("vendors").update(body.updates).eq("id", body.vendorId);
+        // vendorId could be either the vendor record UUID or the profile/auth UUID.
+        // Use .or() to match on either column.
+        const { error } = await sb.from("vendors")
+          .update(body.updates)
+          .or(`id.eq.${body.vendorId},profile_id.eq.${body.vendorId}`);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
         return NextResponse.json({ success: true });
       }

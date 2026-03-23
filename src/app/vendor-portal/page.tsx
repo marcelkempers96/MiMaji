@@ -10,7 +10,7 @@ import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
-import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, MOCK_VENDORS, StoreLocation } from "@/lib/vendor";
+import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
 import { getVendorSettingsByUserId, getVendorSettingsByUserIdAsync, updateVendor as updateVendorStore, updateVendorAsync, VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
@@ -80,8 +80,10 @@ export default function VendorPortalPage() {
       };
 
       // Save to vendorStore + Supabase (async, handles both)
-      if (user?.id) {
-        await updateVendorAsync(user.id, {
+      // Prefer vendorRecordId (actual vendors table UUID) over user.id (profile UUID)
+      const vid = user?.vendorRecordId || user?.id;
+      if (vid) {
+        await updateVendorAsync(vid, {
           name: settingsBusinessName,
           businessRegNo: settingsBusinessReg,
           mpesaNumber: settingsMpesaNumber,
@@ -182,19 +184,10 @@ export default function VendorPortalPage() {
           return;
         }
 
-        // Last resort: mock data
-        const vendor = MOCK_VENDORS.find((v) => v.id === user.id) || MOCK_VENDORS[0];
-        if (vendor) {
-          setSettingsBusinessName(vendor.name);
-          setSettingsBusinessReg(vendor.businessRegNo);
-          setSettingsMpesaNumber(vendor.mpesaNumber);
-          setSettingsPhoneNumbers(vendor.phoneNumbers.length > 0 ? [...vendor.phoneNumbers] : [""]);
-          setSettingsLocations(vendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })));
-          setSelectedStoreId(vendor.locations[0]?.id || "");
-          setSettingsBrands(vendor.brands || []);
-          setSettingsProducts(vendor.products || []);
-          setSettingsAreasServed(vendor.areasServed || []);
-        }
+        // Last resort: start with the vendor's own name and empty defaults
+        // (no fake AquaPure data — new vendors should fill in their own details)
+        setSettingsBusinessName(user.name || "");
+        setSettingsPhoneNumbers(user.phone ? [user.phone] : [""]);
       });
     });
   }, [user?.id]);
@@ -254,9 +247,10 @@ export default function VendorPortalPage() {
     };
   }, [user?.id, loadOrders]);
 
-  // Get current vendor's locations for the store picker
-  const currentVendor = MOCK_VENDORS.find((v) => v.id === user?.id) || MOCK_VENDORS[0];
-  const vendorLocations = currentVendor?.locations || [];
+  // Get current vendor's locations from settings (not mock data)
+  const vendorLocations = settingsLocations
+    .filter((l) => l.name)
+    .map((l, i) => ({ id: `${user?.id}-loc${i}`, name: l.name, area: l.area, lat: l.lat, lng: l.lng }));
 
   const handleAcceptOrder = (orderId: string) => {
     setEtaModalOrderId(orderId);
@@ -852,7 +846,7 @@ export default function VendorPortalPage() {
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-5 text-white mb-4">
           <p className="text-white/70 text-xs">Welcome back</p>
-          <p className="text-xl font-extrabold">{user.name}</p>
+          <p className="text-xl font-extrabold">{settingsBusinessName || user.name}</p>
           <div className="flex items-center gap-2 mt-2">
             <Star size={14} className="text-rating fill-rating" />
             <span className="text-sm">Vendor Dashboard</span>
@@ -973,7 +967,7 @@ export default function VendorPortalPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-extrabold text-text-primary">Vendor Dashboard</h1>
-              <p className="text-text-secondary">{user.name} \u2014 Welcome back</p>
+              <p className="text-text-secondary">{settingsBusinessName || user.name} \u2014 Welcome back</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setActiveDesktopTab("notifications")} className={`bg-surface shadow-card rounded-xl px-4 py-2 text-sm font-medium text-text-primary hover:shadow-card-hover transition-shadow flex items-center gap-2 ${activeDesktopTab === "notifications" ? "ring-2 ring-primary" : ""}`}>

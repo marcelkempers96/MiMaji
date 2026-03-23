@@ -424,6 +424,19 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
 
   if (!localResult) return localResult;
 
+  // Resolve the actual vendor record ID from Supabase.
+  // vendorId might be a profile/auth UUID rather than the vendors.id UUID.
+  let resolvedVendorId = vendorId;
+  try {
+    // Try direct match on vendors.id first
+    let { data: v } = await supabase.from("vendors").select("id").eq("id", vendorId).maybeSingle();
+    if (!v) {
+      // If not found, vendorId is likely a profile_id
+      const res = await supabase.from("vendors").select("id").eq("profile_id", vendorId).maybeSingle();
+      if (res.data) resolvedVendorId = res.data.id;
+    }
+  } catch {}
+
   // Sync to Supabase via server API (has service role key, works regardless of client env vars)
   try {
     let adminCode = "";
@@ -449,14 +462,14 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
       body: JSON.stringify({ code: adminCode, action: "update_vendor", vendorId, updates: vendorUpdates }),
     });
 
-    // Update products via direct Supabase if config available
-    if (hasSupabaseConfig && updates.products) {
-      await supabase.from("vendor_products").delete().eq("vendor_id", vendorId);
+    // Update products via direct Supabase
+    if (updates.products) {
+      await supabase.from("vendor_products").delete().eq("vendor_id", resolvedVendorId);
       if (updates.products.length > 0) {
         await supabase.from("vendor_products").insert(
           updates.products.map((p) => ({
             id: p.id,
-            vendor_id: vendorId,
+            vendor_id: resolvedVendorId,
             name: p.name,
             size: p.size,
             price_new: p.priceNew,
@@ -467,13 +480,13 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
       }
     }
 
-    // Update service times via direct Supabase if config available
-    if (hasSupabaseConfig && updates.serviceTimes) {
-      await supabase.from("vendor_service_times").delete().eq("vendor_id", vendorId);
+    // Update service times via direct Supabase
+    if (updates.serviceTimes) {
+      await supabase.from("vendor_service_times").delete().eq("vendor_id", resolvedVendorId);
       if (updates.serviceTimes.length > 0) {
         await supabase.from("vendor_service_times").insert(
           updates.serviceTimes.map((st) => ({
-            vendor_id: vendorId,
+            vendor_id: resolvedVendorId,
             day: st.day,
             open: st.open,
             open_time: st.openTime,
@@ -483,14 +496,14 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
       }
     }
 
-    // Update locations via direct Supabase if config available
-    if (hasSupabaseConfig && updates.locations) {
-      await supabase.from("vendor_locations").delete().eq("vendor_id", vendorId);
+    // Update locations via direct Supabase
+    if (updates.locations) {
+      await supabase.from("vendor_locations").delete().eq("vendor_id", resolvedVendorId);
       if (updates.locations.length > 0) {
         await supabase.from("vendor_locations").insert(
           updates.locations.map((l) => ({
             id: l.id,
-            vendor_id: vendorId,
+            vendor_id: resolvedVendorId,
             name: l.name,
             area: l.area,
             lat: l.lat,

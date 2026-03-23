@@ -12,6 +12,8 @@ export interface User {
   role: UserRole;
   /** Persistent 4-digit delivery confirmation PIN for this user */
   deliveryPin?: string;
+  /** The vendor record UUID in the vendors table (different from profile id) */
+  vendorRecordId?: string;
 }
 
 interface AuthResult {
@@ -379,13 +381,21 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       const sb = await getSupabase();
       const { data } = await sb.from("profiles").select("role, delivery_pin, full_name, phone").eq("id", userId).maybeSingle();
       if (data) {
-        return {
+        const enriched: User = {
           ...baseUser,
           role: (data.role as UserRole) || baseUser.role,
           deliveryPin: data.delivery_pin || undefined,
           name: data.full_name || baseUser.name,
           phone: data.phone || baseUser.phone,
         };
+        // For vendors, fetch the actual vendor record ID (different from profile/auth ID)
+        if (enriched.role === "vendor") {
+          try {
+            const { data: vendor } = await sb.from("vendors").select("id").eq("profile_id", userId).maybeSingle();
+            if (vendor) enriched.vendorRecordId = vendor.id;
+          } catch {}
+        }
+        return enriched;
       }
     } catch {}
     return baseUser;
@@ -513,6 +523,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
                 phone: vendorData.vendor.phone || cleaned,
                 name: vendorData.vendor.name || "",
                 role: "vendor",
+                vendorRecordId: vendorData.vendor.vendorRecordId || vendorData.vendor.id,
               };
               setMockUser(vendorUser);
               setSession(null);

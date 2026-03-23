@@ -34,7 +34,7 @@ export default function HomePage() {
             <img src={logo1.src} alt="MiMaji" className="h-[70px] w-auto" />
           </div>
           {user ? (
-            <Link href="/dashboard" className="text-primary text-sm font-semibold">
+            <Link href={user.role === "vendor" ? "/vendor-portal" : "/dashboard"} className="text-primary text-sm font-semibold">
               {user.name}&apos;s Dashboard
             </Link>
           ) : (
@@ -382,7 +382,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string } | null })
             <Link href="/subscriptions" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Subscriptions</Link>
             <Link href="/support" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Support</Link>
             {user ? (
-              <Link href="/dashboard" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">
+              <Link href={user.role === "vendor" ? "/vendor-portal" : "/dashboard"} className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">
                 {user.name}&apos;s Dashboard
               </Link>
             ) : (
