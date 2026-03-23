@@ -62,6 +62,38 @@ function getEstimatedDelivery(): { duration: string; arrivalTime: string } {
   };
 }
 
+/**
+ * Timeout that only counts time when the page is visible.
+ * Pauses when user switches to another app (e.g. M-Pesa) and resumes when they return.
+ * This prevents false "timed out" errors when users switch apps during payment.
+ */
+function visibilityAwareTimeout(ms: number, message: string): Promise<never> {
+  return new Promise((_, reject) => {
+    let remaining = ms;
+    let lastVisible = Date.now();
+
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        remaining -= (Date.now() - lastVisible);
+        if (remaining <= 0) {
+          clearInterval(timer);
+          document.removeEventListener("visibilitychange", onVisChange);
+          reject(new Error(message));
+        }
+      }
+      lastVisible = Date.now();
+    }, 1000);
+
+    const onVisChange = () => {
+      if (document.visibilityState === "visible") {
+        // Reset the tick reference when coming back to avoid counting hidden time
+        lastVisible = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisChange);
+  });
+}
+
 type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 
 export default function ConfirmOrderPage() {
@@ -424,11 +456,8 @@ export default function ConfirmOrderPage() {
           let orderId: string | null = null;
           try {
             await Promise.race([
-              (async () => {
-                const result = await finalizeOrder(null); // creates with pending_payment
-                return result;
-              })(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out.")), 30000)),
+              finalizeOrder(null), // creates with pending_payment
+              visibilityAwareTimeout(60000, "Order creation timed out."),
             ]);
             orderId = confirmedOrderRef.current?.orderId || null;
           } catch (orderErr) {
@@ -486,7 +515,7 @@ export default function ConfirmOrderPage() {
         try {
           await Promise.race([
             finalizeOrder(null),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Please check your orders page.")), 30000)),
+            visibilityAwareTimeout(60000, "Order creation timed out. Please check your orders page."),
           ]);
           setPaymentStatus("confirmed");
         } catch (codErr) {
@@ -527,7 +556,7 @@ export default function ConfirmOrderPage() {
     try {
       await Promise.race([
         finalizeOrder(mpesaCode.trim().toUpperCase()),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Your payment was received — please check your orders.")), 30000)),
+        visibilityAwareTimeout(60000, "Order creation timed out. Your payment was received — please check your orders."),
       ]);
       setPaymentStatus("confirmed");
     } catch (e) {
@@ -544,7 +573,7 @@ export default function ConfirmOrderPage() {
     try {
       await Promise.race([
         finalizeOrder(null),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Order creation timed out. Please check your orders page.")), 30000)),
+        visibilityAwareTimeout(60000, "Order creation timed out. Please check your orders page."),
       ]);
       setPaymentStatus("confirmed");
     } catch (e) {

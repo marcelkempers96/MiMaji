@@ -69,9 +69,19 @@ export default function VendorLoginPage() {
             role: "vendor" as const,
           };
           try {
+            // Must match the format expected by AuthContext.loadUserCache():
+            // { user, isMock, expiresAt }
+            const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
             localStorage.setItem("mimaji_user_cache", JSON.stringify({
               user: vendorUser,
-              timestamp: Date.now(),
+              isMock: true,
+              expiresAt: Date.now() + SESSION_EXPIRY_MS,
+            }));
+            // Also save under legacy key for backwards compat
+            localStorage.setItem("mimaji_mock_user", JSON.stringify({
+              user: vendorUser,
+              isMock: true,
+              expiresAt: Date.now() + SESSION_EXPIRY_MS,
             }));
             // Also register in mock signups for subsequent logins
             const raw = localStorage.getItem("mimaji_mock_signups");

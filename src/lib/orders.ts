@@ -135,6 +135,35 @@ export async function fetchAllOrders(): Promise<OrderRecord[]> {
   });
 }
 
+/**
+ * Wait for the Supabase auth session to be restored (e.g. after page refresh).
+ * Returns true if a session is available, false if timed out.
+ */
+async function waitForSupabaseSession(maxWaitMs = 3000): Promise<boolean> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) return true;
+  } catch { return false; }
+
+  // Session not ready yet — listen for auth state change
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      sub?.unsubscribe();
+      resolve(false);
+    }, maxWaitMs);
+
+    let sub: { unsubscribe: () => void } | null = null;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+      if (sess) {
+        clearTimeout(timeout);
+        subscription.unsubscribe();
+        resolve(true);
+      }
+    });
+    sub = subscription;
+  });
+}
+
 export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
   // Always check localStorage for mock orders first as a baseline
   let mockOrders: OrderRecord[] = [];
@@ -145,6 +174,15 @@ export async function fetchUserOrders(userId: string): Promise<OrderRecord[]> {
   }
 
   if (!hasSupabaseConfig) {
+    return mockOrders;
+  }
+
+  // Wait for the Supabase session to be restored before querying.
+  // On page refresh, the auth token needs time to be read from localStorage
+  // and validated. Without this, RLS sees auth.uid()=NULL and returns empty.
+  const hasSession = await waitForSupabaseSession();
+  if (!hasSession) {
+    // No Supabase session — return mock/cached orders only
     return mockOrders;
   }
 
@@ -306,8 +344,10 @@ export async function createOrder(params: {
   }
 
   // Add timeout to prevent hanging forever on network issues
+  // 60s timeout — must be generous because mobile users may switch to M-Pesa app
+  // and the browser may throttle/pause network when backgrounded
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeout = setTimeout(() => controller.abort(), 60000);
 
   try {
     // Ensure the customer has a profile (foreign key requirement)
