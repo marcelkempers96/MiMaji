@@ -496,6 +496,33 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
           }
         } catch {}
 
+        // Before giving up, try server-side vendor auth (checks vendors table PIN directly).
+        // This is the cross-device fallback: even if the Supabase auth user wasn't created,
+        // the vendor record in the vendors table has the PIN and can authenticate directly.
+        try {
+          const vendorRes = await fetch("/api/vendor-auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: cleaned, pin }),
+          });
+          if (vendorRes.ok) {
+            const vendorData = await vendorRes.json();
+            if (vendorData.success && vendorData.vendor) {
+              const vendorUser: User = {
+                id: vendorData.vendor.id,
+                phone: vendorData.vendor.phone || cleaned,
+                name: vendorData.vendor.name || "",
+                role: "vendor",
+              };
+              setMockUser(vendorUser);
+              setSession(null);
+              return { user: vendorUser };
+            }
+          }
+        } catch (vendorAuthErr) {
+          console.error("Vendor auth fallback failed:", vendorAuthErr);
+        }
+
         if (error.message.includes("Invalid login credentials")) {
           return { error: "Invalid phone number or PIN" };
         }
