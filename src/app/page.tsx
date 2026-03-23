@@ -367,7 +367,7 @@ function MobileFooter() {
   );
 }
 
-function DesktopHome({ user }: { user: { phone: string; name: string } | null }) {
+function DesktopHome({ user }: { user: { phone: string; name: string; role?: string } | null }) {
   return (
     <>
       {/* Desktop Nav */}
