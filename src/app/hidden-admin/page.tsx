@@ -378,7 +378,6 @@ function AdminDashboardInner() {
     // Fallback: localStorage mock
     const builtIn: MockUser[] = [
       { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin", password: "admin123" },
-      { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor", password: "vendor123" },
     ];
     const seenIds = new Set(builtIn.map((u) => u.id));
     const allUsers: MockUser[] = [...builtIn];

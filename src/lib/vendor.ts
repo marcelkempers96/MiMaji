@@ -51,71 +51,15 @@ export interface VendorInfo {
   locations: StoreLocation[];
 }
 
-// ── Mock vendor list with multi-location support ──
-export const MOCK_VENDORS: VendorInfo[] = [
-  {
-    id: "v1", name: "AquaPure Kilimani", area: "Kilimani, Nairobi", distance: "0.8 km", rating: 4.8, reviews: 156, hours: "6AM - 9PM",
-    products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"],
-    brands: ["keringet", "aquamist"],
-    areasServed: ["Kilimani", "Hurlingham", "Lavington", "Kileleshwa"],
-    businessRegNo: "BN-2024-001234", mpesaNumber: "254700111222", phoneNumbers: ["+254700111222", "+254700111223"],
-    locations: [
-      { id: "v1-loc1", name: "AquaPure Kilimani Main", area: "Kilimani, Nairobi", lat: -1.2921, lng: 36.7877 },
-      { id: "v1-loc2", name: "AquaPure Hurlingham", area: "Hurlingham, Nairobi", lat: -1.2975, lng: 36.7950 },
-    ],
-  },
-  {
-    id: "v2", name: "WaterPoint Westlands", area: "Westlands, Nairobi", distance: "1.2 km", rating: 4.6, reviews: 89, hours: "7AM - 8PM",
-    products: ["20L Hard", "20L Soft", "10L Soft"],
-    brands: ["keringet", "mayers"],
-    areasServed: ["Westlands", "Parklands", "Spring Valley", "Runda"],
-    businessRegNo: "BN-2024-002345", mpesaNumber: "254700222333", phoneNumbers: ["+254700222333"],
-    locations: [
-      { id: "v2-loc1", name: "WaterPoint Westlands", area: "Westlands, Nairobi", lat: -1.2673, lng: 36.8110 },
-    ],
-  },
-  {
-    id: "v3", name: "CleanWater Hub", area: "Lavington, Nairobi", distance: "2.1 km", rating: 4.9, reviews: 234, hours: "6AM - 10PM",
-    products: ["20L Hard", "20L Soft", "10L Soft", "5L Soft"],
-    brands: ["aquamist", "mayers", "keringet"],
-    areasServed: ["Lavington", "Kileleshwa", "South C", "Nairobi West"],
-    businessRegNo: "BN-2024-003456", mpesaNumber: "254700333444", phoneNumbers: ["+254700333444", "+254700333445"],
-    locations: [
-      { id: "v3-loc1", name: "CleanWater Hub Lavington", area: "Lavington, Nairobi", lat: -1.2786, lng: 36.7718 },
-      { id: "v3-loc2", name: "CleanWater Hub Kileleshwa", area: "Kileleshwa, Nairobi", lat: -1.2750, lng: 36.7810 },
-      { id: "v3-loc3", name: "CleanWater Hub South C", area: "South C, Nairobi", lat: -1.3100, lng: 36.8250 },
-    ],
-  },
-  {
-    id: "v4", name: "Maji Fresh Karen", area: "Karen, Nairobi", distance: "5.3 km", rating: 4.7, reviews: 67, hours: "7AM - 9PM",
-    products: ["20L Hard", "20L Soft"],
-    brands: ["mayers"],
-    areasServed: ["Karen", "Langata", "Rongai", "Ngong"],
-    businessRegNo: "BN-2024-004567", mpesaNumber: "254700444555", phoneNumbers: ["+254700444555"],
-    locations: [
-      { id: "v4-loc1", name: "Maji Fresh Karen", area: "Karen, Nairobi", lat: -1.3226, lng: 36.7126 },
-    ],
-  },
-  {
-    id: "v5", name: "PureDrops CBD", area: "CBD, Nairobi", distance: "3.8 km", rating: 4.5, reviews: 112, hours: "6AM - 8PM",
-    products: ["20L Soft", "10L Soft", "5L Soft"],
-    brands: ["aquamist", "keringet"],
-    areasServed: ["CBD", "Upper Hill", "South B", "Eastleigh"],
-    businessRegNo: "BN-2024-005678", mpesaNumber: "254700555666", phoneNumbers: ["+254700555666", "+254700555667"],
-    locations: [
-      { id: "v5-loc1", name: "PureDrops CBD", area: "CBD, Nairobi", lat: -1.2864, lng: 36.8172 },
-      { id: "v5-loc2", name: "PureDrops Upperhill", area: "Upperhill, Nairobi", lat: -1.2950, lng: 36.8180 },
-    ],
-  },
-];
+// Mock vendors removed — all vendor data comes from Supabase now.
+export const MOCK_VENDORS: VendorInfo[] = [];
 
 // ── Fetch all active vendors ──
 export async function fetchVendors(): Promise<VendorInfo[]> {
   if (!hasSupabaseConfig) {
-    if (isProduction) console.warn("fetchVendors: using mock vendors — Supabase not configured");
-    // Combine mock vendors with dynamically-created vendors from vendorStore
+    // No Supabase config — return vendors from localStorage cache only
     const storeVendors = loadVendorStore();
-    const storeVendorInfos: VendorInfo[] = storeVendors.map((v) => ({
+    return storeVendors.map((v) => ({
       id: v.id,
       name: v.name,
       area: v.area || "",
@@ -131,9 +75,6 @@ export async function fetchVendors(): Promise<VendorInfo[]> {
       phoneNumbers: v.phoneNumbers || [],
       locations: v.locations || [],
     }));
-    // Deduplicate by ID (vendorStore vendors take precedence)
-    const storeIds = new Set(storeVendorInfos.map((v) => v.id));
-    return [...storeVendorInfos, ...MOCK_VENDORS.filter((v) => !storeIds.has(v.id))];
   }
 
   const { data: vendors, error } = await supabase

@@ -12,6 +12,8 @@ export interface User {
   role: UserRole;
   /** Persistent 4-digit delivery confirmation PIN for this user */
   deliveryPin?: string;
+  /** The vendor record UUID in the vendors table (different from profile id) */
+  vendorRecordId?: string;
 }
 
 interface AuthResult {
@@ -77,14 +79,7 @@ const MOCK_ACCOUNTS: Record<string, { pin: string; user: User }> = {
     pin: "1234",
     user: { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin" },
   },
-  "0712345678": {
-    pin: "5678",
-    user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
-  },
-  "254712345678": {
-    pin: "5678",
-    user: { id: "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d", phone: "254712345678", name: "AquaPure Kilimani", role: "vendor" },
-  },
+  // AquaPure mock account removed — vendors authenticate via Supabase or /api/vendor-auth
   "0700000001": {
     pin: "1111",
     user: { id: "v8c3d0e2-4f6a-5b9c-c7e5-2a0f1b8d6c3e", phone: "254700000001", name: "MiMaji Vendor", role: "vendor" },
@@ -379,13 +374,21 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
       const sb = await getSupabase();
       const { data } = await sb.from("profiles").select("role, delivery_pin, full_name, phone").eq("id", userId).maybeSingle();
       if (data) {
-        return {
+        const enriched: User = {
           ...baseUser,
           role: (data.role as UserRole) || baseUser.role,
           deliveryPin: data.delivery_pin || undefined,
           name: data.full_name || baseUser.name,
           phone: data.phone || baseUser.phone,
         };
+        // For vendors, fetch the actual vendor record ID (different from profile/auth ID)
+        if (enriched.role === "vendor") {
+          try {
+            const { data: vendor } = await sb.from("vendors").select("id").eq("profile_id", userId).maybeSingle();
+            if (vendor) enriched.vendorRecordId = vendor.id;
+          } catch {}
+        }
+        return enriched;
       }
     } catch {}
     return baseUser;
@@ -513,6 +516,7 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
                 phone: vendorData.vendor.phone || cleaned,
                 name: vendorData.vendor.name || "",
                 role: "vendor",
+                vendorRecordId: vendorData.vendor.vendorRecordId || vendorData.vendor.id,
               };
               setMockUser(vendorUser);
               setSession(null);

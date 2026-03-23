@@ -51,6 +51,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
+    } else if (!authLoading && user?.role === "vendor") {
+      router.push("/vendor-portal");
     }
   }, [user, authLoading, router]);
 
