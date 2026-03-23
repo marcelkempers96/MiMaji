@@ -66,6 +66,8 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
+const isProduction = typeof process !== "undefined" && process.env.NODE_ENV === "production";
+
 // ── Local storage mock for orders when Supabase is not configured ──
 const MOCK_ORDERS_KEY = "mimaji_mock_orders";
 
@@ -256,6 +258,9 @@ export async function createOrder(params: {
   const status = params.initialStatus || "pending_payment";
 
   if (!hasSupabaseConfig) {
+    if (isProduction) {
+      console.error("CRITICAL: Supabase not configured in production — order will only be stored locally");
+    }
     const orderId = crypto.randomUUID();
     const now = new Date().toISOString();
     const order: OrderRecord = {

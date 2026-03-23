@@ -9,6 +9,8 @@ const hasSupabaseConfig =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "placeholder-key";
 
+const isProduction = typeof process !== "undefined" && process.env.NODE_ENV === "production";
+
 const MOCK_ORDERS_KEY = "mimaji_mock_orders";
 
 function getMockOrders(): OrderRecord[] {
@@ -110,6 +112,7 @@ export const MOCK_VENDORS: VendorInfo[] = [
 // ── Fetch all active vendors ──
 export async function fetchVendors(): Promise<VendorInfo[]> {
   if (!hasSupabaseConfig) {
+    if (isProduction) console.warn("fetchVendors: using mock vendors — Supabase not configured");
     // Combine mock vendors with dynamically-created vendors from vendorStore
     const storeVendors = loadVendorStore();
     const storeVendorInfos: VendorInfo[] = storeVendors.map((v) => ({

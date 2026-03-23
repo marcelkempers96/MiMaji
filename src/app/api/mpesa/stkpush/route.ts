@@ -16,7 +16,13 @@ export async function POST(req: NextRequest) {
 
     // Check if M-PESA credentials are configured
     if (!process.env.MPESA_CONSUMER_KEY || !process.env.MPESA_CONSUMER_SECRET || !process.env.MPESA_PASSKEY) {
-      // Return a mock success response for demo/development
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          { error: "M-Pesa payments are not configured. Please contact support." },
+          { status: 503 }
+        );
+      }
+      // Dev/staging only — return mock response
       const checkoutId = `MOCK-CHK-${Date.now()}`;
       return NextResponse.json({
         mock: true,
