@@ -512,6 +512,126 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      // ── Bulk delete: all users (auth + profiles) ──
+      if (action === "delete_all_users") {
+        const deleted: string[] = [];
+        const errors: string[] = [];
+
+        // 1. List all auth users (paginated)
+        let page = 1;
+        const perPage = 1000;
+        const allAuthUsers: { id: string }[] = [];
+        while (true) {
+          const { data: authPage, error: authErr } = await sb.auth.admin.listUsers({ page, perPage });
+          if (authErr) { errors.push(`listUsers page ${page}: ${authErr.message}`); break; }
+          if (!authPage?.users?.length) break;
+          allAuthUsers.push(...authPage.users.map((u) => ({ id: u.id })));
+          if (authPage.users.length < perPage) break;
+          page++;
+        }
+
+        // 2. Delete each auth user (cascades to profiles via FK ON DELETE CASCADE)
+        for (const user of allAuthUsers) {
+          const { error: delErr } = await sb.auth.admin.deleteUser(user.id);
+          if (delErr) {
+            errors.push(`deleteUser ${user.id}: ${delErr.message}`);
+          } else {
+            deleted.push(user.id);
+          }
+        }
+
+        // 3. Clean up any orphan profiles that weren't cascade-deleted
+        await sb.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        return NextResponse.json({
+          success: true,
+          deleted_count: deleted.length,
+          errors: errors.length > 0 ? errors : undefined,
+        });
+      }
+
+      // ── Bulk delete: all vendors (hard delete) ──
+      if (action === "delete_all_vendors") {
+        const errors: string[] = [];
+
+        // 1. Get all vendor IDs
+        const { data: vendors } = await sb.from("vendors").select("id, profile_id");
+
+        if (vendors && vendors.length > 0) {
+          const vendorIds = vendors.map((v: { id: string }) => v.id);
+
+          // 2. Delete related tables (cascade should handle this, but be explicit)
+          await sb.from("vendor_products").delete().in("vendor_id", vendorIds);
+          await sb.from("vendor_service_times").delete().in("vendor_id", vendorIds);
+          await sb.from("vendor_locations").delete().in("vendor_id", vendorIds);
+
+          // 3. Hard delete all vendor records
+          const { error } = await sb.from("vendors").delete().in("id", vendorIds);
+          if (error) errors.push(`delete vendors: ${error.message}`);
+
+          // 4. Optionally delete auth users for vendor profiles
+          if (body.deleteAuth) {
+            const profileIds = vendors
+              .map((v: { profile_id: string | null }) => v.profile_id)
+              .filter(Boolean) as string[];
+            for (const pid of profileIds) {
+              const { error: authErr } = await sb.auth.admin.deleteUser(pid);
+              if (authErr) errors.push(`deleteUser ${pid}: ${authErr.message}`);
+            }
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          deleted_count: vendors?.length || 0,
+          errors: errors.length > 0 ? errors : undefined,
+        });
+      }
+
+      // ── Bulk delete: everything (users + vendors + orders) ──
+      if (action === "purge_all") {
+        const errors: string[] = [];
+
+        // Delete orders, payments, invoices, notifications first
+        await sb.from("payments").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("invoices").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("notifications").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("orders").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        // Delete vendor-related tables
+        await sb.from("vendor_products").delete().neq("vendor_id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("vendor_service_times").delete().neq("vendor_id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("vendor_locations").delete().neq("vendor_id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("vendors").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        // Delete user-related tables
+        await sb.from("rewards").delete().neq("user_id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("referrals").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        await sb.from("vouchers").delete().neq("code", "");
+        await sb.from("profiles").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        // Delete all auth users
+        let page = 1;
+        let deletedAuthCount = 0;
+        while (true) {
+          const { data: authPage, error: authErr } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 });
+          if (authErr) { errors.push(`listUsers: ${authErr.message}`); break; }
+          if (!authPage?.users?.length) break;
+          for (const u of authPage.users) {
+            const { error: delErr } = await sb.auth.admin.deleteUser(u.id);
+            if (delErr) errors.push(`deleteUser ${u.id}: ${delErr.message}`);
+            else deletedAuthCount++;
+          }
+          // Always re-fetch page 1 since we're deleting users
+        }
+
+        return NextResponse.json({
+          success: true,
+          deleted_auth_users: deletedAuthCount,
+          errors: errors.length > 0 ? errors : undefined,
+        });
+      }
+
       if (action === "reactivate_vendor") {
         const { error } = await sb.from("vendors").update({ active: true }).eq("id", body.vendorId);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -575,6 +695,33 @@ export async function POST(req: NextRequest) {
 
     if (action === "delete_user") {
       deleteFromCollection("users", body.userId);
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "delete_all_users") {
+      const { writeCollection } = require("@/lib/fileStore");
+      writeCollection("users", []);
+      return NextResponse.json({ success: true, deleted_count: 0 });
+    }
+
+    if (action === "delete_all_vendors") {
+      const { writeCollection } = require("@/lib/fileStore");
+      writeCollection("vendors", []);
+      writeCollection("vendor_products", []);
+      writeCollection("vendor_service_times", []);
+      writeCollection("vendor_locations", []);
+      return NextResponse.json({ success: true, deleted_count: 0 });
+    }
+
+    if (action === "purge_all") {
+      const { writeCollection } = require("@/lib/fileStore");
+      writeCollection("users", []);
+      writeCollection("vendors", []);
+      writeCollection("vendor_products", []);
+      writeCollection("vendor_service_times", []);
+      writeCollection("vendor_locations", []);
+      writeCollection("orders", []);
+      writeCollection("subscriptions", []);
       return NextResponse.json({ success: true });
     }
 
