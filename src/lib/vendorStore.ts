@@ -493,6 +493,31 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       console.error("Admin API update_vendor failed:", err.error || res.status);
+
+      // Fallback: try vendor self-service endpoint (vendor portal, no admin code)
+      // Authenticate with vendorId + PIN stored in the local vendor record
+      const cachedVendor = loadLocalCache().find((v) => v.id === vendorId);
+      const vendorPin = cachedVendor?.credentials?.pin;
+      if (vendorPin) {
+        try {
+          const vendorPayload: Record<string, unknown> = { vendorId, pin: vendorPin, updates: vendorUpdates };
+          if (payload.products) vendorPayload.products = payload.products;
+          if (payload.serviceTimes) vendorPayload.serviceTimes = payload.serviceTimes;
+          if (payload.locations) vendorPayload.locations = payload.locations;
+
+          const vendorRes = await fetch("/api/vendor-update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(vendorPayload),
+          });
+          if (!vendorRes.ok) {
+            const vendorErr = await vendorRes.json().catch(() => ({}));
+            console.error("Vendor self-update also failed:", vendorErr.error || vendorRes.status);
+          }
+        } catch (ve) {
+          console.error("Vendor self-update request failed:", ve);
+        }
+      }
     }
   } catch (e) {
     console.error("Failed to sync vendor update to Supabase:", e);
