@@ -46,8 +46,6 @@ export interface VendorRecord {
   businessRegNo: string;
   mpesaNumber: string;
   phoneNumbers: string[];
-  rating: number;
-  reviews: number;
   products: VendorProduct[];
   brands: string[];
   areasServed: string[];
@@ -56,6 +54,8 @@ export interface VendorRecord {
   deliveryRadius: number;
   description: string;
   minOrder: string;
+  verified: boolean;
+  active: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -159,8 +159,6 @@ export function mapSupabaseToVendor(v: Record<string, unknown>): VendorRecord {
     businessRegNo: (v.business_reg_no as string) || "",
     mpesaNumber: (v.mpesa_number as string) || "",
     phoneNumbers: (v.phone_numbers as string[]) || [],
-    rating: Number(v.rating) || 5.0,
-    reviews: Number(v.reviews) || 0,
     products: products.length > 0 ? products : defaultVendorProducts(),
     brands: (v.brands as string[]) || [],
     areasServed: (v.areas_served as string[]) || [],
@@ -169,6 +167,8 @@ export function mapSupabaseToVendor(v: Record<string, unknown>): VendorRecord {
     deliveryRadius: Number(v.delivery_radius_km) || 10,
     description: (v.description as string) || "",
     minOrder: (v.min_order as string) || "",
+    verified: v.verified === true,
+    active: v.active !== false,
     createdAt: (v.created_at as string) || new Date().toISOString(),
     updatedAt: (v.updated_at as string) || new Date().toISOString(),
   };
@@ -319,8 +319,6 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
       businessRegNo: "",
       mpesaNumber: "",
       phoneNumbers: [normalizedPhone],
-      rating: 5.0,
-      reviews: 0,
       products: defaultVendorProducts(),
       brands: [],
       areasServed: [],
@@ -329,6 +327,8 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
       deliveryRadius: 10,
       description: "",
       minOrder: "",
+      verified: false,
+      active: true,
       createdAt: now,
       updatedAt: now,
     };
@@ -370,8 +370,6 @@ function createVendorLocal(name: string, phone: string): VendorRecord {
     businessRegNo: "",
     mpesaNumber: "",
     phoneNumbers: [normalizedPhone],
-    rating: 5.0,
-    reviews: 0,
     products: defaultVendorProducts(),
     brands: [],
     areasServed: [],
@@ -380,6 +378,8 @@ function createVendorLocal(name: string, phone: string): VendorRecord {
     deliveryRadius: 10,
     description: "",
     minOrder: "",
+    verified: false,
+    active: true,
     createdAt: now,
     updatedAt: now,
   };
@@ -442,8 +442,9 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
     if (updates.deliveryRadius !== undefined) vendorUpdates.delivery_radius_km = updates.deliveryRadius;
     if (updates.description !== undefined) vendorUpdates.description = updates.description;
     if (updates.minOrder !== undefined) vendorUpdates.min_order = updates.minOrder;
-    if (updates.rating !== undefined) vendorUpdates.rating = updates.rating;
-    if (updates.reviews !== undefined) vendorUpdates.reviews = updates.reviews;
+    if (updates.verified !== undefined) vendorUpdates.verified = updates.verified;
+    if (updates.active !== undefined) vendorUpdates.active = updates.active;
+    if (updates.credentials?.pin !== undefined) vendorUpdates.pin = updates.credentials.pin;
 
     // Build the full payload — admin API handles products/serviceTimes/locations
     // server-side with service role (bypasses RLS)

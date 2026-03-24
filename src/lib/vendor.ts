@@ -39,8 +39,6 @@ export interface VendorInfo {
   name: string;
   area: string;
   distance: string;
-  rating: number;
-  reviews: number;
   hours: string;
   products: string[];
   brands: string[];
@@ -64,8 +62,6 @@ export async function fetchVendors(): Promise<VendorInfo[]> {
       name: v.name,
       area: v.area || "",
       distance: "",
-      rating: v.rating,
-      reviews: v.reviews,
       hours: v.serviceTimes?.find((t) => t.open) ? `${v.serviceTimes.find((t) => t.open)!.openTime} - ${v.serviceTimes.find((t) => t.open)!.closeTime}` : "7AM - 8PM",
       products: v.products.filter((p) => p.available).map((p) => `${p.size} ${p.name.includes("Hard") ? "Hard" : p.name.includes("Soft") ? "Soft" : p.name}`),
       brands: v.brands || [],
@@ -92,8 +88,6 @@ export async function fetchVendors(): Promise<VendorInfo[]> {
     name: v.name as string,
     area: v.area as string,
     distance: "",
-    rating: Number(v.rating) || 0,
-    reviews: Number(v.reviews) || 0,
     hours: (v.hours as string) || "7AM - 8PM",
     products: (v.products as string[]) || [],
     brands: (v.brands as string[]) || [],
@@ -248,8 +242,6 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
           const dist = haversineKm(deliveryLat, deliveryLng, closest.lat, closest.lng);
           score += Math.max(0, 5 - dist); // 5 points at 0km, 0 points at 5km+
         }
-        // Rating bonus
-        score += v.rating;
         return { vendor: v, score };
       })
       .sort((a, b) => b.score - a.score);
@@ -281,7 +273,7 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
 
     const { data: vendors } = await supabase
       .from("vendors")
-      .select("id, name, brands, areas_served, rating, vendor_locations(lat, lng), vendor_service_times(day, open, open_time, close_time)")
+      .select("id, name, brands, areas_served, vendor_locations(lat, lng), vendor_service_times(day, open, open_time, close_time)")
       .eq("active", true);
 
     if (!vendors || vendors.length === 0) return null;
@@ -303,7 +295,7 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
 
     // Score each untried vendor
     type ServiceTime = { day: string; open: boolean; open_time: string; close_time: string };
-    type VendorRow = { id: string; name: string; brands?: string[]; areas_served?: string[]; rating?: number; vendor_locations?: Array<{ lat: number; lng: number }>; vendor_service_times?: ServiceTime[] };
+    type VendorRow = { id: string; name: string; brands?: string[]; areas_served?: string[]; vendor_locations?: Array<{ lat: number; lng: number }>; vendor_service_times?: ServiceTime[] };
     const candidates = (vendors as VendorRow[])
       .filter((v) => {
         if (triedIds.includes(v.id)) return false;
@@ -338,9 +330,6 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
           }
           score += Math.max(0, 5 - minDist);
         }
-
-        // Rating bonus
-        score += Number(v.rating) || 0;
 
         return { vendor: v, score };
       })

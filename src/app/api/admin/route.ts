@@ -114,8 +114,6 @@ function fileCreateVendor(body: Record<string, unknown>) {
     id: vendorId,
     name,
     area: "",
-    rating: 5.0,
-    reviews: 0,
     hours: "7AM - 8PM",
     products: [],
     brands: [],
@@ -254,7 +252,6 @@ export async function GET(req: NextRequest) {
         const { data, error } = await sb
           .from("vendors")
           .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
-          .eq("active", true)
           .order("created_at", { ascending: false });
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
         return NextResponse.json(data || []);
@@ -416,8 +413,6 @@ export async function POST(req: NextRequest) {
         const vendorRow = {
           name: body.name,
           area: "",
-          rating: 5.0,
-          reviews: 0,
           hours: "7AM - 8PM",
           products: [],
           brands: [],
@@ -455,35 +450,6 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true, vendorId: vendorData?.id, profileId });
-      }
-
-      if (action === "add_vendor") {
-        const { data: vendorData, error } = await sb.from("vendors").insert({
-          name: body.name,
-          area: body.area,
-          rating: body.rating || 4.5,
-          reviews: body.reviews || 0,
-          hours: body.hours || "7AM - 8PM",
-          products: body.products || [],
-          business_reg_no: body.businessRegNo || "",
-          mpesa_number: body.mpesaNumber || "",
-          phone_numbers: body.phoneNumbers || [],
-          delivery_radius_km: body.deliveryRadius || 10,
-          active: true,
-        }).select("id").single();
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-        if (vendorData && body.locations) {
-          for (const loc of body.locations) {
-            await sb.from("vendor_locations").insert({
-              vendor_id: vendorData.id,
-              name: loc.name,
-              area: loc.area,
-              lat: loc.lat || -1.2864,
-              lng: loc.lng || 36.8172,
-            });
-          }
-        }
-        return NextResponse.json({ success: true, vendorId: vendorData?.id });
       }
 
       if (action === "update_vendor") {
@@ -546,6 +512,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true });
       }
 
+      if (action === "reactivate_vendor") {
+        const { error } = await sb.from("vendors").update({ active: true }).eq("id", body.vendorId);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ success: true });
+      }
+
       if (action === "add_subscription") {
         const { error } = await sb.from("subscriptions").insert(body.subscription);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -578,33 +550,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, vendorId: result.vendorId, profileId: result.profileId });
     }
 
-    if (action === "add_vendor") {
-      const vendorId = `vendor-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const now = new Date().toISOString();
-      appendToCollection("vendors", {
-        id: vendorId,
-        name: body.name,
-        area: body.area || "",
-        rating: body.rating || 4.5,
-        reviews: body.reviews || 0,
-        hours: body.hours || "7AM - 8PM",
-        products: body.products || [],
-        brands: [],
-        areas_served: [],
-        phone_numbers: body.phoneNumbers || [],
-        delivery_radius_km: body.deliveryRadius || 10,
-        active: true,
-        business_reg_no: body.businessRegNo || "",
-        mpesa_number: body.mpesaNumber || "",
-        description: "",
-        min_order: "",
-        pin: "",
-        created_at: now,
-        updated_at: now,
-      });
-      return NextResponse.json({ success: true, vendorId });
-    }
-
     if (action === "update_vendor") {
       updateInCollection("vendors", body.vendorId, body.updates);
       return NextResponse.json({ success: true });
@@ -612,6 +557,11 @@ export async function POST(req: NextRequest) {
 
     if (action === "delete_vendor") {
       updateInCollection("vendors", body.vendorId, { active: false });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "reactivate_vendor") {
+      updateInCollection("vendors", body.vendorId, { active: true });
       return NextResponse.json({ success: true });
     }
 
