@@ -354,6 +354,18 @@ function AdminDashboardInner() {
     setDeleteStoreVendorConfirm(null);
   }
 
+  async function handleReactivateVendor(vendorId: string) {
+    await adminPost({ action: "reactivate_vendor", vendorId });
+    // Also update local cache
+    const vendors = loadVendorStore();
+    const idx = vendors.findIndex((v) => v.id === vendorId);
+    if (idx !== -1) {
+      vendors[idx].active = true;
+      saveVendorStore(vendors);
+    }
+    loadVendorStoreList();
+  }
+
   // Legacy vendor loading (for order vendor assignment dropdown)
   async function loadVendors() {
     loadVendorStoreList();
@@ -557,8 +569,8 @@ function AdminDashboardInner() {
     (o: OrderRecord) => o.status !== "delivered" && o.status !== "cancelled"
   ).length;
   // Build unified vendor list for order assignment dropdowns
-  const allVendors: VendorInfo[] = vendorStoreList.map((v) => ({
-    id: v.id, name: v.name, area: v.area || "", distance: "", rating: v.rating, reviews: v.reviews,
+  const allVendors: VendorInfo[] = vendorStoreList.filter((v) => v.active !== false).map((v) => ({
+    id: v.id, name: v.name, area: v.area || "", distance: "",
     hours: "7AM - 8PM", products: v.products.filter((p) => p.available).map((p) => p.name),
     brands: v.brands || [], areasServed: v.areasServed || [], businessRegNo: v.businessRegNo || "",
     mpesaNumber: v.mpesaNumber || "", phoneNumbers: v.phoneNumbers || [], locations: v.locations || [],
@@ -1230,13 +1242,17 @@ function AdminDashboardInner() {
                     return (
                       <div key={vendor.id} className="bg-surface shadow-card rounded-2xl border-2 border-primary/20 overflow-hidden">
                         {/* Header row - always visible */}
-                        <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => setExpandedVendorId(isExpanded ? null : vendor.id)}>
+                        <div className={`p-4 flex items-center justify-between cursor-pointer ${vendor.active === false ? "opacity-50" : ""}`} onClick={() => setExpandedVendorId(isExpanded ? null : vendor.id)}>
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center">
-                              <Store size={18} className="text-primary" />
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${vendor.active === false ? "bg-gray-100" : "bg-primary-light"}`}>
+                              <Store size={18} className={vendor.active === false ? "text-gray-400" : "text-primary"} />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-text-primary">{vendor.name}</h3>
+                                {vendor.verified && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5"><CheckCircle2 size={10} /> Verified</span>}
+                                {vendor.active === false && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-bold">Inactive</span>}
+                              </div>
                               <p className="text-xs text-text-secondary">{formatPhoneDisplay(vendor.phone)} &middot; PIN: <span className="font-mono font-bold text-primary">{vendor.credentials.pin}</span></p>
                             </div>
                           </div>
@@ -1252,17 +1268,50 @@ function AdminDashboardInner() {
                             {/* Login Credentials */}
                             <div className="bg-blue-50 rounded-lg p-3">
                               <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Vendor Login Credentials</p>
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                  <span className="text-xs text-text-secondary">Phone:</span>
-                                  <p className="font-mono font-bold">{formatPhoneDisplay(vendor.credentials.phone)}</p>
+                              {isEditing ? (
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <label className="text-[10px] text-text-secondary">Login Phone</label>
+                                    <input type="text" value={(storeVendorEdits.credentials?.phone ?? vendor.credentials.phone)}
+                                      onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, credentials: { phone: e.target.value, pin: storeVendorEdits.credentials?.pin ?? vendor.credentials.pin }, phoneNumbers: [e.target.value, ...(storeVendorEdits.phoneNumbers ?? vendor.phoneNumbers).slice(1)] })}
+                                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-text-secondary">PIN (4 digits)</label>
+                                    <div className="flex gap-2">
+                                      <input type="text" maxLength={4} value={(storeVendorEdits.credentials?.pin ?? vendor.credentials.pin)}
+                                        onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, credentials: { phone: storeVendorEdits.credentials?.phone ?? vendor.credentials.phone, pin: e.target.value.replace(/\D/g, "").slice(0, 4) } })}
+                                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono font-bold outline-none focus:border-primary" />
+                                      <button onClick={() => { const newPin = Math.floor(1000 + Math.random() * 9000).toString(); setStoreVendorEdits({ ...storeVendorEdits, credentials: { phone: storeVendorEdits.credentials?.phone ?? vendor.credentials.phone, pin: newPin } }); }}
+                                        className="px-3 py-2 bg-primary text-white rounded-lg text-[10px] font-semibold hover:bg-primary/90 whitespace-nowrap">Reset PIN</button>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="text-xs text-text-secondary">PIN:</span>
-                                  <p className="font-mono font-bold text-primary text-lg">{vendor.credentials.pin}</p>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div>
+                                    <span className="text-xs text-text-secondary">Phone:</span>
+                                    <p className="font-mono font-bold">{formatPhoneDisplay(vendor.credentials.phone)}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs text-text-secondary">PIN:</span>
+                                    <p className="font-mono font-bold text-primary text-lg">{vendor.credentials.pin}</p>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
+
+                            {/* Verified & Active Status */}
+                            {isEditing && (
+                              <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input type="checkbox" checked={storeVendorEdits.verified ?? vendor.verified}
+                                    onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, verified: e.target.checked })}
+                                    className="rounded" />
+                                  <span className="text-xs font-semibold text-green-700">Verified Vendor</span>
+                                </label>
+                              </div>
+                            )}
 
                             {/* Basic Info */}
                             <div>
@@ -1294,6 +1343,10 @@ function AdminDashboardInner() {
                                       <label className="text-[10px] text-text-secondary">Delivery Radius (km)</label>
                                       <input type="number" value={v.deliveryRadius} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, deliveryRadius: Number(e.target.value) })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" />
                                     </div>
+                                    <div>
+                                      <label className="text-[10px] text-text-secondary">Min Order</label>
+                                      <input type="text" value={v.minOrder} onChange={(e) => setStoreVendorEdits({ ...storeVendorEdits, minOrder: e.target.value })} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="e.g. 20L" />
+                                    </div>
                                   </>
                                 ) : (
                                   <div className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
@@ -1303,6 +1356,8 @@ function AdminDashboardInner() {
                                     <div className="flex justify-between"><span className="text-text-secondary">Radius</span><span className="text-text-primary">{vendor.deliveryRadius} km</span></div>
                                     <div className="flex justify-between"><span className="text-text-secondary">Phone(s)</span><span className="text-text-primary">{vendor.phoneNumbers.filter(Boolean).join(", ") || vendor.phone}</span></div>
                                     <div className="flex justify-between"><span className="text-text-secondary">Description</span><span className="text-text-primary">{vendor.description || "Not set"}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Min Order</span><span className="text-text-primary">{vendor.minOrder || "Not set"}</span></div>
+                                    <div className="flex justify-between"><span className="text-text-secondary">Verified</span><span className={vendor.verified ? "text-green-700 font-semibold" : "text-text-secondary"}>{vendor.verified ? "Yes" : "No"}</span></div>
                                     <div className="flex justify-between"><span className="text-text-secondary">Created</span><span className="text-text-primary">{new Date(vendor.createdAt).toLocaleDateString()}</span></div>
                                     <div className="flex justify-between"><span className="text-text-secondary">Last Updated</span><span className="text-text-primary">{new Date(vendor.updatedAt).toLocaleDateString()}</span></div>
                                   </div>
@@ -1601,17 +1656,22 @@ function AdminDashboardInner() {
                                     className="flex-1 flex items-center justify-center gap-1 text-xs py-2.5 bg-blue-50 hover:bg-blue-100 text-primary rounded-lg font-medium transition-colors">
                                     <Edit3 size={14} /> Edit Details
                                   </button>
-                                  {deleteStoreVendorConfirm === vendor.id ? (
+                                  {vendor.active === false ? (
+                                    <button onClick={() => handleReactivateVendor(vendor.id)}
+                                      className="flex items-center justify-center gap-1 text-xs py-2.5 px-4 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-medium transition-colors">
+                                      <CheckCircle2 size={14} /> Reactivate
+                                    </button>
+                                  ) : deleteStoreVendorConfirm === vendor.id ? (
                                     <div className="flex gap-1">
                                       <button onClick={() => handleDeleteStoreVendor(vendor.id)}
-                                        className="px-4 py-2.5 bg-red-500 text-white rounded-lg text-xs font-medium">Confirm Delete</button>
+                                        className="px-4 py-2.5 bg-red-500 text-white rounded-lg text-xs font-medium">Confirm Deactivate</button>
                                       <button onClick={() => setDeleteStoreVendorConfirm(null)}
                                         className="px-4 py-2.5 bg-gray-100 rounded-lg text-xs font-medium">Cancel</button>
                                     </div>
                                   ) : (
                                     <button onClick={() => setDeleteStoreVendorConfirm(vendor.id)}
                                       className="flex items-center justify-center gap-1 text-xs py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors">
-                                      <Trash2 size={14} /> Delete
+                                      <Ban size={14} /> Deactivate
                                     </button>
                                   )}
                                 </>
