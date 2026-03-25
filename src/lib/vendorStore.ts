@@ -338,9 +338,6 @@ export async function createVendorAsync(name: string, phone: string): Promise<Ve
     cached.push(vendor);
     saveLocalCache(cached);
 
-    // Also register in mock signups as fallback
-    registerVendorAuth(vendor);
-
     return vendor;
   } catch (e) {
     console.error("Server vendor creation failed, falling back to localStorage:", e);
@@ -387,34 +384,9 @@ function createVendorLocal(name: string, phone: string): VendorRecord {
   const vendors = loadLocalCache();
   vendors.push(vendor);
   saveLocalCache(vendors);
-  registerVendorAuth(vendor);
   return vendor;
 }
 
-/**
- * Register vendor credentials in the mock auth system
- * so they can log in via vendor-login page (localStorage fallback).
- */
-export function registerVendorAuth(vendor: VendorRecord) {
-  try {
-    const raw = localStorage.getItem("mimaji_mock_signups");
-    const signups = raw ? JSON.parse(raw) : {};
-    const phone = vendor.credentials.phone;
-    const user = {
-      id: vendor.id,
-      phone,
-      name: vendor.name,
-      role: "vendor",
-      vendorRecordId: vendor.id,
-    };
-    signups[phone] = { pin: vendor.credentials.pin, user };
-    // Also save under 0-prefix format
-    if (phone.startsWith("254")) {
-      signups["0" + phone.slice(3)] = { pin: vendor.credentials.pin, user };
-    }
-    localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-  } catch {}
-}
 
 /**
  * Update a vendor record. Syncs to Supabase and local cache.
@@ -563,10 +535,6 @@ function updateVendorLocal(vendorId: string, updates: Partial<VendorRecord>): Ve
   vendors[idx] = { ...vendors[idx], ...updates, updatedAt: new Date().toISOString() };
   saveLocalCache(vendors);
 
-  if (updates.name || updates.credentials) {
-    registerVendorAuth(vendors[idx]);
-  }
-
   return vendors[idx];
 }
 
@@ -601,20 +569,6 @@ export function deleteVendor(vendorId: string): VendorRecord[] {
 function deleteVendorLocal(vendorId: string): VendorRecord[] {
   const vendors = loadLocalCache().filter((v) => v.id !== vendorId);
   saveLocalCache(vendors);
-
-  // Remove from mock signups
-  try {
-    const raw = localStorage.getItem("mimaji_mock_signups");
-    const signups = raw ? JSON.parse(raw) : {};
-    for (const [phone, entry] of Object.entries(signups)) {
-      const e = entry as { pin: string; user: { id: string } };
-      if (e.user.id === vendorId) {
-        delete signups[phone];
-      }
-    }
-    localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-  } catch {}
-
   return vendors;
 }
 

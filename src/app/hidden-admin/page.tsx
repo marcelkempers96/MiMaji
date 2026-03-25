@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
-import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, registerVendorAuth, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay, mapSupabaseToVendor } from "@/lib/vendorStore";
+import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay, mapSupabaseToVendor } from "@/lib/vendorStore";
 import { supabase } from "@/lib/supabase";
 
 const hasSupabaseConfig =
@@ -375,7 +375,6 @@ function AdminDashboardInner() {
   const DEMO_IDS = ["d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", "v7b2c9d1-3e5f-4a8b-b6d4-1f9e0a7c5b2d"];
 
   async function loadUsers() {
-    // Always try server API first
     const { data: raw, ok } = await adminFetch("users");
     if (ok && raw.length > 0) {
       setUsers((raw as Record<string, unknown>[]).map((p) => ({
@@ -384,51 +383,13 @@ function AdminDashboardInner() {
         name: (p.full_name as string) || "",
         role: (p.role as string) || "customer",
       })));
-      return;
     }
-
-    // Fallback: localStorage mock
-    const builtIn: MockUser[] = [
-      { id: "d1a0e4f2-8b3c-4e7a-9f1d-2c5b8a6e3d0f", phone: "254758434076", name: "MiMaji Admin", role: "admin", password: "admin123" },
-    ];
-    const seenIds = new Set(builtIn.map((u) => u.id));
-    const allUsers: MockUser[] = [...builtIn];
-
-    try {
-      const raw = localStorage.getItem("mimaji_mock_signups");
-      const signups = raw ? JSON.parse(raw) : {};
-      const seenPhones = new Set<string>();
-      for (const entry of Object.values(signups)) {
-        const e = entry as { password: string; user: MockUser };
-        if (!seenIds.has(e.user.id) && !seenPhones.has(e.user.phone)) {
-          allUsers.push({ ...e.user, password: e.password });
-          seenIds.add(e.user.id);
-          seenPhones.add(e.user.phone);
-        }
-      }
-    } catch {}
-
-    setUsers(allUsers);
   }
 
   async function updateUser(userId: string, updates: Partial<MockUser>) {
     const result = await adminPost({ action: "update_user", userId, name: updates.name, role: updates.role, phone: updates.phone });
     if (result.success) {
       await loadUsers();
-    } else {
-      try {
-        const raw = localStorage.getItem("mimaji_mock_signups");
-        const signups = raw ? JSON.parse(raw) : {};
-        for (const [phone, entry] of Object.entries(signups)) {
-          const e = entry as { password: string; user: MockUser };
-          if (e.user.id === userId) {
-            e.user = { ...e.user, ...updates };
-            signups[phone] = e;
-          }
-        }
-        localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-        loadUsers();
-      } catch {}
     }
     setEditingUser(null);
   }
@@ -437,19 +398,6 @@ function AdminDashboardInner() {
     const result = await adminPost({ action: "delete_user", userId });
     if (result.success) {
       await loadUsers();
-    } else {
-      try {
-        const raw = localStorage.getItem("mimaji_mock_signups");
-        const signups = raw ? JSON.parse(raw) : {};
-        for (const [phone, entry] of Object.entries(signups)) {
-          const e = entry as { password: string; user: MockUser };
-          if (e.user.id === userId) {
-            delete signups[phone];
-          }
-        }
-        localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-        loadUsers();
-      } catch {}
     }
     setDeleteUserConfirm(null);
   }
@@ -466,20 +414,6 @@ function AdminDashboardInner() {
     const result = await adminPost({ action: "create_user", phone, name: newUser.name, password: newUser.password, role: newUser.role });
     if (result.success) {
       await loadUsers();
-    } else {
-      // Fallback: save to signups localStorage
-      const id = `admin-created-${Date.now()}`;
-      const mockUser = { id, phone, name: newUser.name, role: newUser.role };
-      try {
-        const raw = localStorage.getItem("mimaji_mock_signups");
-        const signups = raw ? JSON.parse(raw) : {};
-        signups[phone] = { password: newUser.password, user: mockUser };
-        if (phone.startsWith("254")) {
-          signups["0" + phone.slice(3)] = { password: newUser.password, user: mockUser };
-        }
-        localStorage.setItem("mimaji_mock_signups", JSON.stringify(signups));
-      } catch {}
-      loadUsers();
     }
     setNewUser({ phone: "", name: "", password: "", role: "customer" });
     setShowCreateUser(false);
