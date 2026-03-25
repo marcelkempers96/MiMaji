@@ -405,6 +405,7 @@ export function registerVendorAuth(vendor: VendorRecord) {
       phone,
       name: vendor.name,
       role: "vendor",
+      vendorRecordId: vendor.id,
     };
     signups[phone] = { pin: vendor.credentials.pin, user };
     // Also save under 0-prefix format
@@ -418,7 +419,7 @@ export function registerVendorAuth(vendor: VendorRecord) {
 /**
  * Update a vendor record. Syncs to Supabase and local cache.
  */
-export async function updateVendorAsync(vendorId: string, updates: Partial<VendorRecord>): Promise<VendorRecord | null> {
+export async function updateVendorAsync(vendorId: string, updates: Partial<VendorRecord>): Promise<{ vendor: VendorRecord | null; serverSynced: boolean }> {
   // Update local cache first for instant feedback (may return null if vendor not cached locally — that's OK)
   const localResult = updateVendorLocal(vendorId, updates);
 
@@ -541,7 +542,7 @@ export async function updateVendorAsync(vendorId: string, updates: Partial<Vendo
     console.error("Failed to sync vendor update to server — changes saved locally only");
   }
 
-  return localResult;
+  return { vendor: localResult, serverSynced };
 }
 
 /** Synchronous local-only update */

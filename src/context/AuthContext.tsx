@@ -492,6 +492,10 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
           for (const p of phonesToTry) {
             const signupAccount = signups[p];
             if (signupAccount && signupAccount.pin === pin) {
+              // Store vendor PIN in sessionStorage for self-service update endpoint
+              if (signupAccount.user.role === "vendor") {
+                try { sessionStorage.setItem("mimaji_vendor_pin", pin); } catch {}
+              }
               setMockUser(signupAccount.user);
               setSession(null);
               return { user: signupAccount.user };

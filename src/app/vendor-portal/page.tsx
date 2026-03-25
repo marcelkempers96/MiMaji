@@ -52,6 +52,7 @@ export default function VendorPortalPage() {
   const [settingsCustomBrand, setSettingsCustomBrand] = useState("");
   const [settingsCustomProduct, setSettingsCustomProduct] = useState("");
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsSaveError, setSettingsSaveError] = useState("");
 
   // Additional business fields
   const [settingsArea, setSettingsArea] = useState("");
@@ -88,7 +89,7 @@ export default function VendorPortalPage() {
       // Prefer vendorRecordId (actual vendors table UUID) over user.id (profile UUID)
       const vid = user?.vendorRecordId || user?.id;
       if (vid) {
-        await updateVendorAsync(vid, {
+        const result = await updateVendorAsync(vid, {
           name: settingsBusinessName,
           area: settingsArea,
           businessRegNo: settingsBusinessReg,
@@ -109,6 +110,11 @@ export default function VendorPortalPage() {
           description: settingsDescription,
           minOrder: settingsMinOrder,
         });
+        if (!result.serverSynced) {
+          setSettingsSaveError("Changes saved locally but failed to sync to server. Please try again.");
+          setTimeout(() => setSettingsSaveError(""), 5000);
+          return;
+        }
       }
       // Also save to localStorage as cache
       localStorage.setItem(`mimaji_vendor_settings_${user?.id || "default"}`, JSON.stringify(vendorSettings));
@@ -685,6 +691,9 @@ export default function VendorPortalPage() {
       </button>
       {settingsSaved && (
         <p className="text-[#2ECC71] text-xs font-semibold mt-2">Your settings have been saved.</p>
+      )}
+      {settingsSaveError && (
+        <p className="text-red-500 text-xs font-semibold mt-2">{settingsSaveError}</p>
       )}
     </div>
   );
