@@ -518,6 +518,8 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
                 role: "vendor",
                 vendorRecordId: vendorData.vendor.vendorRecordId || vendorData.vendor.id,
               };
+              // Store vendor PIN in sessionStorage for self-service update endpoint
+              try { sessionStorage.setItem("mimaji_vendor_pin", pin); } catch {}
               setMockUser(vendorUser);
               setSession(null);
               return { user: vendorUser };
@@ -541,6 +543,10 @@ function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
         const baseUser = mapUser(supaUser);
         if (baseUser) {
           const enriched = await loadProfile(baseUser.id, baseUser);
+          // Store vendor PIN in sessionStorage for self-service update endpoint
+          if (enriched.role === "vendor") {
+            try { sessionStorage.setItem("mimaji_vendor_pin", pin); } catch {}
+          }
           return { user: enriched };
         }
       }

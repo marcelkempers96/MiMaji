@@ -119,11 +119,24 @@ export default function VendorPortalPage() {
     const loadFromSupabase = async () => {
       try {
         const { supabase } = await import("@/lib/supabase");
-        const { data: vendor } = await supabase
-          .from("vendors")
-          .select("*, vendor_locations(*)")
-          .eq("profile_id", user.id)
-          .single();
+        // Try by vendorRecordId first (direct vendor table ID), then by profile_id
+        let vendor = null;
+        if (user.vendorRecordId) {
+          const { data } = await supabase
+            .from("vendors")
+            .select("*, vendor_locations(*)")
+            .eq("id", user.vendorRecordId)
+            .maybeSingle();
+          vendor = data;
+        }
+        if (!vendor) {
+          const { data } = await supabase
+            .from("vendors")
+            .select("*, vendor_locations(*)")
+            .eq("profile_id", user.id)
+            .maybeSingle();
+          vendor = data;
+        }
         if (vendor) {
           setSettingsBusinessName(vendor.name || "");
           setSettingsBusinessReg(vendor.business_reg_no || "");
@@ -167,9 +180,14 @@ export default function VendorPortalPage() {
     };
 
     // Primary: load from vendorStore (Supabase-first with localStorage cache)
-    getVendorSettingsByUserIdAsync(user.id).then((storeVendor) => {
+    // Use vendorRecordId (actual vendor table UUID) for accurate lookup
+    getVendorSettingsByUserIdAsync(user.id, user.vendorRecordId).then((storeVendor) => {
       if (storeVendor) {
         applyVendorData(storeVendor);
+        // Store the vendor PIN in sessionStorage so updateVendorAsync can use it
+        if (storeVendor.credentials?.pin) {
+          try { sessionStorage.setItem("mimaji_vendor_pin", storeVendor.credentials.pin); } catch {}
+        }
         return;
       }
 
@@ -177,10 +195,13 @@ export default function VendorPortalPage() {
       loadFromSupabase().then((loaded) => {
         if (loaded) return;
 
-        // Tertiary: localStorage cache
-        const cachedVendor = getVendorSettingsByUserId(user.id);
+        // Tertiary: localStorage cache (try vendorRecordId first, then user.id)
+        const cachedVendor = getVendorSettingsByUserId(user.vendorRecordId || user.id);
         if (cachedVendor) {
           applyVendorData(cachedVendor);
+          if (cachedVendor.credentials?.pin) {
+            try { sessionStorage.setItem("mimaji_vendor_pin", cachedVendor.credentials.pin); } catch {}
+          }
           return;
         }
 
@@ -190,7 +211,7 @@ export default function VendorPortalPage() {
         setSettingsPhoneNumbers(user.phone ? [user.phone] : [""]);
       });
     });
-  }, [user?.id]);
+  }, [user?.id, user?.vendorRecordId]);
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "vendor")) {
