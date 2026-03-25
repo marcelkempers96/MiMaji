@@ -419,108 +419,126 @@ export function registerVendorAuth(vendor: VendorRecord) {
  * Update a vendor record. Syncs to Supabase and local cache.
  */
 export async function updateVendorAsync(vendorId: string, updates: Partial<VendorRecord>): Promise<VendorRecord | null> {
-  // Always update local cache first for instant feedback
+  // Update local cache first for instant feedback (may return null if vendor not cached locally — that's OK)
   const localResult = updateVendorLocal(vendorId, updates);
 
-  if (!localResult) return localResult;
+  // Build the Supabase-format updates from the VendorRecord-format updates
+  const vendorUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) vendorUpdates.name = updates.name;
+  if (updates.area !== undefined) vendorUpdates.area = updates.area;
+  if (updates.businessRegNo !== undefined) vendorUpdates.business_reg_no = updates.businessRegNo;
+  if (updates.mpesaNumber !== undefined) vendorUpdates.mpesa_number = updates.mpesaNumber;
+  if (updates.phoneNumbers !== undefined) vendorUpdates.phone_numbers = updates.phoneNumbers;
+  if (updates.brands !== undefined) vendorUpdates.brands = updates.brands;
+  if (updates.areasServed !== undefined) vendorUpdates.areas_served = updates.areasServed;
+  if (updates.deliveryRadius !== undefined) vendorUpdates.delivery_radius_km = updates.deliveryRadius;
+  if (updates.description !== undefined) vendorUpdates.description = updates.description;
+  if (updates.minOrder !== undefined) vendorUpdates.min_order = updates.minOrder;
+  if (updates.verified !== undefined) vendorUpdates.verified = updates.verified;
+  if (updates.active !== undefined) vendorUpdates.active = updates.active;
+  if (updates.credentials?.pin !== undefined) vendorUpdates.pin = updates.credentials.pin;
 
-  // Sync ALL vendor data to Supabase via the admin API (service role, bypasses RLS).
-  // Client-side Supabase (anon key) can't write to vendor sub-tables due to RLS,
-  // so we route everything through the server.
+  // Map sub-tables to Supabase format
+  const productsPayload = updates.products?.map((p) => ({
+    id: p.id,
+    name: p.name,
+    size: p.size,
+    price_new: p.priceNew,
+    price_refill: p.priceRefill,
+    available: p.available,
+  }));
+
+  const serviceTimesPayload = updates.serviceTimes?.map((st) => ({
+    day: st.day,
+    open: st.open,
+    open_time: st.openTime,
+    close_time: st.closeTime,
+  }));
+
+  const locationsPayload = updates.locations?.map((l) => ({
+    id: l.id,
+    name: l.name,
+    area: l.area,
+    lat: l.lat,
+    lng: l.lng,
+  }));
+
+  // Sync to Supabase via server APIs.
+  // Try admin API first (service role, bypasses RLS), then vendor self-service endpoint.
+  let serverSynced = false;
+
+  // Path 1: Admin API (requires admin code)
   try {
     let adminCode = "";
     try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
 
-    const vendorUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (updates.name !== undefined) vendorUpdates.name = updates.name;
-    if (updates.area !== undefined) vendorUpdates.area = updates.area;
-    if (updates.businessRegNo !== undefined) vendorUpdates.business_reg_no = updates.businessRegNo;
-    if (updates.mpesaNumber !== undefined) vendorUpdates.mpesa_number = updates.mpesaNumber;
-    if (updates.phoneNumbers !== undefined) vendorUpdates.phone_numbers = updates.phoneNumbers;
-    if (updates.brands !== undefined) vendorUpdates.brands = updates.brands;
-    if (updates.areasServed !== undefined) vendorUpdates.areas_served = updates.areasServed;
-    if (updates.deliveryRadius !== undefined) vendorUpdates.delivery_radius_km = updates.deliveryRadius;
-    if (updates.description !== undefined) vendorUpdates.description = updates.description;
-    if (updates.minOrder !== undefined) vendorUpdates.min_order = updates.minOrder;
-    if (updates.verified !== undefined) vendorUpdates.verified = updates.verified;
-    if (updates.active !== undefined) vendorUpdates.active = updates.active;
-    if (updates.credentials?.pin !== undefined) vendorUpdates.pin = updates.credentials.pin;
+    if (adminCode) {
+      const payload: Record<string, unknown> = {
+        code: adminCode,
+        action: "update_vendor",
+        vendorId,
+        updates: vendorUpdates,
+      };
+      if (productsPayload) payload.products = productsPayload;
+      if (serviceTimesPayload) payload.serviceTimes = serviceTimesPayload;
+      if (locationsPayload) payload.locations = locationsPayload;
 
-    // Build the full payload — admin API handles products/serviceTimes/locations
-    // server-side with service role (bypasses RLS)
-    const payload: Record<string, unknown> = {
-      code: adminCode,
-      action: "update_vendor",
-      vendorId,
-      updates: vendorUpdates,
-    };
-
-    if (updates.products) {
-      payload.products = updates.products.map((p) => ({
-        id: p.id,
-        name: p.name,
-        size: p.size,
-        price_new: p.priceNew,
-        price_refill: p.priceRefill,
-        available: p.available,
-      }));
-    }
-
-    if (updates.serviceTimes) {
-      payload.serviceTimes = updates.serviceTimes.map((st) => ({
-        day: st.day,
-        open: st.open,
-        open_time: st.openTime,
-        close_time: st.closeTime,
-      }));
-    }
-
-    if (updates.locations) {
-      payload.locations = updates.locations.map((l) => ({
-        id: l.id,
-        name: l.name,
-        area: l.area,
-        lat: l.lat,
-        lng: l.lng,
-      }));
-    }
-
-    const res = await fetch("/api/admin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      console.error("Admin API update_vendor failed:", err.error || res.status);
-
-      // Fallback: try vendor self-service endpoint (vendor portal, no admin code)
-      // Authenticate with vendorId + PIN stored in the local vendor record
-      const cachedVendor = loadLocalCache().find((v) => v.id === vendorId);
-      const vendorPin = cachedVendor?.credentials?.pin;
-      if (vendorPin) {
-        try {
-          const vendorPayload: Record<string, unknown> = { vendorId, pin: vendorPin, updates: vendorUpdates };
-          if (payload.products) vendorPayload.products = payload.products;
-          if (payload.serviceTimes) vendorPayload.serviceTimes = payload.serviceTimes;
-          if (payload.locations) vendorPayload.locations = payload.locations;
-
-          const vendorRes = await fetch("/api/vendor-update", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(vendorPayload),
-          });
-          if (!vendorRes.ok) {
-            const vendorErr = await vendorRes.json().catch(() => ({}));
-            console.error("Vendor self-update also failed:", vendorErr.error || vendorRes.status);
-          }
-        } catch (ve) {
-          console.error("Vendor self-update request failed:", ve);
-        }
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        serverSynced = true;
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error("Admin API update_vendor failed:", err.error || res.status);
       }
     }
   } catch (e) {
-    console.error("Failed to sync vendor update to Supabase:", e);
+    console.error("Admin API request failed:", e);
+  }
+
+  // Path 2: Vendor self-service endpoint (PIN-authenticated, no admin code needed)
+  if (!serverSynced) {
+    // Try to get PIN from: localStorage cache, sessionStorage, or updates
+    const cachedVendor = loadLocalCache().find((v) => v.id === vendorId);
+    let vendorPin = cachedVendor?.credentials?.pin;
+    if (!vendorPin) {
+      try { vendorPin = sessionStorage.getItem("mimaji_vendor_pin") || ""; } catch {}
+    }
+    if (!vendorPin && updates.credentials?.pin) {
+      vendorPin = updates.credentials.pin;
+    }
+
+    if (vendorPin) {
+      try {
+        const vendorPayload: Record<string, unknown> = { vendorId, pin: vendorPin, updates: vendorUpdates };
+        if (productsPayload) vendorPayload.products = productsPayload;
+        if (serviceTimesPayload) vendorPayload.serviceTimes = serviceTimesPayload;
+        if (locationsPayload) vendorPayload.locations = locationsPayload;
+
+        const vendorRes = await fetch("/api/vendor-update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(vendorPayload),
+        });
+        if (vendorRes.ok) {
+          serverSynced = true;
+        } else {
+          const vendorErr = await vendorRes.json().catch(() => ({}));
+          console.error("Vendor self-update failed:", vendorErr.error || vendorRes.status);
+        }
+      } catch (ve) {
+        console.error("Vendor self-update request failed:", ve);
+      }
+    } else {
+      console.error("No PIN available for vendor self-update fallback");
+    }
+  }
+
+  if (!serverSynced) {
+    console.error("Failed to sync vendor update to server — changes saved locally only");
   }
 
   return localResult;
@@ -608,17 +626,49 @@ export function getVendorSettingsByUserId(userId: string): VendorRecord | null {
   return vendors.find((v) => v.id === userId) || null;
 }
 
-export async function getVendorSettingsByUserIdAsync(userId: string): Promise<VendorRecord | null> {
+export async function getVendorSettingsByUserIdAsync(userId: string, vendorRecordId?: string): Promise<VendorRecord | null> {
+  // Try admin API first (works cross-device, uses service role)
   try {
-    // Try by vendor ID first
+    let adminCode = "";
+    try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
+    if (adminCode) {
+      const res = await fetch(`/api/admin?code=${encodeURIComponent(adminCode)}&type=vendors`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const targetId = vendorRecordId || userId;
+          const match = data.find((v: Record<string, unknown>) =>
+            v.id === targetId || v.profile_id === userId || v.id === userId
+          );
+          if (match) {
+            const vendor = mapSupabaseToVendor(match as Record<string, unknown>);
+            // Update local cache with this vendor
+            const cached = loadLocalCache();
+            const idx = cached.findIndex((v) => v.id === vendor.id);
+            if (idx !== -1) { cached[idx] = vendor; } else { cached.push(vendor); }
+            saveLocalCache(cached);
+            return vendor;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Admin API vendor settings load failed:", e);
+  }
+
+  // Try direct Supabase queries
+  try {
+    const targetId = vendorRecordId || userId;
+
+    // Try by vendor record ID first
     let { data } = await supabase
       .from("vendors")
       .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
-      .eq("id", userId)
+      .eq("id", targetId)
       .maybeSingle();
 
-    // If not found by ID, try by profile_id
-    if (!data) {
+    // If not found and we have a separate userId, try by profile_id
+    if (!data && userId) {
       const result = await supabase
         .from("vendors")
         .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
@@ -629,13 +679,18 @@ export async function getVendorSettingsByUserIdAsync(userId: string): Promise<Ve
 
     if (data) {
       const vendor = mapSupabaseToVendor(data as Record<string, unknown>);
+      // Update local cache
+      const cached = loadLocalCache();
+      const idx = cached.findIndex((v) => v.id === vendor.id);
+      if (idx !== -1) { cached[idx] = vendor; } else { cached.push(vendor); }
+      saveLocalCache(cached);
       return vendor;
     }
   } catch (e) {
     console.error("Failed to load vendor settings from Supabase:", e);
   }
 
-  return getVendorSettingsByUserId(userId);
+  return getVendorSettingsByUserId(vendorRecordId || userId);
 }
 
 /**

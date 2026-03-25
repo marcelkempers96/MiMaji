@@ -34,11 +34,23 @@ export async function POST(req: NextRequest) {
       const sb = createServiceClient();
 
       // Authenticate: verify vendorId + PIN match
-      const { data: vendor, error: authErr } = await sb
+      // vendorId could be the actual vendor ID or a profile_id, so check both
+      let { data: vendor, error: authErr } = await sb
         .from("vendors")
         .select("id, pin, active")
         .eq("id", vendorId)
         .maybeSingle();
+
+      if (!vendor) {
+        // Try by profile_id (vendor portal may pass the auth user ID)
+        const result = await sb
+          .from("vendors")
+          .select("id, pin, active")
+          .eq("profile_id", vendorId)
+          .maybeSingle();
+        vendor = result.data;
+        authErr = result.error;
+      }
 
       if (authErr || !vendor) {
         return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
@@ -50,18 +62,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Vendor account is inactive" }, { status: 403 });
       }
 
+      // Use the resolved vendor ID for all subsequent operations
+      const resolvedVendorId = vendor.id;
+
       // Apply updates to vendor record
       if (body.updates && Object.keys(body.updates).length > 0) {
-        const { error } = await sb.from("vendors").update(body.updates).eq("id", vendorId);
+        const { error } = await sb.from("vendors").update(body.updates).eq("id", resolvedVendorId);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
       // Update products (delete + re-insert)
       if (body.products) {
-        await sb.from("vendor_products").delete().eq("vendor_id", vendorId);
+        await sb.from("vendor_products").delete().eq("vendor_id", resolvedVendorId);
         if (body.products.length > 0) {
           const { error } = await sb.from("vendor_products").insert(
-            body.products.map((p: Record<string, unknown>) => ({ ...p, vendor_id: vendorId }))
+            body.products.map((p: Record<string, unknown>) => ({ ...p, vendor_id: resolvedVendorId }))
           );
           if (error) console.error("vendor_products insert error:", error.message);
         }
@@ -69,10 +84,10 @@ export async function POST(req: NextRequest) {
 
       // Update service times
       if (body.serviceTimes) {
-        await sb.from("vendor_service_times").delete().eq("vendor_id", vendorId);
+        await sb.from("vendor_service_times").delete().eq("vendor_id", resolvedVendorId);
         if (body.serviceTimes.length > 0) {
           const { error } = await sb.from("vendor_service_times").insert(
-            body.serviceTimes.map((st: Record<string, unknown>) => ({ ...st, vendor_id: vendorId }))
+            body.serviceTimes.map((st: Record<string, unknown>) => ({ ...st, vendor_id: resolvedVendorId }))
           );
           if (error) console.error("vendor_service_times insert error:", error.message);
         }
@@ -80,10 +95,10 @@ export async function POST(req: NextRequest) {
 
       // Update locations
       if (body.locations) {
-        await sb.from("vendor_locations").delete().eq("vendor_id", vendorId);
+        await sb.from("vendor_locations").delete().eq("vendor_id", resolvedVendorId);
         if (body.locations.length > 0) {
           const { error } = await sb.from("vendor_locations").insert(
-            body.locations.map((l: Record<string, unknown>) => ({ ...l, vendor_id: vendorId }))
+            body.locations.map((l: Record<string, unknown>) => ({ ...l, vendor_id: resolvedVendorId }))
           );
           if (error) console.error("vendor_locations insert error:", error.message);
         }
