@@ -53,6 +53,11 @@ export default function VendorPortalPage() {
   const [settingsCustomProduct, setSettingsCustomProduct] = useState("");
   const [settingsSaved, setSettingsSaved] = useState(false);
 
+  // Additional business fields
+  const [settingsArea, setSettingsArea] = useState("");
+  const [settingsDescription, setSettingsDescription] = useState("");
+  const [settingsMinOrder, setSettingsMinOrder] = useState("");
+
   // New: Product catalog with prices
   const [settingsProductCatalog, setSettingsProductCatalog] = useState<VendorProduct[]>(defaultVendorProducts());
   const [customProductName, setCustomProductName] = useState("");
@@ -85,6 +90,7 @@ export default function VendorPortalPage() {
       if (vid) {
         await updateVendorAsync(vid, {
           name: settingsBusinessName,
+          area: settingsArea,
           businessRegNo: settingsBusinessReg,
           mpesaNumber: settingsMpesaNumber,
           phoneNumbers: settingsPhoneNumbers.filter(Boolean),
@@ -100,7 +106,8 @@ export default function VendorPortalPage() {
           areasServed: settingsAreasServed,
           products: settingsProductCatalog,
           serviceTimes: settingsServiceTimes,
-          description: "",
+          description: settingsDescription,
+          minOrder: settingsMinOrder,
         });
       }
       // Also save to localStorage as cache
@@ -120,11 +127,12 @@ export default function VendorPortalPage() {
       try {
         const { supabase } = await import("@/lib/supabase");
         // Try by vendorRecordId first (direct vendor table ID), then by profile_id
+        const selectQuery = "*, vendor_locations(*), vendor_products(*), vendor_service_times(*)";
         let vendor = null;
         if (user.vendorRecordId) {
           const { data } = await supabase
             .from("vendors")
-            .select("*, vendor_locations(*)")
+            .select(selectQuery)
             .eq("id", user.vendorRecordId)
             .maybeSingle();
           vendor = data;
@@ -132,15 +140,18 @@ export default function VendorPortalPage() {
         if (!vendor) {
           const { data } = await supabase
             .from("vendors")
-            .select("*, vendor_locations(*)")
+            .select(selectQuery)
             .eq("profile_id", user.id)
             .maybeSingle();
           vendor = data;
         }
         if (vendor) {
           setSettingsBusinessName(vendor.name || "");
+          setSettingsArea(vendor.area || "");
           setSettingsBusinessReg(vendor.business_reg_no || "");
           setSettingsMpesaNumber(vendor.mpesa_number || "");
+          setSettingsDescription(vendor.description || "");
+          setSettingsMinOrder(vendor.min_order || "");
           setSettingsPhoneNumbers(vendor.phone_numbers?.length > 0 ? vendor.phone_numbers : [""]);
           if (vendor.vendor_locations?.length > 0) {
             setSettingsLocations(vendor.vendor_locations.map((l: Record<string, unknown>) => ({
@@ -150,10 +161,22 @@ export default function VendorPortalPage() {
             })));
             setSelectedStoreId((vendor.vendor_locations[0] as Record<string, string>).id || "");
           }
+          if (vendor.vendor_products?.length > 0) {
+            setSettingsProductCatalog(vendor.vendor_products.map((p: Record<string, unknown>) => ({
+              id: p.id as string, name: p.name as string, size: p.size as string,
+              priceNew: Number(p.price_new) || 0, priceRefill: Number(p.price_refill) || 0,
+              available: p.available !== false,
+            })));
+          }
+          if (vendor.vendor_service_times?.length > 0) {
+            setSettingsServiceTimes(vendor.vendor_service_times.map((st: Record<string, unknown>) => ({
+              day: st.day as string, open: st.open !== false,
+              openTime: (st.open_time as string) || "07:00", closeTime: (st.close_time as string) || "20:00",
+            })));
+          }
           if (vendor.hours) setSettingsHours(vendor.hours);
           if (vendor.delivery_radius_km) setSettingsRadius(vendor.delivery_radius_km);
           if (vendor.brands) setSettingsBrands(vendor.brands);
-          if (vendor.products) setSettingsProducts(vendor.products);
           if (vendor.areas_served) setSettingsAreasServed(vendor.areas_served);
           return true;
         }
@@ -162,10 +185,13 @@ export default function VendorPortalPage() {
     };
 
     // Try Supabase first (via vendorStore async), then localStorage, then Supabase direct, then mock
-    const applyVendorData = (storeVendor: { name: string; businessRegNo: string; mpesaNumber: string; phoneNumbers: string[]; locations: Array<{ id?: string; name: string; area: string; lat: number; lng: number }>; brands: string[]; areasServed: string[]; products: VendorProduct[]; serviceTimes: ServiceDay[]; deliveryRadius?: number }) => {
+    const applyVendorData = (storeVendor: { name: string; area?: string; businessRegNo: string; mpesaNumber: string; description?: string; minOrder?: string; phoneNumbers: string[]; locations: Array<{ id?: string; name: string; area: string; lat: number; lng: number }>; brands: string[]; areasServed: string[]; products: VendorProduct[]; serviceTimes: ServiceDay[]; deliveryRadius?: number }) => {
       setSettingsBusinessName(storeVendor.name || "");
+      setSettingsArea(storeVendor.area || "");
       setSettingsBusinessReg(storeVendor.businessRegNo || "");
       setSettingsMpesaNumber(storeVendor.mpesaNumber || "");
+      setSettingsDescription(storeVendor.description || "");
+      setSettingsMinOrder(storeVendor.minOrder || "");
       setSettingsPhoneNumbers(storeVendor.phoneNumbers?.length > 0 ? storeVendor.phoneNumbers : [""]);
       setSettingsLocations(storeVendor.locations?.length > 0 ? storeVendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
       if (storeVendor.locations?.[0] && "id" in storeVendor.locations[0] && storeVendor.locations[0].id) setSelectedStoreId(storeVendor.locations[0].id);
@@ -373,12 +399,24 @@ export default function VendorPortalPage() {
         <input type="text" value={settingsBusinessName} onChange={(e) => setSettingsBusinessName(e.target.value)} className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
       </div>
       <div>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Area / Location</label>
+        <input type="text" value={settingsArea} onChange={(e) => setSettingsArea(e.target.value)} placeholder="e.g. Kilimani, Nairobi" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
+      </div>
+      <div>
         <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Business Registration No.</label>
         <input type="text" value={settingsBusinessReg} onChange={(e) => setSettingsBusinessReg(e.target.value)} placeholder="e.g. BN-2024-001234" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
       </div>
       <div>
         <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">M-PESA Number / Till Number</label>
         <input type="text" value={settingsMpesaNumber} onChange={(e) => setSettingsMpesaNumber(e.target.value)} placeholder="e.g. 254700111222" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Business Description</label>
+        <input type="text" value={settingsDescription} onChange={(e) => setSettingsDescription(e.target.value)} placeholder="Brief description of your business" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
+      </div>
+      <div>
+        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Minimum Order</label>
+        <input type="text" value={settingsMinOrder} onChange={(e) => setSettingsMinOrder(e.target.value)} placeholder="e.g. 20L" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
       </div>
       <div>
         <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Phone Number(s)</label>
