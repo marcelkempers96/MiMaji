@@ -9,7 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
-import { updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, declineConfirmedOrder, StoreLocation } from "@/lib/vendor";
+import { VendorStats, fetchVendorStats, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
 
 export default function VendorPortalPage() {
@@ -159,25 +159,57 @@ export default function VendorPortalPage() {
 
   const handleConfirmAccept = async () => {
     if (!etaModalOrderId || !user?.id) return;
-    await acceptOrder(etaModalOrderId, vendorId, etaMinutes, selectedStoreId || undefined);
+    try {
+      await fetch("/api/vendor-order-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "accept", orderId: etaModalOrderId, vendorId, estimatedMinutes: etaMinutes, storeLocationId: selectedStoreId || undefined }),
+      });
+    } catch (e) {
+      console.error("Accept error:", e);
+    }
     setEtaModalOrderId(null);
     loadOrders();
   };
 
   const handleRejectOrder = async (orderId: string) => {
     if (!user?.id) return;
-    await rejectOrder(orderId, vendorId);
+    try {
+      await fetch("/api/vendor-order-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", orderId, vendorId }),
+      });
+    } catch (e) {
+      console.error("Reject error:", e);
+    }
     loadOrders();
   };
 
   const handleDispatchOrder = async (orderId: string) => {
-    await updateVendorOrderStatus(orderId, "out_for_delivery");
+    try {
+      await fetch("/api/vendor-order-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "dispatch", orderId }),
+      });
+    } catch (e) {
+      console.error("Dispatch error:", e);
+    }
     loadOrders();
   };
 
   const handleDeclineOrder = async (orderId: string) => {
     if (!user?.id) return;
-    await declineConfirmedOrder(orderId, vendorId);
+    try {
+      await fetch("/api/vendor-order-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "decline", orderId, vendorId }),
+      });
+    } catch (e) {
+      console.error("Decline error:", e);
+    }
     loadOrders();
   };
 
@@ -209,7 +241,15 @@ export default function VendorPortalPage() {
       setDeliveryCodeInput("");
       return;
     }
-    await updateVendorOrderStatus(deliveryCodeModalOrder.id, "delivered");
+    try {
+      await fetch("/api/vendor-order-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete", orderId: deliveryCodeModalOrder.id }),
+      });
+    } catch (e) {
+      console.error("Complete error:", e);
+    }
     setDeliveryCodeModalOrder(null);
     setDeliveryCodeAttempts(0);
     setDeliveryCodeLocked(false);
