@@ -98,9 +98,16 @@ export default function OrdersPage() {
     if (!code || code.length < 5) return;
     setSubmittingCode(orderId);
     await updateOrderStatus(orderId, "paid", code);
-    // Auto-assign order to the best matching vendor
-    const { assignOrderToVendor } = await import("@/lib/vendor");
-    await assignOrderToVendor(orderId);
+    // Auto-assign order to the best matching vendor via server API
+    try {
+      await fetch("/api/vendor-order-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "assign", orderId }),
+      });
+    } catch (e) {
+      console.error("Vendor assignment failed:", e);
+    }
     loadOrders();
     setSubmittingCode(null);
     setMpesaCodeInputs((prev) => { const n = { ...prev }; delete n[orderId]; return n; });

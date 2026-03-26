@@ -10,7 +10,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
 import { createOrder, formatOrderId, generateDeliveryCode, DeliveryAddressDetails } from "@/lib/orders";
-import { assignOrderToVendor } from "@/lib/vendor";
+
 import { processOrderRewards, getRewardsSummaryAsync, useFreeLitresAsync } from "@/lib/rewards";
 import { getProductImage, products } from "@/data/products";
 
@@ -368,10 +368,14 @@ export default function ConfirmOrderPage() {
       throw new Error(orderError || "Failed to create order");
     }
 
-    // Trigger vendor assignment — non-fatal, with timeout
+    // Trigger vendor assignment via server API — non-fatal, with timeout
     try {
       await Promise.race([
-        assignOrderToVendor(orderId),
+        fetch("/api/vendor-order-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "assign", orderId }),
+        }),
         new Promise((_, reject) => setTimeout(() => reject(new Error("Vendor assignment timeout")), 8000)),
       ]);
     } catch (e) {

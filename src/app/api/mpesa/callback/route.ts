@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
+import { assignOrderToNextVendor } from "@/lib/vendorAssign";
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,8 +62,7 @@ export async function POST(req: NextRequest) {
 
         // Auto-assign order to the best matching vendor
         try {
-          const { assignOrderToVendor } = await import("@/lib/vendor");
-          await assignOrderToVendor(payment.order_id);
+          await assignOrderToNextVendor(supabase, payment.order_id);
         } catch (e) {
           console.error("Error auto-assigning vendor:", e);
         }
