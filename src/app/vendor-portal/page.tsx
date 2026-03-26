@@ -73,11 +73,8 @@ export default function VendorPortalPage() {
 
   const loadVendorSettings = useCallback(async () => {
     const vid = user?.vendorRecordId || user?.id;
-    if (!vid) return;
-
-    let pin = "";
-    try { pin = sessionStorage.getItem("mimaji_vendor_pin") || ""; } catch {}
-    if (!pin) return;
+    const pin = user?.vendorPin || "";
+    if (!vid || !pin) return;
 
     setSettingsLoading(true);
     try {
@@ -130,15 +127,14 @@ export default function VendorPortalPage() {
       console.error("Vendor settings fetch error:", e);
     }
     setSettingsLoading(false);
-  }, [user?.vendorRecordId, user?.id]);
+  }, [user?.vendorRecordId, user?.id, user?.vendorPin]);
 
   useEffect(() => { loadVendorSettings(); }, [loadVendorSettings]);
 
   // ── Settings: Save to server (single source of truth: Supabase) ──
   const handleSaveSettings = async () => {
     const vid = user?.vendorRecordId || user?.id;
-    let pin = "";
-    try { pin = sessionStorage.getItem("mimaji_vendor_pin") || ""; } catch {}
+    const pin = user?.vendorPin || "";
 
     if (!vid || !pin) {
       setSettingsSaveError("Not authenticated. Please log out and log in again.");

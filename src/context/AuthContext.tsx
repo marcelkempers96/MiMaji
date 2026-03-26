@@ -14,6 +14,8 @@ export interface User {
   deliveryPin?: string;
   /** The vendor record UUID in the vendors table (different from profile id) */
   vendorRecordId?: string;
+  /** Vendor login PIN — needed for vendor self-service API calls */
+  vendorPin?: string;
 }
 
 interface AuthResult {
@@ -245,8 +247,8 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
                 name: vendorData.vendor.name || "",
                 role: "vendor",
                 vendorRecordId: vendorData.vendor.vendorRecordId || vendorData.vendor.id,
+                vendorPin: pin,
               };
-              try { sessionStorage.setItem("mimaji_vendor_pin", pin); } catch {}
               setServerAuthUser(vendorUser);
               setSession(null);
               return { user: vendorUser };
@@ -272,7 +274,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         if (baseUser) {
           const enriched = await loadProfile(baseUser.id, baseUser);
           if (enriched.role === "vendor") {
-            try { sessionStorage.setItem("mimaji_vendor_pin", pin); } catch {}
+            enriched.vendorPin = pin;
           }
           return { user: enriched };
         }
@@ -388,7 +390,6 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     setSession(null);
     isServerAuthRef.current = false;
     clearUserCache();
-    try { sessionStorage.removeItem("mimaji_vendor_pin"); } catch {}
     try {
       const sb = await getSupabase();
       await sb.auth.signOut();
