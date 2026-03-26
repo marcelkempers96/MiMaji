@@ -42,15 +42,14 @@ export default function VendorPortalPage() {
 
   const loadVendorProfile = useCallback(async () => {
     const vid = user?.vendorRecordId || user?.id;
-    const pin = user?.vendorPin || "";
-    if (!vid || !pin) {
+    if (!vid) {
       setProfileLoading(false);
       return;
     }
 
     setProfileLoading(true);
     try {
-      const res = await fetch(`/api/vendor-update?vendorId=${encodeURIComponent(vid)}&pin=${encodeURIComponent(pin)}`);
+      const res = await fetch(`/api/vendor-update?vendorId=${encodeURIComponent(vid)}`);
       if (res.ok) {
         const data = await res.json();
         if (data?.id) setVendorProfile(data);
@@ -59,7 +58,7 @@ export default function VendorPortalPage() {
       console.error("Failed to load vendor profile:", e);
     }
     setProfileLoading(false);
-  }, [user?.vendorRecordId, user?.id, user?.vendorPin]);
+  }, [user?.vendorRecordId, user?.id]);
 
   useEffect(() => { loadVendorProfile(); }, [loadVendorProfile]);
 

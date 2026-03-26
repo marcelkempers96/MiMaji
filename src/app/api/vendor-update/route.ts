@@ -41,32 +41,40 @@ async function resolveAndAuthVendor(sb: ReturnType<typeof createServiceClient>, 
 }
 
 /**
- * GET /api/vendor-update?vendorId=...&pin=...
+ * GET /api/vendor-update?vendorId=...
  * Returns full vendor settings (server-side, service role — bypasses RLS).
- * Used by the vendor portal to load settings reliably.
+ * vendorId can be the vendor record UUID or the auth profile UUID.
+ * No PIN required for reads — vendor is already authenticated via login.
  */
 export async function GET(req: NextRequest) {
   try {
     const vendorId = req.nextUrl.searchParams.get("vendorId");
-    const pin = req.nextUrl.searchParams.get("pin");
 
-    if (!vendorId || !pin) {
-      return NextResponse.json({ error: "vendorId and pin are required" }, { status: 400 });
+    if (!vendorId) {
+      return NextResponse.json({ error: "vendorId is required" }, { status: 400 });
     }
 
     if (hasServiceKey) {
       const sb = createServiceClient();
-      const auth = await resolveAndAuthVendor(sb, vendorId, pin);
-      if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-      const { data, error } = await sb
+      // Try by vendor record ID first, then by profile_id
+      let { data } = await sb
         .from("vendors")
         .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
-        .eq("id", auth.vendorId)
-        .single();
+        .eq("id", vendorId)
+        .maybeSingle();
 
-      if (error || !data) {
-        return NextResponse.json({ error: "Failed to load vendor data" }, { status: 500 });
+      if (!data) {
+        const result = await sb
+          .from("vendors")
+          .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
+          .eq("profile_id", vendorId)
+          .maybeSingle();
+        data = result.data;
+      }
+
+      if (!data) {
+        return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
       }
 
       return NextResponse.json(data);
@@ -74,9 +82,9 @@ export async function GET(req: NextRequest) {
 
     // File-store fallback
     const vendors = readCollection<Record<string, unknown>>("vendors");
-    const match = vendors.find((v) => v.id === vendorId && v.pin === pin && v.active !== false);
+    const match = vendors.find((v) => v.id === vendorId && v.active !== false);
     if (!match) {
-      return NextResponse.json({ error: "Invalid vendor or PIN" }, { status: 401 });
+      return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
     }
     return NextResponse.json(match);
   } catch (e) {
