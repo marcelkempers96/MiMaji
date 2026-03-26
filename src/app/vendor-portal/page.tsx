@@ -13,7 +13,7 @@ import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, gener
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
 import { waterBrands, NAIROBI_AREAS } from "@/data/products";
-import { getVendorSettingsByUserId, getVendorSettingsByUserIdAsync, updateVendor as updateVendorStore, updateVendorAsync, VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
+import { VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
 
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -68,182 +68,132 @@ export default function VendorPortalPage() {
   // New: Service times (Mon-Sun)
   const [settingsServiceTimes, setSettingsServiceTimes] = useState<ServiceDay[]>(defaultServiceTimes());
 
-  const handleSaveSettings = async () => {
+  // ── Settings: Load from server (single source of truth: Supabase) ──
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  const loadVendorSettings = useCallback(async () => {
+    const vid = user?.vendorRecordId || user?.id;
+    if (!vid) return;
+
+    let pin = "";
+    try { pin = sessionStorage.getItem("mimaji_vendor_pin") || ""; } catch {}
+    if (!pin) return;
+
+    setSettingsLoading(true);
     try {
-      const vendorSettings = {
-        businessName: settingsBusinessName,
-        businessReg: settingsBusinessReg,
-        mpesaNumber: settingsMpesaNumber,
-        phoneNumbers: settingsPhoneNumbers.filter(Boolean),
-        locations: settingsLocations.filter((l) => l.name),
-        hours: settingsHours,
-        radius: settingsRadius,
-        brands: settingsBrands,
-        products: settingsProducts,
-        areasServed: settingsAreasServed,
-        productCatalog: settingsProductCatalog,
-        serviceTimes: settingsServiceTimes,
-      };
-
-      // Save to vendorStore + Supabase (async, handles both)
-      // Prefer vendorRecordId (actual vendors table UUID) over user.id (profile UUID)
-      const vid = user?.vendorRecordId || user?.id;
-      if (vid) {
-        const result = await updateVendorAsync(vid, {
-          name: settingsBusinessName,
-          area: settingsArea,
-          businessRegNo: settingsBusinessReg,
-          mpesaNumber: settingsMpesaNumber,
-          phoneNumbers: settingsPhoneNumbers.filter(Boolean),
-          locations: settingsLocations.filter((l) => l.name).map((l, i) => ({
-            id: `${user.id}-loc${i}`,
-            name: l.name,
-            area: l.area,
-            lat: l.lat,
-            lng: l.lng,
-          })),
-          deliveryRadius: settingsRadius,
-          brands: settingsBrands,
-          areasServed: settingsAreasServed,
-          products: settingsProductCatalog,
-          serviceTimes: settingsServiceTimes,
-          description: settingsDescription,
-          minOrder: settingsMinOrder,
-        });
-        if (!result.serverSynced) {
-          setSettingsSaveError("Changes saved locally but failed to sync to server. Please try again.");
-          setTimeout(() => setSettingsSaveError(""), 5000);
-          return;
-        }
+      const res = await fetch(`/api/vendor-update?vendorId=${encodeURIComponent(vid)}&pin=${encodeURIComponent(pin)}`);
+      if (!res.ok) {
+        console.error("Failed to load vendor settings:", res.status);
+        setSettingsLoading(false);
+        return;
       }
-      // Also save to localStorage as cache
-      localStorage.setItem(`mimaji_vendor_settings_${user?.id || "default"}`, JSON.stringify(vendorSettings));
-      setSettingsSaved(true);
-      setTimeout(() => setSettingsSaved(false), 2500);
+      const v = await res.json();
+      if (!v || !v.id) { setSettingsLoading(false); return; }
+
+      // Apply Supabase row data directly to form state
+      setSettingsBusinessName(v.name || "");
+      setSettingsArea(v.area || "");
+      setSettingsBusinessReg(v.business_reg_no || "");
+      setSettingsMpesaNumber(v.mpesa_number || "");
+      setSettingsDescription(v.description || "");
+      setSettingsMinOrder(v.min_order || "");
+      setSettingsPhoneNumbers(v.phone_numbers?.length > 0 ? v.phone_numbers : [""]);
+      if (v.delivery_radius_km) setSettingsRadius(v.delivery_radius_km);
+      if (v.brands) setSettingsBrands(v.brands);
+      if (v.areas_served) setSettingsAreasServed(v.areas_served);
+
+      if (v.vendor_locations?.length > 0) {
+        setSettingsLocations(v.vendor_locations.map((l: Record<string, unknown>) => ({
+          name: (l.name as string) || "", area: (l.area as string) || "",
+          address: (l.address as string) || `${l.name}, ${l.area}`,
+          lat: (l.lat as number) || 0, lng: (l.lng as number) || 0,
+        })));
+        setSelectedStoreId((v.vendor_locations[0] as Record<string, string>).id || "");
+      }
+      if (v.vendor_products?.length > 0) {
+        setSettingsProductCatalog(v.vendor_products.map((p: Record<string, unknown>) => ({
+          id: p.id as string, name: p.name as string, size: p.size as string,
+          priceNew: Number(p.price_new) || 0, priceRefill: Number(p.price_refill) || 0,
+          available: p.available !== false,
+        })));
+      }
+      if (v.vendor_service_times?.length > 0) {
+        setSettingsServiceTimes(v.vendor_service_times.map((st: Record<string, unknown>) => ({
+          day: st.day as string, open: st.open !== false,
+          openTime: (st.open_time as string) || "07:00", closeTime: (st.close_time as string) || "20:00",
+        })));
+      }
+      // Derive display values
+      const openDay = v.vendor_service_times?.find((t: Record<string, unknown>) => t.open !== false);
+      if (openDay) setSettingsHours(`${openDay.open_time} - ${openDay.close_time}`);
     } catch (e) {
-      console.error("Failed to save settings:", e);
+      console.error("Vendor settings fetch error:", e);
     }
-  };
+    setSettingsLoading(false);
+  }, [user?.vendorRecordId, user?.id]);
 
-  // Load vendor settings from Supabase or localStorage
-  useEffect(() => {
-    if (!user?.id) return;
+  useEffect(() => { loadVendorSettings(); }, [loadVendorSettings]);
 
-    const loadFromSupabase = async () => {
-      try {
-        const { supabase } = await import("@/lib/supabase");
-        // Try by vendorRecordId first (direct vendor table ID), then by profile_id
-        const selectQuery = "*, vendor_locations(*), vendor_products(*), vendor_service_times(*)";
-        let vendor = null;
-        if (user.vendorRecordId) {
-          const { data } = await supabase
-            .from("vendors")
-            .select(selectQuery)
-            .eq("id", user.vendorRecordId)
-            .maybeSingle();
-          vendor = data;
-        }
-        if (!vendor) {
-          const { data } = await supabase
-            .from("vendors")
-            .select(selectQuery)
-            .eq("profile_id", user.id)
-            .maybeSingle();
-          vendor = data;
-        }
-        if (vendor) {
-          setSettingsBusinessName(vendor.name || "");
-          setSettingsArea(vendor.area || "");
-          setSettingsBusinessReg(vendor.business_reg_no || "");
-          setSettingsMpesaNumber(vendor.mpesa_number || "");
-          setSettingsDescription(vendor.description || "");
-          setSettingsMinOrder(vendor.min_order || "");
-          setSettingsPhoneNumbers(vendor.phone_numbers?.length > 0 ? vendor.phone_numbers : [""]);
-          if (vendor.vendor_locations?.length > 0) {
-            setSettingsLocations(vendor.vendor_locations.map((l: Record<string, unknown>) => ({
-              name: (l.name as string) || "", area: (l.area as string) || "",
-              address: (l.address as string) || `${l.name}, ${l.area}`,
-              lat: (l.lat as number) || 0, lng: (l.lng as number) || 0,
-            })));
-            setSelectedStoreId((vendor.vendor_locations[0] as Record<string, string>).id || "");
-          }
-          if (vendor.vendor_products?.length > 0) {
-            setSettingsProductCatalog(vendor.vendor_products.map((p: Record<string, unknown>) => ({
-              id: p.id as string, name: p.name as string, size: p.size as string,
-              priceNew: Number(p.price_new) || 0, priceRefill: Number(p.price_refill) || 0,
-              available: p.available !== false,
-            })));
-          }
-          if (vendor.vendor_service_times?.length > 0) {
-            setSettingsServiceTimes(vendor.vendor_service_times.map((st: Record<string, unknown>) => ({
-              day: st.day as string, open: st.open !== false,
-              openTime: (st.open_time as string) || "07:00", closeTime: (st.close_time as string) || "20:00",
-            })));
-          }
-          if (vendor.hours) setSettingsHours(vendor.hours);
-          if (vendor.delivery_radius_km) setSettingsRadius(vendor.delivery_radius_km);
-          if (vendor.brands) setSettingsBrands(vendor.brands);
-          if (vendor.areas_served) setSettingsAreasServed(vendor.areas_served);
-          return true;
-        }
-      } catch {}
-      return false;
-    };
+  // ── Settings: Save to server (single source of truth: Supabase) ──
+  const handleSaveSettings = async () => {
+    const vid = user?.vendorRecordId || user?.id;
+    let pin = "";
+    try { pin = sessionStorage.getItem("mimaji_vendor_pin") || ""; } catch {}
 
-    // Try Supabase first (via vendorStore async), then localStorage, then Supabase direct, then mock
-    const applyVendorData = (storeVendor: { name: string; area?: string; businessRegNo: string; mpesaNumber: string; description?: string; minOrder?: string; phoneNumbers: string[]; locations: Array<{ id?: string; name: string; area: string; lat: number; lng: number }>; brands: string[]; areasServed: string[]; products: VendorProduct[]; serviceTimes: ServiceDay[]; deliveryRadius?: number }) => {
-      setSettingsBusinessName(storeVendor.name || "");
-      setSettingsArea(storeVendor.area || "");
-      setSettingsBusinessReg(storeVendor.businessRegNo || "");
-      setSettingsMpesaNumber(storeVendor.mpesaNumber || "");
-      setSettingsDescription(storeVendor.description || "");
-      setSettingsMinOrder(storeVendor.minOrder || "");
-      setSettingsPhoneNumbers(storeVendor.phoneNumbers?.length > 0 ? storeVendor.phoneNumbers : [""]);
-      setSettingsLocations(storeVendor.locations?.length > 0 ? storeVendor.locations.map((l) => ({ name: l.name, area: l.area, address: `${l.name}, ${l.area}`, lat: l.lat, lng: l.lng })) : [{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
-      if (storeVendor.locations?.[0] && "id" in storeVendor.locations[0] && storeVendor.locations[0].id) setSelectedStoreId(storeVendor.locations[0].id);
-      if (storeVendor.deliveryRadius) setSettingsRadius(storeVendor.deliveryRadius);
-      setSettingsBrands(storeVendor.brands || []);
-      setSettingsAreasServed(storeVendor.areasServed || []);
-      if (storeVendor.products?.length > 0) setSettingsProductCatalog(storeVendor.products);
-      if (storeVendor.serviceTimes?.length > 0) setSettingsServiceTimes(storeVendor.serviceTimes);
-      setSettingsProducts(storeVendor.products.filter((p) => p.available).map((p) => `${p.size} ${p.name.includes("Hard") ? "Hard" : p.name.includes("Soft") ? "Soft" : p.name}`));
-      const hours = storeVendor.serviceTimes?.find((t) => t.open);
-      if (hours) setSettingsHours(`${hours.openTime} - ${hours.closeTime}`);
-    };
+    if (!vid || !pin) {
+      setSettingsSaveError("Not authenticated. Please log out and log in again.");
+      setTimeout(() => setSettingsSaveError(""), 5000);
+      return;
+    }
 
-    // Primary: load from vendorStore (Supabase-first with localStorage cache)
-    // Use vendorRecordId (actual vendor table UUID) for accurate lookup
-    getVendorSettingsByUserIdAsync(user.id, user.vendorRecordId).then((storeVendor) => {
-      if (storeVendor) {
-        applyVendorData(storeVendor);
-        // Store the vendor PIN in sessionStorage so updateVendorAsync can use it
-        if (storeVendor.credentials?.pin) {
-          try { sessionStorage.setItem("mimaji_vendor_pin", storeVendor.credentials.pin); } catch {}
-        }
+    try {
+      const res = await fetch("/api/vendor-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vendorId: vid,
+          pin,
+          updates: {
+            name: settingsBusinessName,
+            area: settingsArea,
+            business_reg_no: settingsBusinessReg,
+            mpesa_number: settingsMpesaNumber,
+            description: settingsDescription,
+            min_order: settingsMinOrder,
+            phone_numbers: settingsPhoneNumbers.filter(Boolean),
+            delivery_radius_km: settingsRadius,
+            brands: settingsBrands,
+            areas_served: settingsAreasServed,
+            updated_at: new Date().toISOString(),
+          },
+          products: settingsProductCatalog.map((p) => ({
+            id: p.id, name: p.name, size: p.size,
+            price_new: p.priceNew, price_refill: p.priceRefill, available: p.available,
+          })),
+          serviceTimes: settingsServiceTimes.map((st) => ({
+            day: st.day, open: st.open, open_time: st.openTime, close_time: st.closeTime,
+          })),
+          locations: settingsLocations.filter((l) => l.name).map((l, i) => ({
+            id: `${vid}-loc${i}`, name: l.name, area: l.area, lat: l.lat, lng: l.lng,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setSettingsSaveError(err.error || "Failed to save. Please try again.");
+        setTimeout(() => setSettingsSaveError(""), 5000);
         return;
       }
 
-      // Secondary: try direct Supabase query
-      loadFromSupabase().then((loaded) => {
-        if (loaded) return;
-
-        // Tertiary: localStorage cache (try vendorRecordId first, then user.id)
-        const cachedVendor = getVendorSettingsByUserId(user.vendorRecordId || user.id);
-        if (cachedVendor) {
-          applyVendorData(cachedVendor);
-          if (cachedVendor.credentials?.pin) {
-            try { sessionStorage.setItem("mimaji_vendor_pin", cachedVendor.credentials.pin); } catch {}
-          }
-          return;
-        }
-
-        // Last resort: start with the vendor's own name and empty defaults
-        // (no fake AquaPure data — new vendors should fill in their own details)
-        setSettingsBusinessName(user.name || "");
-        setSettingsPhoneNumbers(user.phone ? [user.phone] : [""]);
-      });
-    });
-  }, [user?.id, user?.vendorRecordId]);
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2500);
+    } catch (e) {
+      console.error("Save failed:", e);
+      setSettingsSaveError("Network error. Please try again.");
+      setTimeout(() => setSettingsSaveError(""), 5000);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "vendor")) {
