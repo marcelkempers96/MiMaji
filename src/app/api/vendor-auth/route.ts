@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           vendor: {
-            id: (match.profile_id || match.id) as string,
+            id: match.id as string,
             vendorRecordId: match.id as string,
             name: match.name as string,
             phone: cleaned,
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         vendor: {
-          id: (match.profile_id || match.id) as string,
+          id: match.id as string,
           vendorRecordId: match.id as string,
           name: match.name as string,
           phone: cleaned,
