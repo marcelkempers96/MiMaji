@@ -496,9 +496,15 @@ export async function POST(req: NextRequest) {
           await sb.from("vendor_locations").delete().eq("vendor_id", realVendorId);
           if (body.locations.length > 0) {
             const { error } = await sb.from("vendor_locations").insert(
-              body.locations.map((l: Record<string, unknown>) => ({ ...l, vendor_id: realVendorId }))
+              body.locations.map((l: Record<string, unknown>) => {
+                const { id: _id, ...rest } = l;
+                return { ...rest, vendor_id: realVendorId };
+              })
             );
-            if (error) console.error("vendor_locations insert error:", error.message);
+            if (error) {
+              console.error("vendor_locations insert error:", error.message);
+              return NextResponse.json({ error: "Failed to save locations: " + error.message }, { status: 500 });
+            }
           }
         }
 
