@@ -9,7 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
-import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, StoreLocation } from "@/lib/vendor";
+import { updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
 
 export default function VendorPortalPage() {
@@ -86,8 +86,19 @@ export default function VendorPortalPage() {
   const loadOrders = useCallback(async () => {
     if (!vendorId) return;
     setLoadingOrders(true);
-    const data = await fetchVendorOrders(vendorId);
-    setOrders(data);
+    try {
+      const res = await fetch(`/api/vendor-orders?vendorId=${encodeURIComponent(vendorId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(Array.isArray(data) ? data : []);
+      } else {
+        console.error("[VendorOrders] API error:", res.status);
+        setOrders([]);
+      }
+    } catch (e) {
+      console.error("[VendorOrders] Fetch failed:", e);
+      setOrders([]);
+    }
     setLoadingOrders(false);
   }, [vendorId]);
 
