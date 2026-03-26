@@ -255,42 +255,44 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (phone: string, pin: string): Promise<AuthResult> => {
     try {
-      const sb = await getSupabase();
       const cleaned = normalizePhone(phone);
+
+      // Step 1: Try vendor auth FIRST — vendors live in public.vendors, not auth.users.
+      // This checks phone + PIN against the vendors table directly (server-side, service role).
+      try {
+        const vendorRes = await fetch("/api/vendor-auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: cleaned, pin }),
+        });
+        if (vendorRes.ok) {
+          const vendorData = await vendorRes.json();
+          if (vendorData.success && vendorData.vendor) {
+            const vendorUser: User = {
+              id: vendorData.vendor.vendorRecordId || vendorData.vendor.id,
+              phone: vendorData.vendor.phone || cleaned,
+              name: vendorData.vendor.name || "",
+              role: "vendor",
+              vendorRecordId: vendorData.vendor.vendorRecordId || vendorData.vendor.id,
+              vendorPin: pin,
+            };
+            setServerAuthUser(vendorUser);
+            setSession(null);
+            return { user: vendorUser };
+          }
+        }
+        // vendor-auth returned 401 (wrong PIN) or 404 (not a vendor) — continue to Supabase auth
+      } catch (vendorAuthErr) {
+        console.error("Vendor auth check failed:", vendorAuthErr);
+      }
+
+      // Step 2: Not a vendor — try Supabase auth (for customers, admins)
+      const sb = await getSupabase();
       const email = formatPhoneEmail(phone);
       const password = padPin(pin);
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
       if (error) {
-        // Supabase auth failed — try server-side vendor auth endpoint.
-        // This checks the vendors table PIN directly using the service role,
-        // so it works even if the Supabase auth user wasn't created properly.
-        try {
-          const vendorRes = await fetch("/api/vendor-auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: cleaned, pin }),
-          });
-          if (vendorRes.ok) {
-            const vendorData = await vendorRes.json();
-            if (vendorData.success && vendorData.vendor) {
-              const vendorUser: User = {
-                id: vendorData.vendor.id,
-                phone: vendorData.vendor.phone || cleaned,
-                name: vendorData.vendor.name || "",
-                role: "vendor",
-                vendorRecordId: vendorData.vendor.vendorRecordId || vendorData.vendor.id,
-                vendorPin: pin,
-              };
-              setServerAuthUser(vendorUser);
-              setSession(null);
-              return { user: vendorUser };
-            }
-          }
-        } catch (vendorAuthErr) {
-          console.error("Vendor auth fallback failed:", vendorAuthErr);
-        }
-
         if (error.message.includes("Invalid login credentials")) {
           return { error: "Invalid phone number or PIN" };
         }
@@ -300,15 +302,11 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         return { error: error.message };
       }
 
-      // Supabase login succeeded
       const supaUser = data?.user;
       if (supaUser) {
         const baseUser = mapUser(supaUser);
         if (baseUser) {
           const enriched = await loadProfile(baseUser.id, baseUser);
-          if (enriched.role === "vendor") {
-            enriched.vendorPin = pin;
-          }
           return { user: enriched };
         }
       }
