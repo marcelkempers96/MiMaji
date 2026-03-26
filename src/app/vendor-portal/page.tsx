@@ -42,23 +42,36 @@ export default function VendorPortalPage() {
 
   const loadVendorProfile = useCallback(async () => {
     const vid = user?.vendorRecordId || user?.id;
-    if (!vid) {
+    const phone = user?.phone || "";
+    if (!vid && !phone) {
+      console.error("[VendorProfile] No vendor ID or phone available. user:", JSON.stringify(user));
       setProfileLoading(false);
       return;
     }
 
     setProfileLoading(true);
     try {
-      const res = await fetch(`/api/vendor-update?vendorId=${encodeURIComponent(vid)}`);
+      // Try by vendor ID first, fall back to phone lookup
+      const params = new URLSearchParams();
+      if (vid) params.set("vendorId", vid);
+      if (phone) params.set("phone", phone);
+      const res = await fetch(`/api/vendor-update?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        if (data?.id) setVendorProfile(data);
+        if (data?.id) {
+          setVendorProfile(data);
+        } else {
+          console.error("[VendorProfile] API returned OK but no vendor data:", data);
+        }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error("[VendorProfile] API error:", res.status, err);
       }
     } catch (e) {
-      console.error("Failed to load vendor profile:", e);
+      console.error("[VendorProfile] Fetch failed:", e);
     }
     setProfileLoading(false);
-  }, [user?.vendorRecordId, user?.id]);
+  }, [user?.vendorRecordId, user?.id, user?.phone]);
 
   useEffect(() => { loadVendorProfile(); }, [loadVendorProfile]);
 

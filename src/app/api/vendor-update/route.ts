@@ -41,39 +41,48 @@ async function resolveAndAuthVendor(sb: ReturnType<typeof createServiceClient>, 
 }
 
 /**
- * GET /api/vendor-update?vendorId=...
+ * GET /api/vendor-update?vendorId=...&phone=...
  * Returns full vendor settings (server-side, service role — bypasses RLS).
  * vendorId can be the vendor record UUID or the auth profile UUID.
+ * phone is used as additional fallback lookup.
  * No PIN required for reads — vendor is already authenticated via login.
  */
 export async function GET(req: NextRequest) {
   try {
     const vendorId = req.nextUrl.searchParams.get("vendorId");
+    const phone = req.nextUrl.searchParams.get("phone");
 
-    if (!vendorId) {
-      return NextResponse.json({ error: "vendorId is required" }, { status: 400 });
+    if (!vendorId && !phone) {
+      return NextResponse.json({ error: "vendorId or phone is required" }, { status: 400 });
     }
+
+    const selectQuery = "*, vendor_locations(*), vendor_products(*), vendor_service_times(*)";
 
     if (hasServiceKey) {
       const sb = createServiceClient();
 
-      // Try by vendor record ID first, then by profile_id
-      let { data } = await sb
-        .from("vendors")
-        .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
-        .eq("id", vendorId)
-        .maybeSingle();
+      // Try by vendor record ID
+      let data: Record<string, unknown> | null = null;
+      if (vendorId) {
+        const r1 = await sb.from("vendors").select(selectQuery).eq("id", vendorId).maybeSingle();
+        data = r1.data as Record<string, unknown> | null;
 
-      if (!data) {
-        const result = await sb
-          .from("vendors")
-          .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
-          .eq("profile_id", vendorId)
-          .maybeSingle();
-        data = result.data;
+        // Try by profile_id
+        if (!data) {
+          const r2 = await sb.from("vendors").select(selectQuery).eq("profile_id", vendorId).maybeSingle();
+          data = r2.data as Record<string, unknown> | null;
+        }
+      }
+
+      // Try by phone number
+      if (!data && phone) {
+        const normalized = normalizePhone(phone);
+        const r3 = await sb.from("vendors").select(selectQuery).contains("phone_numbers", [normalized]).maybeSingle();
+        data = r3.data as Record<string, unknown> | null;
       }
 
       if (!data) {
+        console.error("[GET vendor-update] Vendor not found. vendorId:", vendorId, "phone:", phone);
         return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
       }
 
@@ -82,7 +91,14 @@ export async function GET(req: NextRequest) {
 
     // File-store fallback
     const vendors = readCollection<Record<string, unknown>>("vendors");
-    const match = vendors.find((v) => v.id === vendorId && v.active !== false);
+    const match = vendors.find((v) => {
+      if (vendorId && v.id === vendorId) return v.active !== false;
+      if (phone) {
+        const normalized = normalizePhone(phone);
+        return (v.phone_numbers as string[] || []).includes(normalized) && v.active !== false;
+      }
+      return false;
+    });
     if (!match) {
       return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
     }
