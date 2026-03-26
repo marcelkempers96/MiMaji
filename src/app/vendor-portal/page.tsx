@@ -928,15 +928,21 @@ export default function VendorPortalPage() {
                 })}
               </div>
 
+              {/* ── Active Orders Table ── */}
               <div className="bg-surface shadow-card rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-[#F0F0F0] flex items-center justify-between">
-                  <h2 className="font-bold text-base text-text-primary">{activeDesktopTab === "orders" ? "All Orders" : "Recent Orders"}</h2>
+                  <h2 className="font-bold text-base text-text-primary">
+                    Active Orders
+                    {[...pendingOrders, ...activeOrders].length > 0 && (
+                      <span className="ml-2 bg-primary text-white text-xs rounded-full px-2 py-0.5 font-bold">{[...pendingOrders, ...activeOrders].length}</span>
+                    )}
+                  </h2>
                   {activeDesktopTab !== "orders" && <button onClick={() => setActiveDesktopTab("orders")} className="text-primary text-sm font-semibold cursor-pointer">View All</button>}
                 </div>
                 {loadingOrders ? (
                   <div className="p-8 text-center text-text-secondary">Loading orders...</div>
-                ) : orders.length === 0 ? (
-                  <div className="p-8 text-center text-text-secondary">No orders yet.</div>
+                ) : [...pendingOrders, ...activeOrders].length === 0 ? (
+                  <div className="p-8 text-center text-text-secondary">No active orders.</div>
                 ) : (
                   <table className="w-full">
                     <thead>
@@ -953,7 +959,7 @@ export default function VendorPortalPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(activeDesktopTab === "orders" ? orders : orders.slice(0, 10)).map((order) => (
+                      {(activeDesktopTab === "orders" ? [...pendingOrders, ...activeOrders] : [...pendingOrders, ...activeOrders].slice(0, 10)).map((order) => (
                         <tr key={order.id} className="border-b border-[#F0F0F0] last:border-0 hover:bg-background transition-colors">
                           <td className="px-6 py-4">
                             <p className="text-sm font-bold text-text-primary">{formatOrderId(order.id)}</p>
@@ -1037,6 +1043,60 @@ export default function VendorPortalPage() {
                   </table>
                 )}
               </div>
+
+              {/* ── Completed Orders Table ── */}
+              {completedOrders.length > 0 && (
+                <div className="bg-surface shadow-card rounded-xl overflow-hidden mt-6">
+                  <div className="px-6 py-4 border-b border-[#F0F0F0]">
+                    <h2 className="font-bold text-base text-text-primary">
+                      Completed Orders
+                      <span className="ml-2 bg-[#2ECC71] text-white text-xs rounded-full px-2 py-0.5 font-bold">{completedOrders.length}</span>
+                    </h2>
+                  </div>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#F0F0F0]">
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Order</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Customer</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Items</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Address</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Total</th>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-text-secondary uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {completedOrders.map((order) => (
+                        <tr key={order.id} className="border-b border-[#F0F0F0] last:border-0 hover:bg-background transition-colors">
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-bold text-text-primary">{formatOrderId(order.id)}</p>
+                            <p className="text-[10px] text-text-secondary">{formatOrderDateTime(order.created_at)}</p>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            {order.customer_name && <span className="font-medium text-text-primary block">{order.customer_name}</span>}
+                          </td>
+                          <td className="px-6 py-4">
+                            {order.order_items && order.order_items.length > 0 ? (
+                              <button
+                                onClick={() => setItemsPopup({ orderId: order.id, items: order.order_items, total: order.price_total })}
+                                className="text-primary text-xs font-medium hover:underline text-left"
+                              >
+                                {order.order_items.length} item{order.order_items.length !== 1 ? "s" : ""} — View
+                              </button>
+                            ) : (
+                              <span className="text-sm text-text-secondary">{order.product_name || "Water Order"}</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className="text-text-secondary">{order.delivery_address}</span>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-bold text-text-primary">KES {order.price_total.toLocaleString()}</td>
+                          <td className="px-6 py-4"><OrderStatusBadge status={order.status} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
 
