@@ -962,8 +962,11 @@ function AdminDashboardInner() {
                             {order.vendor_name ? (
                               <div>
                                 <span className="font-medium text-text-primary">{order.vendor_name}</span>
-                                {(order.status === "confirmed" || order.status === "out_for_delivery") && (
-                                  <p className="text-[10px] text-green-600 font-semibold mt-0.5">Accepted — Delivery in Progress</p>
+                                {order.status === "confirmed" && (
+                                  <p className="text-[10px] text-green-600 font-semibold mt-0.5">Accepted — Awaiting Dispatch</p>
+                                )}
+                                {order.status === "out_for_delivery" && (
+                                  <p className="text-[10px] text-orange-600 font-semibold mt-0.5">Dispatched — Out for Delivery</p>
                                 )}
                                 {order.status === "delivered" && (
                                   <p className="text-[10px] text-green-600 mt-0.5">Delivered</p>
@@ -978,8 +981,8 @@ function AdminDashboardInner() {
                               </p>
                             )}
                             {order.vendors_tried && order.vendors_tried.length > 0 && (
-                              <p className="text-[10px] text-text-secondary mt-0.5">
-                                Tried: {order.vendors_tried.length} vendor{order.vendors_tried.length > 1 ? "s" : ""}
+                              <p className="text-[10px] text-red-500 mt-0.5">
+                                Declined: {order.vendors_tried.map(id => allVendors.find(v => v.id === id)?.name || "Unknown").join(", ")}
                               </p>
                             )}
                           </td>

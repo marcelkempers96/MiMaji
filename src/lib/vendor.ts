@@ -466,3 +466,70 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
   }
   return { nextVendor: result.vendorName, allRejected: false };
 }
+
+/**
+ * Decline a confirmed order — vendor accepted but now wants to back out.
+ * Resets assignment, reverts status to "paid", and offers to next vendor.
+ */
+export async function declineConfirmedOrder(orderId: string, vendorId: string): Promise<{ nextVendor: string | null; allRejected: boolean }> {
+  if (!hasSupabaseConfig) {
+    const orders = getMockOrders();
+    const idx = orders.findIndex((o) => o.id === orderId);
+    if (idx === -1) return { nextVendor: null, allRejected: false };
+
+    const order = orders[idx];
+    const triedIds = order.vendors_tried || [];
+    if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
+    orders[idx].vendors_tried = triedIds;
+    orders[idx].vendor_id = null;
+    orders[idx].vendor_name = null;
+    orders[idx].vendor_location = null;
+    orders[idx].current_vendor_offer = null;
+    orders[idx].estimated_delivery_minutes = null;
+    orders[idx].status = "paid";
+    orders[idx].updated_at = new Date().toISOString();
+    saveMockOrders(orders);
+
+    const result = await assignOrderToVendor(orderId);
+    if (!result) {
+      orders[idx].status = "pending_payment";
+      saveMockOrders(orders);
+      return { nextVendor: null, allRejected: true };
+    }
+    return { nextVendor: result.vendorName, allRejected: false };
+  }
+
+  const { data: order } = await supabase.from("orders").select("vendors_tried, customer_id").eq("id", orderId).single();
+  if (!order) return { nextVendor: null, allRejected: false };
+
+  const triedIds = (order.vendors_tried as string[]) || [];
+  if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
+
+  await supabase.from("orders").update({
+    vendors_tried: triedIds,
+    vendor_id: null,
+    vendor_name: null,
+    vendor_location: null,
+    current_vendor_offer: null,
+    estimated_delivery_minutes: null,
+    status: "paid",
+    updated_at: new Date().toISOString(),
+  }).eq("id", orderId);
+
+  const result = await assignOrderToVendor(orderId);
+  if (!result) {
+    try {
+      await supabase.from("notifications").insert({
+        user_id: order.customer_id as string,
+        type: "order_update",
+        title: "Vendor Unavailable",
+        message: "We're having trouble finding a vendor for your order. Our team has been notified and will assign one shortly.",
+        order_id: orderId,
+      });
+    } catch (e) {
+      console.error("Failed to create notification:", e);
+    }
+    return { nextVendor: null, allRejected: true };
+  }
+  return { nextVendor: result.vendorName, allRejected: false };
+}
