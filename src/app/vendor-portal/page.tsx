@@ -9,7 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
-import { updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, StoreLocation } from "@/lib/vendor";
+import { updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, declineConfirmedOrder, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
 
 export default function VendorPortalPage() {
@@ -172,6 +172,12 @@ export default function VendorPortalPage() {
 
   const handleDispatchOrder = async (orderId: string) => {
     await updateVendorOrderStatus(orderId, "out_for_delivery");
+    loadOrders();
+  };
+
+  const handleDeclineOrder = async (orderId: string) => {
+    if (!user?.id) return;
+    await declineConfirmedOrder(orderId, vendorId);
     loadOrders();
   };
 
@@ -703,7 +709,7 @@ export default function VendorPortalPage() {
                       <span className="bg-[#F5A623] text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{pendingOrders.length}</span>
                     </div>
                     {pendingOrders.map((order) => (
-                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
+                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onDecline={handleDeclineOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
                     ))}
                   </>
                 )}
@@ -717,7 +723,7 @@ export default function VendorPortalPage() {
                       <span className="bg-primary text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{activeOrders.length}</span>
                     </div>
                     {activeOrders.map((order) => (
-                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
+                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onDecline={handleDeclineOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
                     ))}
                   </>
                 )}
@@ -731,7 +737,7 @@ export default function VendorPortalPage() {
                       <span className="bg-[#2ECC71] text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{completedOrders.length}</span>
                     </div>
                     {completedOrders.slice(0, 5).map((order) => (
-                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
+                      <MobileOrderCard key={order.id} order={order} userId={vendorId} onAccept={handleAcceptOrder} onReject={handleRejectOrder} onDispatch={handleDispatchOrder} onDecline={handleDeclineOrder} onComplete={handleCompleteOrder} onViewItems={(o) => setItemsPopup({ orderId: o.id, items: o.order_items, total: o.price_total })} />
                     ))}
                   </>
                 )}
@@ -844,7 +850,10 @@ export default function VendorPortalPage() {
                       </div>
                       <div className="flex-shrink-0">
                         {order.status === "confirmed" && (
-                          <button onClick={() => handleDispatchOrder(order.id)} className="bg-[#F5A623] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#d4901e] transition-colors flex items-center gap-1"><Truck size={14} /> Dispatch</button>
+                          <div className="flex gap-1.5">
+                            <button onClick={() => handleDispatchOrder(order.id)} className="bg-[#F5A623] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#d4901e] transition-colors flex items-center gap-1"><Truck size={14} /> Dispatch</button>
+                            <button onClick={() => handleDeclineOrder(order.id)} className="bg-gray-100 text-cta-alt text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-red-50 transition-colors">Decline</button>
+                          </div>
                         )}
                         {order.status === "out_for_delivery" && (
                           <button onClick={() => handleCompleteOrder(order.id)} className="bg-[#2ECC71] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#27ae60] transition-colors flex items-center gap-1"><CheckCircle size={14} /> Complete</button>
@@ -1013,7 +1022,10 @@ export default function VendorPortalPage() {
                               </div>
                             )}
                             {order.status === "confirmed" && order.vendor_id === vendorId && (
-                              <button onClick={() => handleDispatchOrder(order.id)} className="bg-[#F5A623] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#d4901e] transition-colors">Dispatch</button>
+                              <div className="flex gap-2">
+                                <button onClick={() => handleDispatchOrder(order.id)} className="bg-[#F5A623] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#d4901e] transition-colors">Dispatch</button>
+                                <button onClick={() => handleDeclineOrder(order.id)} className="bg-gray-100 text-cta-alt text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-red-50 transition-colors">Decline</button>
+                              </div>
                             )}
                             {order.status === "out_for_delivery" && order.vendor_id === vendorId && (
                               <button onClick={() => handleCompleteOrder(order.id)} className="bg-[#2ECC71] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#27ae60] transition-colors">Complete</button>
@@ -1059,12 +1071,13 @@ export default function VendorPortalPage() {
   );
 }
 
-function MobileOrderCard({ order, userId, onAccept, onReject, onDispatch, onComplete, onViewItems }: {
+function MobileOrderCard({ order, userId, onAccept, onReject, onDispatch, onDecline, onComplete, onViewItems }: {
   order: OrderRecord;
   userId: string;
   onAccept: (id: string) => void;
   onReject: (id: string) => void;
   onDispatch: (id: string) => void;
+  onDecline: (id: string) => void;
   onComplete: (id: string) => void;
   onViewItems: (o: OrderRecord) => void;
 }) {
@@ -1156,7 +1169,10 @@ function MobileOrderCard({ order, userId, onAccept, onReject, onDispatch, onComp
         </div>
       )}
       {order.status === "confirmed" && order.vendor_id === userId && (
-        <button onClick={() => onDispatch(order.id)} className="w-full mt-3 bg-[#F5A623] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#d4901e] transition-colors flex items-center justify-center gap-2"><Truck size={16} /> Dispatch Order</button>
+        <div className="flex gap-2 mt-3">
+          <button onClick={() => onDispatch(order.id)} className="flex-1 bg-[#F5A623] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#d4901e] transition-colors flex items-center justify-center gap-2"><Truck size={16} /> Dispatch Order</button>
+          <button onClick={() => onDecline(order.id)} className="flex-1 bg-gray-100 text-cta-alt py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">Decline</button>
+        </div>
       )}
       {order.status === "out_for_delivery" && order.vendor_id === userId && (
         <button onClick={() => onComplete(order.id)} className="w-full mt-3 bg-[#2ECC71] text-white py-2 rounded-lg text-sm font-semibold hover:bg-[#27ae60] transition-colors flex items-center justify-center gap-2"><CheckCircle size={16} /> Mark Delivered</button>

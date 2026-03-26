@@ -978,8 +978,8 @@ function AdminDashboardInner() {
                               </p>
                             )}
                             {order.vendors_tried && order.vendors_tried.length > 0 && (
-                              <p className="text-[10px] text-text-secondary mt-0.5">
-                                Tried: {order.vendors_tried.length} vendor{order.vendors_tried.length > 1 ? "s" : ""}
+                              <p className="text-[10px] text-red-500 mt-0.5">
+                                Declined: {order.vendors_tried.map(id => allVendors.find(v => v.id === id)?.name || "Unknown").join(", ")}
                               </p>
                             )}
                           </td>
