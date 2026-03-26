@@ -2,8 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect, useCallback } from "react";
-import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, Plus, Trash2, MessageCircle, FileText, Phone, Mail, Headphones, Calendar, Navigation } from "lucide-react";
-import AddressSearch from "@/components/AddressSearch";
+import { Package, TrendingUp, Users, Clock, MapPin, Star, Bell, Settings, LogOut, CheckCircle, Truck, X, Timer, MessageCircle, FileText, Phone, Mail, Headphones, Calendar } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -12,8 +11,6 @@ import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
 import { fetchVendorOrders, updateVendorOrderStatus, VendorStats, fetchVendorStats, acceptOrder, rejectOrder, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
-import { waterBrands, NAIROBI_AREAS } from "@/data/products";
-import { VendorProduct, ServiceDay, defaultVendorProducts, defaultServiceTimes, formatServiceTimesDisplay } from "@/lib/vendorStore";
 
 export default function VendorPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -38,158 +35,30 @@ export default function VendorPortalPage() {
   const [deliveryCodeAttempts, setDeliveryCodeAttempts] = useState(0);
   const [deliveryCodeLocked, setDeliveryCodeLocked] = useState(false);
 
-  // Settings state
-  const [settingsBusinessName, setSettingsBusinessName] = useState("");
-  const [settingsBusinessReg, setSettingsBusinessReg] = useState("");
-  const [settingsMpesaNumber, setSettingsMpesaNumber] = useState("");
-  const [settingsPhoneNumbers, setSettingsPhoneNumbers] = useState<string[]>([""]);
-  const [settingsLocations, setSettingsLocations] = useState<Array<{ name: string; area: string; address: string; lat: number; lng: number }>>([{ name: "", area: "", address: "", lat: 0, lng: 0 }]);
-  const [settingsHours, setSettingsHours] = useState("7:00 AM - 8:00 PM");
-  const [settingsRadius, setSettingsRadius] = useState(10);
-  const [settingsBrands, setSettingsBrands] = useState<string[]>([]);
-  const [settingsProducts, setSettingsProducts] = useState<string[]>([]);
-  const [settingsAreasServed, setSettingsAreasServed] = useState<string[]>([]);
-  const [settingsCustomBrand, setSettingsCustomBrand] = useState("");
-  const [settingsCustomProduct, setSettingsCustomProduct] = useState("");
-  const [settingsSaved, setSettingsSaved] = useState(false);
-  const [settingsSaveError, setSettingsSaveError] = useState("");
+  // Vendor profile data (read-only, loaded from Supabase via server API)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [vendorProfile, setVendorProfile] = useState<Record<string, any> | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
-  // Additional business fields
-  const [settingsArea, setSettingsArea] = useState("");
-  const [settingsDescription, setSettingsDescription] = useState("");
-  const [settingsMinOrder, setSettingsMinOrder] = useState("");
-
-  // New: Product catalog with prices
-  const [settingsProductCatalog, setSettingsProductCatalog] = useState<VendorProduct[]>(defaultVendorProducts());
-  const [customProductName, setCustomProductName] = useState("");
-  const [customProductSize, setCustomProductSize] = useState("");
-  const [customProductPrice, setCustomProductPrice] = useState("");
-
-  // New: Service times (Mon-Sun)
-  const [settingsServiceTimes, setSettingsServiceTimes] = useState<ServiceDay[]>(defaultServiceTimes());
-
-  // ── Settings: Load from server (single source of truth: Supabase) ──
-  const [settingsLoading, setSettingsLoading] = useState(true);
-
-  const loadVendorSettings = useCallback(async () => {
+  const loadVendorProfile = useCallback(async () => {
     const vid = user?.vendorRecordId || user?.id;
     const pin = user?.vendorPin || "";
     if (!vid || !pin) return;
 
-    setSettingsLoading(true);
+    setProfileLoading(true);
     try {
       const res = await fetch(`/api/vendor-update?vendorId=${encodeURIComponent(vid)}&pin=${encodeURIComponent(pin)}`);
-      if (!res.ok) {
-        console.error("Failed to load vendor settings:", res.status);
-        setSettingsLoading(false);
-        return;
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.id) setVendorProfile(data);
       }
-      const v = await res.json();
-      if (!v || !v.id) { setSettingsLoading(false); return; }
-
-      // Apply Supabase row data directly to form state
-      setSettingsBusinessName(v.name || "");
-      setSettingsArea(v.area || "");
-      setSettingsBusinessReg(v.business_reg_no || "");
-      setSettingsMpesaNumber(v.mpesa_number || "");
-      setSettingsDescription(v.description || "");
-      setSettingsMinOrder(v.min_order || "");
-      setSettingsPhoneNumbers(v.phone_numbers?.length > 0 ? v.phone_numbers : [""]);
-      if (v.delivery_radius_km) setSettingsRadius(v.delivery_radius_km);
-      if (v.brands) setSettingsBrands(v.brands);
-      if (v.areas_served) setSettingsAreasServed(v.areas_served);
-
-      if (v.vendor_locations?.length > 0) {
-        setSettingsLocations(v.vendor_locations.map((l: Record<string, unknown>) => ({
-          name: (l.name as string) || "", area: (l.area as string) || "",
-          address: (l.address as string) || `${l.name}, ${l.area}`,
-          lat: (l.lat as number) || 0, lng: (l.lng as number) || 0,
-        })));
-        setSelectedStoreId((v.vendor_locations[0] as Record<string, string>).id || "");
-      }
-      if (v.vendor_products?.length > 0) {
-        setSettingsProductCatalog(v.vendor_products.map((p: Record<string, unknown>) => ({
-          id: p.id as string, name: p.name as string, size: p.size as string,
-          priceNew: Number(p.price_new) || 0, priceRefill: Number(p.price_refill) || 0,
-          available: p.available !== false,
-        })));
-      }
-      if (v.vendor_service_times?.length > 0) {
-        setSettingsServiceTimes(v.vendor_service_times.map((st: Record<string, unknown>) => ({
-          day: st.day as string, open: st.open !== false,
-          openTime: (st.open_time as string) || "07:00", closeTime: (st.close_time as string) || "20:00",
-        })));
-      }
-      // Derive display values
-      const openDay = v.vendor_service_times?.find((t: Record<string, unknown>) => t.open !== false);
-      if (openDay) setSettingsHours(`${openDay.open_time} - ${openDay.close_time}`);
     } catch (e) {
-      console.error("Vendor settings fetch error:", e);
+      console.error("Failed to load vendor profile:", e);
     }
-    setSettingsLoading(false);
+    setProfileLoading(false);
   }, [user?.vendorRecordId, user?.id, user?.vendorPin]);
 
-  useEffect(() => { loadVendorSettings(); }, [loadVendorSettings]);
-
-  // ── Settings: Save to server (single source of truth: Supabase) ──
-  const handleSaveSettings = async () => {
-    const vid = user?.vendorRecordId || user?.id;
-    const pin = user?.vendorPin || "";
-
-    if (!vid || !pin) {
-      setSettingsSaveError("Not authenticated. Please log out and log in again.");
-      setTimeout(() => setSettingsSaveError(""), 5000);
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/vendor-update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vendorId: vid,
-          pin,
-          updates: {
-            name: settingsBusinessName,
-            area: settingsArea,
-            business_reg_no: settingsBusinessReg,
-            mpesa_number: settingsMpesaNumber,
-            description: settingsDescription,
-            min_order: settingsMinOrder,
-            phone_numbers: settingsPhoneNumbers.filter(Boolean),
-            delivery_radius_km: settingsRadius,
-            brands: settingsBrands,
-            areas_served: settingsAreasServed,
-            updated_at: new Date().toISOString(),
-          },
-          products: settingsProductCatalog.map((p) => ({
-            id: p.id, name: p.name, size: p.size,
-            price_new: p.priceNew, price_refill: p.priceRefill, available: p.available,
-          })),
-          serviceTimes: settingsServiceTimes.map((st) => ({
-            day: st.day, open: st.open, open_time: st.openTime, close_time: st.closeTime,
-          })),
-          locations: settingsLocations.filter((l) => l.name).map((l, i) => ({
-            id: `${vid}-loc${i}`, name: l.name, area: l.area, lat: l.lat, lng: l.lng,
-          })),
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setSettingsSaveError(err.error || "Failed to save. Please try again.");
-        setTimeout(() => setSettingsSaveError(""), 5000);
-        return;
-      }
-
-      setSettingsSaved(true);
-      setTimeout(() => setSettingsSaved(false), 2500);
-    } catch (e) {
-      console.error("Save failed:", e);
-      setSettingsSaveError("Network error. Please try again.");
-      setTimeout(() => setSettingsSaveError(""), 5000);
-    }
-  };
+  useEffect(() => { loadVendorProfile(); }, [loadVendorProfile]);
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "vendor")) {
@@ -246,10 +115,9 @@ export default function VendorPortalPage() {
     };
   }, [user?.id, loadOrders]);
 
-  // Get current vendor's locations from settings (not mock data)
-  const vendorLocations = settingsLocations
-    .filter((l) => l.name)
-    .map((l, i) => ({ id: `${user?.id}-loc${i}`, name: l.name, area: l.area, lat: l.lat, lng: l.lng }));
+  // Get current vendor's locations from profile data
+  const vendorLocations: Array<{ id: string; name: string; area: string; lat: number; lng: number }> = (vendorProfile?.vendor_locations || [])
+    .map((l: Record<string, unknown>) => ({ id: l.id as string, name: l.name as string, area: (l.area as string) || "", lat: Number(l.lat) || 0, lng: Number(l.lng) || 0 }));
 
   const handleAcceptOrder = (orderId: string) => {
     setEtaModalOrderId(orderId);
@@ -344,302 +212,15 @@ export default function VendorPortalPage() {
   ];
 
   // ── Settings Panel (shared between mobile and desktop) ──
+  {/* PROFILE PANEL — will be rebuilt in next prompt as read-only view from Supabase */}
   const settingsPanel = (
-    <div className="space-y-4">
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Business Name</label>
-        <input type="text" value={settingsBusinessName} onChange={(e) => setSettingsBusinessName(e.target.value)} className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Area / Location</label>
-        <input type="text" value={settingsArea} onChange={(e) => setSettingsArea(e.target.value)} placeholder="e.g. Kilimani, Nairobi" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Business Registration No.</label>
-        <input type="text" value={settingsBusinessReg} onChange={(e) => setSettingsBusinessReg(e.target.value)} placeholder="e.g. BN-2024-001234" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">M-PESA Number / Till Number</label>
-        <input type="text" value={settingsMpesaNumber} onChange={(e) => setSettingsMpesaNumber(e.target.value)} placeholder="e.g. 254700111222" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Business Description</label>
-        <input type="text" value={settingsDescription} onChange={(e) => setSettingsDescription(e.target.value)} placeholder="Brief description of your business" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Minimum Order</label>
-        <input type="text" value={settingsMinOrder} onChange={(e) => setSettingsMinOrder(e.target.value)} placeholder="e.g. 20L" className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Phone Number(s)</label>
-        {settingsPhoneNumbers.map((phone, i) => (
-          <div key={i} className="flex gap-2 mb-2">
-            <input type="text" value={phone} onChange={(e) => { const updated = [...settingsPhoneNumbers]; updated[i] = e.target.value; setSettingsPhoneNumbers(updated); }} placeholder="+254..." className="flex-1 h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-            {settingsPhoneNumbers.length > 1 && (
-              <button onClick={() => setSettingsPhoneNumbers(settingsPhoneNumbers.filter((_, idx) => idx !== i))} className="text-cta-alt hover:text-red-700 px-2"><Trash2 size={16} /></button>
-            )}
-          </div>
-        ))}
-        <button onClick={() => setSettingsPhoneNumbers([...settingsPhoneNumbers, ""])} className="text-primary text-xs font-semibold flex items-center gap-1 mt-1"><Plus size={14} /> Add Phone Number</button>
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Store Locations</label>
-        {settingsLocations.map((loc, i) => (
-          <div key={i} className="bg-background rounded-lg border border-[#E0E0E0] p-3 mb-2">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-text-secondary">Location {i + 1}</span>
-              {settingsLocations.length > 1 && (
-                <button onClick={() => setSettingsLocations(settingsLocations.filter((_, idx) => idx !== i))} className="text-cta-alt hover:text-red-700"><Trash2 size={14} /></button>
-              )}
-            </div>
-            <input type="text" value={loc.name} onChange={(e) => { const updated = [...settingsLocations]; updated[i] = { ...updated[i], name: e.target.value }; setSettingsLocations(updated); }} placeholder="Store name" className="w-full h-9 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-white mb-2" />
-            <div className="mb-2">
-              <AddressSearch
-                placeholder="Search store address..."
-                initialValue={loc.address || loc.area}
-                onSelect={(result) => {
-                  const updated = [...settingsLocations];
-                  updated[i] = { ...updated[i], area: result.area || result.displayName.split(",").slice(1, 3).join(",").trim(), address: result.displayName, lat: result.lat, lng: result.lng };
-                  setSettingsLocations(updated);
-                }}
-              />
-            </div>
-            {loc.lat !== 0 && loc.lng !== 0 && (
-              <div className="flex items-center gap-1 text-[10px] text-text-secondary mt-1">
-                <Navigation size={10} className="text-primary" />
-                <span className="font-mono">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</span>
-              </div>
-            )}
-          </div>
-        ))}
-        <button onClick={() => setSettingsLocations([...settingsLocations, { name: "", area: "", address: "", lat: 0, lng: 0 }])} className="text-primary text-xs font-semibold flex items-center gap-1 mt-1"><Plus size={14} /> Add Location</button>
-      </div>
-      {/* Brands */}
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Brands Stocked</label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {waterBrands.map((brand) => {
-            const isSelected = settingsBrands.includes(brand.id);
-            return (
-              <button
-                key={brand.id}
-                type="button"
-                onClick={() => setSettingsBrands(isSelected ? settingsBrands.filter((b) => b !== brand.id) : [...settingsBrands, brand.id])}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isSelected ? "bg-primary text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"}`}
-              >
-                {brand.name}
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex gap-2">
-          <input type="text" value={settingsCustomBrand} onChange={(e) => setSettingsCustomBrand(e.target.value)} placeholder="Add custom brand..." className="flex-1 h-8 px-3 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
-          <button
-            type="button"
-            onClick={() => {
-              if (settingsCustomBrand.trim()) {
-                const id = settingsCustomBrand.trim().toLowerCase().replace(/\s+/g, "-");
-                if (!settingsBrands.includes(id)) setSettingsBrands([...settingsBrands, id]);
-                setSettingsCustomBrand("");
-              }
-            }}
-            className="px-3 h-8 bg-primary text-white rounded-lg text-xs font-semibold"
-          >
-            Add
-          </button>
-        </div>
-        {settingsBrands.filter((b) => !waterBrands.some((wb) => wb.id === b)).length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {settingsBrands.filter((b) => !waterBrands.some((wb) => wb.id === b)).map((b) => (
-              <span key={b} className="bg-primary-light text-primary text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                {b} <button onClick={() => setSettingsBrands(settingsBrands.filter((x) => x !== b))} className="hover:text-red-600">&times;</button>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Product Catalog with Prices */}
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Products & Prices</label>
-        <p className="text-[10px] text-text-secondary mb-3">Toggle products on/off and set your prices. Customers see your prices when ordering.</p>
-        <div className="space-y-2">
-          {settingsProductCatalog.map((product, idx) => (
-            <div key={product.id} className={`rounded-lg border p-3 transition-colors ${product.available ? "bg-white border-primary/30" : "bg-gray-50 border-gray-200 opacity-60"}`}>
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={product.available}
-                  onChange={(e) => {
-                    const updated = [...settingsProductCatalog];
-                    updated[idx] = { ...updated[idx], available: e.target.checked };
-                    setSettingsProductCatalog(updated);
-                  }}
-                  className="rounded"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-text-primary">{product.name}</span>
-                    <span className="text-[10px] bg-gray-100 text-text-secondary px-1.5 py-0.5 rounded">{product.size}</span>
-                  </div>
-                  <div className="flex gap-4 mt-2">
-                    <div>
-                      <label className="text-[10px] text-text-secondary">New/Sealed (KES)</label>
-                      <input
-                        type="number"
-                        value={product.priceNew}
-                        onChange={(e) => {
-                          const updated = [...settingsProductCatalog];
-                          updated[idx] = { ...updated[idx], priceNew: Number(e.target.value) };
-                          setSettingsProductCatalog(updated);
-                        }}
-                        className="w-24 h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm font-mono text-text-primary outline-none focus:border-primary bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-text-secondary">Refill (KES)</label>
-                      <input
-                        type="number"
-                        value={product.priceRefill}
-                        onChange={(e) => {
-                          const updated = [...settingsProductCatalog];
-                          updated[idx] = { ...updated[idx], priceRefill: Number(e.target.value) };
-                          setSettingsProductCatalog(updated);
-                        }}
-                        placeholder="0 = N/A"
-                        className="w-24 h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm font-mono text-text-primary outline-none focus:border-primary bg-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-                {/* Delete button for custom products */}
-                {!["vp-20l-hard", "vp-189l-hard", "vp-20l-soft", "vp-189l-soft", "vp-10l-hard", "vp-10l-soft", "vp-5l-soft", "vp-15l", "vp-1l", "vp-500ml"].includes(product.id) && (
-                  <button
-                    onClick={() => setSettingsProductCatalog(settingsProductCatalog.filter((_, i) => i !== idx))}
-                    className="text-red-400 hover:text-red-600 p-1"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Add custom product */}
-        <div className="mt-3 flex gap-2">
-          <input type="text" value={customProductName} onChange={(e) => setCustomProductName(e.target.value)} placeholder="Product name" className="flex-1 h-8 px-3 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
-          <input type="text" value={customProductSize} onChange={(e) => setCustomProductSize(e.target.value)} placeholder="Size (e.g. 5L)" className="w-20 h-8 px-2 rounded-lg border border-[#E0E0E0] text-xs text-text-primary outline-none focus:border-primary bg-white" />
-          <input type="number" value={customProductPrice} onChange={(e) => setCustomProductPrice(e.target.value)} placeholder="Price" className="w-20 h-8 px-2 rounded-lg border border-[#E0E0E0] text-xs font-mono text-text-primary outline-none focus:border-primary bg-white" />
-          <button
-            type="button"
-            onClick={() => {
-              if (customProductName.trim()) {
-                const newProduct: VendorProduct = {
-                  id: `vp-custom-${Date.now()}`,
-                  name: customProductName.trim(),
-                  size: customProductSize.trim() || "Custom",
-                  priceNew: Number(customProductPrice) || 0,
-                  priceRefill: 0,
-                  available: true,
-                };
-                setSettingsProductCatalog([...settingsProductCatalog, newProduct]);
-                setCustomProductName("");
-                setCustomProductSize("");
-                setCustomProductPrice("");
-              }
-            }}
-            className="px-3 h-8 bg-[#1a5a9a] text-white rounded-lg text-xs font-semibold"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-
-      {/* Service Times (Mon-Sun) */}
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Service Hours (Monday - Sunday)</label>
-        <div className="space-y-2">
-          {settingsServiceTimes.map((st, idx) => (
-            <div key={st.day} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${st.open ? "bg-white border border-primary/20" : "bg-gray-50 border border-gray-200"}`}>
-              <input
-                type="checkbox"
-                checked={st.open}
-                onChange={(e) => {
-                  const updated = [...settingsServiceTimes];
-                  updated[idx] = { ...updated[idx], open: e.target.checked };
-                  setSettingsServiceTimes(updated);
-                }}
-                className="rounded"
-              />
-              <span className={`text-sm font-semibold w-24 ${st.open ? "text-text-primary" : "text-text-secondary"}`}>{st.day}</span>
-              <input
-                type="time"
-                value={st.openTime}
-                disabled={!st.open}
-                onChange={(e) => {
-                  const updated = [...settingsServiceTimes];
-                  updated[idx] = { ...updated[idx], openTime: e.target.value };
-                  setSettingsServiceTimes(updated);
-                }}
-                className="h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-white disabled:opacity-40 disabled:bg-gray-100"
-              />
-              <span className="text-text-secondary text-xs">to</span>
-              <input
-                type="time"
-                value={st.closeTime}
-                disabled={!st.open}
-                onChange={(e) => {
-                  const updated = [...settingsServiceTimes];
-                  updated[idx] = { ...updated[idx], closeTime: e.target.value };
-                  setSettingsServiceTimes(updated);
-                }}
-                className="h-8 px-2 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-white disabled:opacity-40 disabled:bg-gray-100"
-              />
-              {!st.open && <span className="text-xs text-red-400 font-medium">Closed</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Areas Served */}
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Areas Served</label>
-        <div className="flex flex-wrap gap-1.5 mb-2 max-h-32 overflow-y-auto">
-          {NAIROBI_AREAS.map((area) => {
-            const isSelected = settingsAreasServed.includes(area);
-            return (
-              <button
-                key={area}
-                type="button"
-                onClick={() => setSettingsAreasServed(isSelected ? settingsAreasServed.filter((a) => a !== area) : [...settingsAreasServed, area])}
-                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${isSelected ? "bg-[#2ECC71] text-white" : "bg-gray-100 text-text-secondary hover:bg-gray-200"}`}
-              >
-                {area}
-              </button>
-            );
-          })}
-        </div>
-        {settingsAreasServed.length > 0 && (
-          <p className="text-[10px] text-text-secondary">{settingsAreasServed.length} area{settingsAreasServed.length !== 1 ? "s" : ""} selected</p>
-        )}
-      </div>
-
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Operating Hours</label>
-        <input type="text" value={settingsHours} onChange={(e) => setSettingsHours(e.target.value)} className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <div>
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Delivery Radius (km)</label>
-        <input type="number" value={settingsRadius} onChange={(e) => setSettingsRadius(Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-sm text-text-primary outline-none focus:border-primary bg-background" />
-      </div>
-      <button onClick={handleSaveSettings} className="bg-primary text-white rounded-xl px-6 py-2.5 font-semibold text-sm hover:bg-[#1a5a9a] transition-colors">
-        {settingsSaved ? "Saved!" : "Save Settings"}
-      </button>
-      {settingsSaved && (
-        <p className="text-[#2ECC71] text-xs font-semibold mt-2">Your settings have been saved.</p>
-      )}
-      {settingsSaveError && (
-        <p className="text-red-500 text-xs font-semibold mt-2">{settingsSaveError}</p>
+    <div className="bg-surface shadow-card rounded-xl p-5">
+      {profileLoading ? (
+        <p className="text-sm text-text-secondary">Loading profile...</p>
+      ) : !vendorProfile ? (
+        <p className="text-sm text-text-secondary">No profile data found. Please contact admin.</p>
+      ) : (
+        <p className="text-sm text-text-secondary">Profile loaded. Rebuild pending.</p>
       )}
     </div>
   );
@@ -860,7 +441,7 @@ export default function VendorPortalPage() {
       <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-5 text-white mb-4">
           <p className="text-white/70 text-xs">Welcome back</p>
-          <p className="text-xl font-extrabold">{settingsBusinessName || user.name}</p>
+          <p className="text-xl font-extrabold">{vendorProfile?.name || user.name}</p>
           <div className="flex items-center gap-2 mt-2">
             <Star size={14} className="text-rating fill-rating" />
             <span className="text-sm">Vendor Dashboard</span>
@@ -981,7 +562,7 @@ export default function VendorPortalPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-extrabold text-text-primary">Vendor Dashboard</h1>
-              <p className="text-text-secondary">{settingsBusinessName || user.name} \u2014 Welcome back</p>
+              <p className="text-text-secondary">{vendorProfile?.name || user.name} \u2014 Welcome back</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setActiveDesktopTab("notifications")} className={`bg-surface shadow-card rounded-xl px-4 py-2 text-sm font-medium text-text-primary hover:shadow-card-hover transition-shadow flex items-center gap-2 ${activeDesktopTab === "notifications" ? "ring-2 ring-primary" : ""}`}>
@@ -1074,12 +655,12 @@ export default function VendorPortalPage() {
                   <div className="bg-background rounded-xl p-5">
                     <h3 className="font-bold text-sm text-text-primary mb-3">Store Locations Preview</h3>
                     <div className="space-y-2">
-                      {settingsLocations.filter((l) => l.name).map((loc, i) => (
+                      {vendorLocations.filter((l) => l.name).map((loc, i) => (
                         <div key={i} className="bg-white rounded-lg p-3 border border-[#E0E0E0]">
                           <p className="font-semibold text-sm text-text-primary">{loc.name}</p>
                           {loc.lat !== 0 && loc.lng !== 0 ? (
                             <a href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`} target="_blank" rel="noopener noreferrer" className="text-primary text-xs flex items-center gap-1 hover:underline">
-                              <MapPin size={10} /> {loc.address || loc.area}
+                              <MapPin size={10} /> {loc.area}
                             </a>
                           ) : loc.area ? (
                             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.area)}`} target="_blank" rel="noopener noreferrer" className="text-primary text-xs flex items-center gap-1 hover:underline">
@@ -1088,13 +669,10 @@ export default function VendorPortalPage() {
                           ) : (
                             <p className="text-text-secondary text-xs flex items-center gap-1"><MapPin size={10} /> Area not set</p>
                           )}
-                          {loc.lat !== 0 && loc.lng !== 0 && (
-                            <p className="text-[10px] text-text-secondary font-mono mt-0.5">{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</p>
-                          )}
                         </div>
                       ))}
-                      {settingsLocations.filter((l) => l.name).length === 0 && (
-                        <p className="text-text-secondary text-sm">Add at least one store location.</p>
+                      {vendorLocations.length === 0 && (
+                        <p className="text-text-secondary text-sm">No store locations configured.</p>
                       )}
                     </div>
                   </div>
