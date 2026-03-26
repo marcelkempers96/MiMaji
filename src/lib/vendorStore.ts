@@ -582,7 +582,32 @@ export function getVendorSettingsByUserId(userId: string): VendorRecord | null {
 }
 
 export async function getVendorSettingsByUserIdAsync(userId: string, vendorRecordId?: string): Promise<VendorRecord | null> {
-  // Try admin API first (works cross-device, uses service role)
+  const targetId = vendorRecordId || userId;
+
+  // Path 1: Server-side vendor settings endpoint (uses service role, always reliable)
+  // Requires vendorId + PIN — works for vendor portal sessions
+  try {
+    let vendorPin = "";
+    try { vendorPin = sessionStorage.getItem("mimaji_vendor_pin") || ""; } catch {}
+    if (vendorPin && targetId) {
+      const res = await fetch(`/api/vendor-update?vendorId=${encodeURIComponent(targetId)}&pin=${encodeURIComponent(vendorPin)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.id) {
+          const vendor = mapSupabaseToVendor(data as Record<string, unknown>);
+          const cached = loadLocalCache();
+          const idx = cached.findIndex((v) => v.id === vendor.id);
+          if (idx !== -1) { cached[idx] = vendor; } else { cached.push(vendor); }
+          saveLocalCache(cached);
+          return vendor;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Vendor settings server fetch failed:", e);
+  }
+
+  // Path 2: Admin API (for admin users who have the admin code)
   try {
     let adminCode = "";
     try { adminCode = localStorage.getItem("mimaji_admin_code") || sessionStorage.getItem("mimaji_admin_code") || ""; } catch {}
@@ -591,13 +616,11 @@ export async function getVendorSettingsByUserIdAsync(userId: string, vendorRecor
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          const targetId = vendorRecordId || userId;
           const match = data.find((v: Record<string, unknown>) =>
             v.id === targetId || v.profile_id === userId || v.id === userId
           );
           if (match) {
             const vendor = mapSupabaseToVendor(match as Record<string, unknown>);
-            // Update local cache with this vendor
             const cached = loadLocalCache();
             const idx = cached.findIndex((v) => v.id === vendor.id);
             if (idx !== -1) { cached[idx] = vendor; } else { cached.push(vendor); }
@@ -611,19 +634,15 @@ export async function getVendorSettingsByUserIdAsync(userId: string, vendorRecor
     console.error("Admin API vendor settings load failed:", e);
   }
 
-  // Try direct Supabase queries
+  // Path 3: Direct Supabase client (anon key — may not work if client config is placeholder)
   try {
-    const targetId = vendorRecordId || userId;
-
-    // Try by vendor record ID first
     let { data } = await supabase
       .from("vendors")
       .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
       .eq("id", targetId)
       .maybeSingle();
 
-    // If not found and we have a separate userId, try by profile_id
-    if (!data && userId) {
+    if (!data && userId !== targetId) {
       const result = await supabase
         .from("vendors")
         .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
@@ -634,7 +653,6 @@ export async function getVendorSettingsByUserIdAsync(userId: string, vendorRecor
 
     if (data) {
       const vendor = mapSupabaseToVendor(data as Record<string, unknown>);
-      // Update local cache
       const cached = loadLocalCache();
       const idx = cached.findIndex((v) => v.id === vendor.id);
       if (idx !== -1) { cached[idx] = vendor; } else { cached.push(vendor); }
@@ -642,10 +660,11 @@ export async function getVendorSettingsByUserIdAsync(userId: string, vendorRecor
       return vendor;
     }
   } catch (e) {
-    console.error("Failed to load vendor settings from Supabase:", e);
+    console.error("Direct Supabase vendor query failed:", e);
   }
 
-  return getVendorSettingsByUserId(vendorRecordId || userId);
+  // Path 4: localStorage cache (last resort)
+  return getVendorSettingsByUserId(targetId);
 }
 
 /**
