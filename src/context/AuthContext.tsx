@@ -146,11 +146,44 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         // For vendors, fetch the actual vendor record ID (different from profile/auth ID)
         if (enriched.role === "vendor") {
           try {
-            const { data: vendor } = await sb.from("vendors").select("id").eq("profile_id", userId).maybeSingle();
-            if (vendor) enriched.vendorRecordId = vendor.id;
+            // Try by profile_id first
+            let vendor = null;
+            const { data: v1 } = await sb.from("vendors").select("id, pin").eq("profile_id", userId).maybeSingle();
+            vendor = v1;
+
+            // Fallback: try by phone number (profile_id may be null if auth user creation failed)
+            if (!vendor && enriched.phone) {
+              const phone = enriched.phone.replace(/\s/g, "").replace(/^\+/, "");
+              const normalized = phone.startsWith("0") ? "254" + phone.slice(1) : phone;
+              const { data: v2 } = await sb.from("vendors").select("id, pin").contains("phone_numbers", [normalized]).maybeSingle();
+              vendor = v2;
+            }
+
+            if (vendor) {
+              enriched.vendorRecordId = vendor.id;
+              enriched.vendorPin = vendor.pin;
+            }
           } catch {}
         }
         return enriched;
+      }
+      // No profile row found — still try to find vendor record by phone
+      // (vendor may exist in vendors table even without a profiles row)
+      if (baseUser.phone) {
+        try {
+          const phone = baseUser.phone.replace(/\s/g, "").replace(/^\+/, "");
+          const normalized = phone.startsWith("0") ? "254" + phone.slice(1) : phone;
+          const { data: vendor } = await sb.from("vendors").select("id, pin, name").contains("phone_numbers", [normalized]).maybeSingle();
+          if (vendor) {
+            return {
+              ...baseUser,
+              role: "vendor" as UserRole,
+              name: vendor.name || baseUser.name,
+              vendorRecordId: vendor.id,
+              vendorPin: vendor.pin,
+            };
+          }
+        } catch {}
       }
     } catch {}
     return baseUser;
