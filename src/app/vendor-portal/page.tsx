@@ -84,7 +84,10 @@ export default function VendorPortalPage() {
   const vendorId = user?.vendorRecordId || user?.id || "";
 
   const loadOrders = useCallback(async () => {
-    if (!vendorId) return;
+    if (!vendorId) {
+      setLoadingOrders(false);
+      return;
+    }
     setLoadingOrders(true);
     try {
       const res = await fetch(`/api/vendor-orders?vendorId=${encodeURIComponent(vendorId)}`);
