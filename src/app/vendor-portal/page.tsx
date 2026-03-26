@@ -211,17 +211,204 @@ export default function VendorPortalPage() {
     { label: "Avg. Delivery", value: "\u2014", icon: Clock, color: "#E8544E" },
   ];
 
-  // ── Settings Panel (shared between mobile and desktop) ──
-  {/* PROFILE PANEL — will be rebuilt in next prompt as read-only view from Supabase */}
-  const settingsPanel = (
-    <div className="bg-surface shadow-card rounded-xl p-5">
-      {profileLoading ? (
+  // ── Vendor Profile Panel (read-only, data from Supabase public.vendors) ──
+  const v = vendorProfile;
+  const phoneDisplay = (p: string) => { if (!p) return ""; let d = p; if (d.startsWith("254")) d = "0" + d.slice(3); return d.length === 10 ? `${d.slice(0,4)} ${d.slice(4,7)} ${d.slice(7)}` : d; };
+
+  const settingsPanel = profileLoading ? (
+    <div className="bg-surface shadow-card rounded-xl p-6 flex items-center justify-center min-h-[200px]">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
         <p className="text-sm text-text-secondary">Loading profile...</p>
-      ) : !vendorProfile ? (
-        <p className="text-sm text-text-secondary">No profile data found. Please contact admin.</p>
-      ) : (
-        <p className="text-sm text-text-secondary">Profile loaded. Rebuild pending.</p>
-      )}
+      </div>
+    </div>
+  ) : !v ? (
+    <div className="bg-surface shadow-card rounded-xl p-6 text-center">
+      <p className="text-sm text-text-secondary">No profile data found. Please contact support.</p>
+    </div>
+  ) : (
+    <div className="space-y-5">
+      {/* Business Details */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-sm text-text-primary mb-4 flex items-center gap-2">
+          <Settings size={16} className="text-primary" /> Business Details
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">Business Name</p>
+            <p className="text-sm font-semibold text-text-primary">{v.name || "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">Area</p>
+            <p className="text-sm text-text-primary">{v.area || "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">Business Reg No</p>
+            <p className="text-sm font-mono text-text-primary">{v.business_reg_no || "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">M-Pesa Number</p>
+            <p className="text-sm font-mono text-text-primary">{v.mpesa_number || "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">Description</p>
+            <p className="text-sm text-text-primary">{v.description || "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">Minimum Order</p>
+            <p className="text-sm text-text-primary">{v.min_order || "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">Delivery Radius</p>
+            <p className="text-sm text-text-primary">{v.delivery_radius_km || 10} km</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide">Verified</p>
+            <p className={`text-sm font-semibold ${v.verified ? "text-green-700" : "text-text-secondary"}`}>{v.verified ? "Yes" : "No"}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Phone Numbers */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-sm text-text-primary mb-3 flex items-center gap-2">
+          <Phone size={16} className="text-primary" /> Phone Numbers
+        </h3>
+        {v.phone_numbers?.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {v.phone_numbers.map((p: string, i: number) => (
+              <span key={i} className="bg-blue-50 text-primary font-mono text-sm px-3 py-1.5 rounded-lg">{phoneDisplay(p)}</span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-text-secondary">No phone numbers configured.</p>
+        )}
+      </div>
+
+      {/* Store Locations */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-sm text-text-primary mb-3 flex items-center gap-2">
+          <MapPin size={16} className="text-primary" /> Store Locations
+        </h3>
+        {v.vendor_locations?.length > 0 ? (
+          <div className="space-y-2">
+            {v.vendor_locations.map((loc: Record<string, unknown>, i: number) => (
+              <div key={i} className="bg-gray-50 rounded-lg p-3 flex items-start gap-3">
+                <MapPin size={14} className="text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">{loc.name as string}</p>
+                  {(loc.area as string) ? <p className="text-xs text-text-secondary">{loc.area as string}</p> : null}
+                  {Number(loc.lat) !== 0 && Number(loc.lng) !== 0 && (
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-mono hover:underline">
+                      {Number(loc.lat).toFixed(4)}, {Number(loc.lng).toFixed(4)}
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-text-secondary">No store locations configured.</p>
+        )}
+      </div>
+
+      {/* Products & Prices */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-sm text-text-primary mb-3 flex items-center gap-2">
+          <Package size={16} className="text-primary" /> Products & Prices
+        </h3>
+        {v.vendor_products?.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-text-secondary text-left border-b">
+                  <th className="pb-2 pr-4">Product</th>
+                  <th className="pb-2 pr-4">Size</th>
+                  <th className="pb-2 pr-4">New Price</th>
+                  <th className="pb-2 pr-4">Refill Price</th>
+                  <th className="pb-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {v.vendor_products.map((p: Record<string, unknown>) => (
+                  <tr key={p.id as string} className={`border-b border-gray-50 ${p.available === false ? "opacity-40" : ""}`}>
+                    <td className="py-2 pr-4 font-medium">{p.name as string}</td>
+                    <td className="py-2 pr-4">{p.size as string}</td>
+                    <td className="py-2 pr-4 font-mono">KES {Number(p.price_new)}</td>
+                    <td className="py-2 pr-4 font-mono">{Number(p.price_refill) > 0 ? `KES ${Number(p.price_refill)}` : "N/A"}</td>
+                    <td className="py-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${p.available !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500"}`}>
+                        {p.available !== false ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-text-secondary">No products configured.</p>
+        )}
+      </div>
+
+      {/* Service Times */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-sm text-text-primary mb-3 flex items-center gap-2">
+          <Clock size={16} className="text-primary" /> Service Hours
+        </h3>
+        {v.vendor_service_times?.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {v.vendor_service_times.map((st: Record<string, unknown>) => (
+              <div key={st.day as string} className={`text-xs px-3 py-2 rounded-lg ${st.open !== false ? "bg-green-50 text-green-800" : "bg-gray-50 text-gray-400"}`}>
+                <span className="font-semibold">{(st.day as string).slice(0, 3)}</span>
+                {st.open !== false ? (
+                  <span className="ml-1">{st.open_time as string} - {st.close_time as string}</span>
+                ) : (
+                  <span className="ml-1">Closed</span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-text-secondary">No service hours configured.</p>
+        )}
+      </div>
+
+      {/* Brands & Areas Served */}
+      <div className="bg-surface shadow-card rounded-xl p-5">
+        <h3 className="font-bold text-sm text-text-primary mb-3">Brands & Areas</h3>
+        <div className="space-y-4">
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide mb-2">Brands Stocked</p>
+            {v.brands?.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {v.brands.map((b: string) => (
+                  <span key={b} className="bg-primary text-white text-[10px] font-semibold px-2.5 py-1 rounded-lg">{b}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-text-secondary">None configured.</p>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] text-text-secondary uppercase tracking-wide mb-2">Areas Served</p>
+            {v.areas_served?.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {v.areas_served.map((a: string) => (
+                  <span key={a} className="bg-green-100 text-green-800 text-[10px] font-medium px-2 py-0.5 rounded">{a}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-text-secondary">None configured.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Admin contact note */}
+      <div className="bg-blue-50 rounded-xl p-4 text-center">
+        <p className="text-xs text-primary">To update your profile details, please contact MiMaji admin via WhatsApp or call support.</p>
+      </div>
     </div>
   );
 
