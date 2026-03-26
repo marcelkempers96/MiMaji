@@ -15,6 +15,77 @@ function normalizePhone(phone: string): string {
 }
 
 /**
+ * Helper: resolve vendorId (could be vendor.id or profile_id) and verify PIN.
+ * Returns the resolved vendor row or null.
+ */
+async function resolveAndAuthVendor(sb: ReturnType<typeof createServiceClient>, vendorId: string, pin: string) {
+  let { data: vendor } = await sb
+    .from("vendors")
+    .select("id, pin, active")
+    .eq("id", vendorId)
+    .maybeSingle();
+
+  if (!vendor) {
+    const result = await sb
+      .from("vendors")
+      .select("id, pin, active")
+      .eq("profile_id", vendorId)
+      .maybeSingle();
+    vendor = result.data;
+  }
+
+  if (!vendor) return { error: "Vendor not found", status: 404, vendorId: null };
+  if (vendor.pin !== pin) return { error: "Invalid PIN", status: 401, vendorId: null };
+  if (vendor.active === false) return { error: "Vendor account is inactive", status: 403, vendorId: null };
+  return { error: null, status: 200, vendorId: vendor.id as string };
+}
+
+/**
+ * GET /api/vendor-update?vendorId=...&pin=...
+ * Returns full vendor settings (server-side, service role — bypasses RLS).
+ * Used by the vendor portal to load settings reliably.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const vendorId = req.nextUrl.searchParams.get("vendorId");
+    const pin = req.nextUrl.searchParams.get("pin");
+
+    if (!vendorId || !pin) {
+      return NextResponse.json({ error: "vendorId and pin are required" }, { status: 400 });
+    }
+
+    if (hasServiceKey) {
+      const sb = createServiceClient();
+      const auth = await resolveAndAuthVendor(sb, vendorId, pin);
+      if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+      const { data, error } = await sb
+        .from("vendors")
+        .select("*, vendor_locations(*), vendor_products(*), vendor_service_times(*)")
+        .eq("id", auth.vendorId)
+        .single();
+
+      if (error || !data) {
+        return NextResponse.json({ error: "Failed to load vendor data" }, { status: 500 });
+      }
+
+      return NextResponse.json(data);
+    }
+
+    // File-store fallback
+    const vendors = readCollection<Record<string, unknown>>("vendors");
+    const match = vendors.find((v) => v.id === vendorId && v.pin === pin && v.active !== false);
+    if (!match) {
+      return NextResponse.json({ error: "Invalid vendor or PIN" }, { status: 401 });
+    }
+    return NextResponse.json(match);
+  } catch (e) {
+    console.error("Vendor settings load error:", e);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
  * Vendor self-service update endpoint.
  * Authenticates vendor by vendorId + PIN, then applies updates using service role.
  *
@@ -32,38 +103,9 @@ export async function POST(req: NextRequest) {
     // ── Supabase path ──
     if (hasServiceKey) {
       const sb = createServiceClient();
-
-      // Authenticate: verify vendorId + PIN match
-      // vendorId could be the actual vendor ID or a profile_id, so check both
-      let { data: vendor, error: authErr } = await sb
-        .from("vendors")
-        .select("id, pin, active")
-        .eq("id", vendorId)
-        .maybeSingle();
-
-      if (!vendor) {
-        // Try by profile_id (vendor portal may pass the auth user ID)
-        const result = await sb
-          .from("vendors")
-          .select("id, pin, active")
-          .eq("profile_id", vendorId)
-          .maybeSingle();
-        vendor = result.data;
-        authErr = result.error;
-      }
-
-      if (authErr || !vendor) {
-        return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
-      }
-      if (vendor.pin !== pin) {
-        return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
-      }
-      if (vendor.active === false) {
-        return NextResponse.json({ error: "Vendor account is inactive" }, { status: 403 });
-      }
-
-      // Use the resolved vendor ID for all subsequent operations
-      const resolvedVendorId = vendor.id;
+      const auth = await resolveAndAuthVendor(sb, vendorId, pin);
+      if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+      const resolvedVendorId = auth.vendorId!;
 
       // Apply updates to vendor record
       if (body.updates && Object.keys(body.updates).length > 0) {
