@@ -43,7 +43,10 @@ export default function VendorPortalPage() {
   const loadVendorProfile = useCallback(async () => {
     const vid = user?.vendorRecordId || user?.id;
     const pin = user?.vendorPin || "";
-    if (!vid || !pin) return;
+    if (!vid || !pin) {
+      setProfileLoading(false);
+      return;
+    }
 
     setProfileLoading(true);
     try {
@@ -66,39 +69,40 @@ export default function VendorPortalPage() {
     }
   }, [user, authLoading, router]);
 
+  const vendorId = user?.vendorRecordId || user?.id || "";
+
   const loadOrders = useCallback(async () => {
-    if (!user?.id) return;
+    if (!vendorId) return;
     setLoadingOrders(true);
-    const data = await fetchVendorOrders(user.id);
+    const data = await fetchVendorOrders(vendorId);
     setOrders(data);
     setLoadingOrders(false);
-  }, [user?.id]);
+  }, [vendorId]);
 
   const loadStats = useCallback(async () => {
-    if (!user?.id) return;
-    const data = await fetchVendorStats(user.id, orders);
+    if (!vendorId) return;
+    const data = await fetchVendorStats(vendorId, orders);
     setStats(data);
-  }, [user?.id, orders]);
+  }, [vendorId, orders]);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
   // Subscribe to order changes via Supabase realtime, fallback to 30s polling
   useEffect(() => {
-    if (!user?.id) return;
+    if (!vendorId) return;
 
     // Realtime subscription for instant updates
     const channel = supabase
-      .channel(`vendor-orders-${user.id}`)
+      .channel(`vendor-orders-${vendorId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
         (payload) => {
-          // Only reload if this order is relevant to this vendor
           const row = payload.new as Record<string, unknown> | undefined;
           if (
             row &&
-            (row.current_vendor_offer === user.id || row.vendor_id === user.id)
+            (row.current_vendor_offer === vendorId || row.vendor_id === vendorId)
           ) {
             loadOrders();
           }
@@ -113,7 +117,7 @@ export default function VendorPortalPage() {
       supabase.removeChannel(channel);
       clearInterval(interval);
     };
-  }, [user?.id, loadOrders]);
+  }, [vendorId, loadOrders]);
 
   // Get current vendor's locations from profile data
   const vendorLocations: Array<{ id: string; name: string; area: string; lat: number; lng: number }> = (vendorProfile?.vendor_locations || [])
@@ -129,14 +133,14 @@ export default function VendorPortalPage() {
 
   const handleConfirmAccept = async () => {
     if (!etaModalOrderId || !user?.id) return;
-    await acceptOrder(etaModalOrderId, user.id, etaMinutes, selectedStoreId || undefined);
+    await acceptOrder(etaModalOrderId, vendorId, etaMinutes, selectedStoreId || undefined);
     setEtaModalOrderId(null);
     loadOrders();
   };
 
   const handleRejectOrder = async (orderId: string) => {
     if (!user?.id) return;
-    await rejectOrder(orderId, user.id);
+    await rejectOrder(orderId, vendorId);
     loadOrders();
   };
 
@@ -191,7 +195,6 @@ export default function VendorPortalPage() {
 
   if (!user || user.role !== "vendor") return null;
 
-  const vendorId = user.id;
   // Only show orders specifically offered to THIS vendor
   const pendingOrders = orders.filter((o) => o.status === "paid" && !o.vendor_id && o.current_vendor_offer === vendorId);
   // Only show orders accepted by THIS vendor
@@ -983,10 +986,10 @@ export default function VendorPortalPage() {
                                 <button onClick={() => handleRejectOrder(order.id)} className="bg-gray-100 text-cta-alt text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-red-50 transition-colors">Reject</button>
                               </div>
                             )}
-                            {order.status === "confirmed" && order.vendor_id === user.id && (
+                            {order.status === "confirmed" && order.vendor_id === vendorId && (
                               <button onClick={() => handleDispatchOrder(order.id)} className="bg-[#F5A623] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#d4901e] transition-colors">Dispatch</button>
                             )}
-                            {order.status === "out_for_delivery" && order.vendor_id === user.id && (
+                            {order.status === "out_for_delivery" && order.vendor_id === vendorId && (
                               <button onClick={() => handleCompleteOrder(order.id)} className="bg-[#2ECC71] text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-[#27ae60] transition-colors">Complete</button>
                             )}
                           </td>
