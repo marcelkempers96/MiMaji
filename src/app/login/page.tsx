@@ -83,8 +83,16 @@ function LoginContent() {
       if (result.error) {
         setError(result.error);
         setLoading(false);
+      } else if (!result.user) {
+        // login() returned no error but also no user — should not happen, but guard against stuck loading
+        setError("Login failed unexpectedly. Please try again.");
+        setLoading(false);
       }
-      // On success, the useEffect watching `user` handles the redirect
+      // On success (result.user truthy), the useEffect watching `user` handles the redirect.
+      // Also reset loading as a safety net in case the context user update is delayed.
+      else {
+        setLoading(false);
+      }
     } catch (err) {
       console.error("Login failed:", err);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
@@ -125,7 +133,8 @@ function LoginContent() {
       if (result.user) {
         initRewardsAsync(result.user.id, result.user.name, referralCode.trim() || undefined).catch(() => {});
       }
-      // On success, the useEffect watching `user` handles the redirect
+      // Always reset loading — the useEffect watching `user` handles the redirect
+      setLoading(false);
     } catch (err) {
       console.error("Signup failed:", err);
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");

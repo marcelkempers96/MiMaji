@@ -259,12 +259,17 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
 
       // Step 1: Try vendor auth FIRST — vendors live in public.vendors, not auth.users.
       // This checks phone + PIN against the vendors table directly (server-side, service role).
+      // Use AbortController timeout to prevent hanging if the API is slow/unreachable.
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const vendorRes = await fetch("/api/vendor-auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: cleaned, pin }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         if (vendorRes.ok) {
           const vendorData = await vendorRes.json();
           if (vendorData.success && vendorData.vendor) {
@@ -283,7 +288,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         }
         // vendor-auth returned 401 (wrong PIN) or 404 (not a vendor) — continue to Supabase auth
       } catch (vendorAuthErr) {
-        console.error("Vendor auth check failed:", vendorAuthErr);
+        // Abort or network error — continue to Supabase auth silently
+        if (vendorAuthErr instanceof DOMException && vendorAuthErr.name === "AbortError") {
+          console.warn("Vendor auth timed out, falling back to Supabase auth");
+        } else {
+          console.error("Vendor auth check failed:", vendorAuthErr);
+        }
       }
 
       // Step 2: Not a vendor — try Supabase auth (for customers, admins)
@@ -310,7 +320,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
           return { user: enriched };
         }
       }
-      return {};
+      return { error: "Login succeeded but failed to load user data. Please try again." };
     } catch (err) {
       console.error("Auth login error:", err);
       return { error: err instanceof Error ? err.message : "Login failed unexpectedly." };
