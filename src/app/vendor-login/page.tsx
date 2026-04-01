@@ -49,7 +49,12 @@ export default function VendorLoginPage() {
 
     // Try standard auth first (Supabase auth or mock accounts)
     const result = await login(cleaned, pin);
-    if (!result.error) return;
+    if (!result.error) {
+      // Success — the useEffect watching `user` handles the redirect.
+      // Always reset loading to prevent stuck state if context update is delayed.
+      setLoading(false);
+      return;
+    }
 
     // The SupabaseAuthProvider.login() now includes vendor-auth API fallback,
     // so if we reach here, all auth methods have been exhausted.

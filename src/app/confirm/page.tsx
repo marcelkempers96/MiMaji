@@ -132,23 +132,48 @@ export default function ConfirmOrderPage() {
   const stkPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [stkElapsed, setStkElapsed] = useState(0);
 
-  // ── Recalculate cart totals using discount tiers (matches cart page exactly) ──
-  const cartWithDiscounts = items.map((item) => {
-    const basePrice = getBasePrice(item.id) || item.price;
-    const discount = getDiscount(item.quantity);
-    const discountedPrice = getDiscountedPrice(basePrice, item.quantity);
-    return { ...item, basePrice, discountedPrice, discount };
-  });
-  const discountedSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.discountedPrice * item.quantity, 0);
-  const originalSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
-  const totalSavings = originalSubtotal - discountedSubtotal;
-  const cartTotal = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
-
-  // Auth guard: redirect to login if not authenticated (after loading completes)
-  if (!authLoading && !user && paymentStatus === "idle") {
-    router.push("/login?redirect=/delivery");
+  // Scheduled delivery
+  const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = sessionStorage.getItem("mimaji_scheduled_delivery");
+        if (raw) return JSON.parse(raw);
+      }
+    } catch {}
     return null;
-  }
+  });
+
+  // Rewards
+  const [freeLitres, setFreeLitres] = useState(0);
+  const [claimRewards, setClaimRewards] = useState(false);
+  const [rewardsApplied, setRewardsApplied] = useState(0);
+
+  // M-PESA code entry state
+  const [mpesaCode, setMpesaCode] = useState("");
+  const [creatingOrder, setCreatingOrder] = useState(false);
+
+  // Store confirmed order details so they persist after cart is cleared
+  const confirmedOrderRef = useRef<{
+    orderId: string;
+    mpesaRef: string | null;
+    items: typeof items;
+    total: number;
+    address: string;
+    addressDetails: DeliveryAddressDetails | null;
+    paymentMethod: PaymentMethod;
+    deliveryCode: string;
+  } | null>(null);
+
+  // Pending order params — saved before order is actually created
+  const pendingOrderRef = useRef<{
+    productName: string;
+    orderItems: Array<{ name: string; quantity: number; price: number }>;
+    savedItems: typeof items;
+    address: string;
+    stkMpesaRef: string | null;
+  } | null>(null);
+
+  // ── All useEffect hooks (must be called before any conditional returns) ──
 
   // Restore pending order data from sessionStorage (survives app-switching)
   useEffect(() => {
@@ -222,28 +247,7 @@ export default function ConfirmOrderPage() {
     };
   }, [paymentStatus]);
 
-  // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
-  if (!authLoading && user && items.length === 0 && paymentStatus === "idle") {
-    router.push("/buy");
-    return null;
-  }
-
-  // Scheduled delivery
-  const [scheduledDelivery, setScheduledDelivery] = useState<{ date: string; time: string } | null>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const raw = sessionStorage.getItem("mimaji_scheduled_delivery");
-        if (raw) return JSON.parse(raw);
-      }
-    } catch {}
-    return null;
-  });
-
-  // Rewards
-  const [freeLitres, setFreeLitres] = useState(0);
-  const [claimRewards, setClaimRewards] = useState(false);
-  const [rewardsApplied, setRewardsApplied] = useState(0);
-
+  // Load rewards summary
   useEffect(() => {
     if (user?.id) {
       getRewardsSummaryAsync(user.id).then((summary) => {
@@ -251,6 +255,20 @@ export default function ConfirmOrderPage() {
       });
     }
   }, [user?.id]);
+
+  // ── Computed values ──
+
+  // Recalculate cart totals using discount tiers (matches cart page exactly)
+  const cartWithDiscounts = items.map((item) => {
+    const basePrice = getBasePrice(item.id) || item.price;
+    const discount = getDiscount(item.quantity);
+    const discountedPrice = getDiscountedPrice(basePrice, item.quantity);
+    return { ...item, basePrice, discountedPrice, discount };
+  });
+  const discountedSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.discountedPrice * item.quantity, 0);
+  const originalSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
+  const totalSavings = originalSubtotal - discountedSubtotal;
+  const cartTotal = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
 
   const orderLitres = items.reduce((acc, item) => {
     const match = item.name.match(/(\d+)L/i);
@@ -281,26 +299,19 @@ export default function ConfirmOrderPage() {
   const codFeeAmount = codRoundedTotal - subtotalAfterRewards;
   const finalTotal = paymentMethod === "cash" ? codRoundedTotal : Math.max(cartTotal - rewardsDiscount, 0);
 
-  // Store confirmed order details so they persist after cart is cleared
-  const confirmedOrderRef = useRef<{
-    orderId: string;
-    mpesaRef: string | null;
-    items: typeof items;
-    total: number;
-    address: string;
-    addressDetails: DeliveryAddressDetails | null;
-    paymentMethod: PaymentMethod;
-    deliveryCode: string;
-  } | null>(null);
+  // ── Guards (AFTER all hooks) ──
 
-  // Pending order params — saved before order is actually created
-  const pendingOrderRef = useRef<{
-    productName: string;
-    orderItems: Array<{ name: string; quantity: number; price: number }>;
-    savedItems: typeof items;
-    address: string;
-    stkMpesaRef: string | null;
-  } | null>(null);
+  // Auth guard: redirect to login if not authenticated (after loading completes)
+  if (!authLoading && !user && paymentStatus === "idle") {
+    router.push("/login?redirect=/delivery");
+    return null;
+  }
+
+  // Empty cart guard: redirect to shop if cart is empty (unless in payment flow)
+  if (!authLoading && user && items.length === 0 && paymentStatus === "idle") {
+    router.push("/buy");
+    return null;
+  }
 
   /** Create the real order, assign vendor, process rewards, clear cart */
   const finalizeOrder = async (mpesaRef: string | null) => {
@@ -544,10 +555,6 @@ export default function ConfirmOrderPage() {
     }
     return `${totalItems} items`;
   };
-
-  // ── M-PESA Payment Code Entry (for mpesa-app method) ──
-  const [mpesaCode, setMpesaCode] = useState("");
-  const [creatingOrder, setCreatingOrder] = useState(false);
 
   const handleMpesaCodeSubmit = async () => {
     if (!mpesaCode.trim()) return;
