@@ -130,7 +130,9 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Load profile data (role, deliveryPin) from profiles table
+  // Load profile data (role, deliveryPin) from profiles table.
+  // Returns the enriched user, and also calls setUser+saveUserCache so the
+  // context is updated as soon as the data arrives.
   const loadProfile = useCallback(async (userId: string, baseUser: User): Promise<User> => {
     try {
       const sb = await getSupabase();
@@ -189,6 +191,19 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     return baseUser;
   }, [getSupabase]);
 
+  // Set user immediately with base data, then enrich with profile in the background.
+  // This prevents the UI from appearing stuck while profile data loads.
+  const setUserAndEnrich = useCallback((baseUser: User) => {
+    isServerAuthRef.current = false;
+    setUser(baseUser);
+    saveUserCache(baseUser, false);
+    // Enrich in background — updates context when profile data arrives
+    loadProfile(baseUser.id, baseUser).then((enriched) => {
+      setUser(enriched);
+      saveUserCache(enriched, false);
+    }).catch(() => {});
+  }, [loadProfile]);
+
   // Step 1: Instantly restore from localStorage cache (before Supabase loads)
   useEffect(() => {
     const cached = loadUserCache();
@@ -204,14 +219,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
     let subscription: { unsubscribe: () => void } | null = null;
 
     getSupabase().then((sb) => {
-      const { data: { subscription: sub } } = sb.auth.onAuthStateChange(async (event, sess) => {
+      const { data: { subscription: sub } } = sb.auth.onAuthStateChange((event, sess) => {
         setSession(sess);
         const baseUser = mapUser(sess?.user ?? null);
         if (baseUser) {
-          isServerAuthRef.current = false;
-          const enriched = await loadProfile(baseUser.id, baseUser);
-          setUser(enriched);
-          saveUserCache(enriched, false);
+          // Set user immediately with base data — don't await profile loading
+          setUserAndEnrich(baseUser);
         } else if (event === "INITIAL_SESSION") {
           // No Supabase session — keep cached user (could be vendor-auth session)
           const cached = loadUserCache();
@@ -251,7 +264,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       subscription?.unsubscribe();
       window.removeEventListener("storage", handleStorage);
     };
-  }, [getSupabase, mapUser, loadProfile]);
+  }, [getSupabase, mapUser, setUserAndEnrich]);
 
   const login = useCallback(async (phone: string, pin: string): Promise<AuthResult> => {
     try {
@@ -316,8 +329,10 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       if (supaUser) {
         const baseUser = mapUser(supaUser);
         if (baseUser) {
-          const enriched = await loadProfile(baseUser.id, baseUser);
-          return { user: enriched };
+          // Set user in context immediately so the UI can redirect right away.
+          // Profile enrichment (role, deliveryPin) happens in the background.
+          setUserAndEnrich(baseUser);
+          return { user: baseUser };
         }
       }
       return { error: "Login succeeded but failed to load user data. Please try again." };
@@ -325,7 +340,15 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       console.error("Auth login error:", err);
       return { error: err instanceof Error ? err.message : "Login failed unexpectedly." };
     }
-  }, [getSupabase, setServerAuthUser, mapUser, loadProfile]);
+  }, [getSupabase, setServerAuthUser, mapUser, setUserAndEnrich]);
+
+  // Helper: build a User from a Supabase session after successful signIn fallback
+  const buildUserFromSession = useCallback(async (sb: Awaited<ReturnType<typeof getSupabase>>, cleaned: string, name: string): Promise<User | null> => {
+    const sess = (await sb.auth.getSession()).data.session;
+    if (!sess?.user) return null;
+    const delivPin = Math.abs([...sess.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
+    return { id: sess.user.id, phone: cleaned, name: name || sess.user.user_metadata?.full_name || "", role: "customer", deliveryPin: delivPin };
+  }, []);
 
   const signup = useCallback(async (phone: string, pin: string, name: string, referralCode?: string): Promise<AuthResult> => {
     try {
@@ -341,27 +364,38 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        // "already registered" — fall back to login, but always return a user or an error
         if (error.message.includes("already registered")) {
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-          if (!loginErr) return {};
+          if (!loginErr) {
+            const fallbackUser = await buildUserFromSession(sb, cleaned, name);
+            if (fallbackUser) { setUserAndEnrich(fallbackUser); return { user: fallbackUser }; }
+          }
           return { error: "This phone number is already registered. Please log in." };
         }
+        // Rate limit — fall back to login
         if (error.message.toLowerCase().includes("rate limit") || error.status === 429) {
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-          if (!loginErr) return {};
+          if (!loginErr) {
+            const fallbackUser = await buildUserFromSession(sb, cleaned, name);
+            if (fallbackUser) { setUserAndEnrich(fallbackUser); return { user: fallbackUser }; }
+          }
           return { error: "Too many attempts. Please wait a few minutes and try again." };
         }
+        // Database error — fall back to login + ensure profile exists
         if (error.message.includes("Database error")) {
           const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
           if (!loginErr) {
-            const sess = (await sb.auth.getSession()).data.session;
-            if (sess?.user) {
-              const delivPin = Math.abs([...sess.user.id].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0) % 10000).toString().padStart(4, "0");
-              await sb.from("profiles").upsert({
-                id: sess.user.id, phone: cleaned, full_name: name, role: "customer", delivery_pin: delivPin,
-              }, { onConflict: "id" });
+            const fallbackUser = await buildUserFromSession(sb, cleaned, name);
+            if (fallbackUser) {
+              try {
+                await sb.from("profiles").upsert({
+                  id: fallbackUser.id, phone: cleaned, full_name: name, role: "customer", delivery_pin: fallbackUser.deliveryPin,
+                }, { onConflict: "id" });
+              } catch {}
+              setUserAndEnrich(fallbackUser);
+              return { user: fallbackUser };
             }
-            return {};
           }
           return { error: "Account creation failed. Please try again." };
         }
@@ -403,9 +437,12 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
         deliveryPin,
       };
 
-      if (!loggedIn) {
-        // Supabase session not established (e.g. email confirmation required)
-        // Cache user locally so they can use the app
+      // ALWAYS set user in context immediately — whether Supabase session exists or not.
+      // This prevents the login page from appearing stuck waiting for onAuthStateChange.
+      if (loggedIn) {
+        setUserAndEnrich(resultUser);
+      } else {
+        // No Supabase session (e.g. email confirmation required) — use server-auth path
         setServerAuthUser(resultUser);
       }
 
@@ -424,7 +461,7 @@ function AuthProviderInner({ children }: { children: React.ReactNode }) {
       console.error("Auth signup error:", err);
       return { error: err instanceof Error ? err.message : "Signup failed unexpectedly." };
     }
-  }, [getSupabase, setServerAuthUser]);
+  }, [getSupabase, setServerAuthUser, setUserAndEnrich, buildUserFromSession]);
 
   const logout = useCallback(async () => {
     setUser(null);
