@@ -64,6 +64,14 @@ function LoginContent() {
     redirectAfterAuth(user.role);
   }, [user, redirectAfterAuth]);
 
+  /** Wrap a promise with a timeout so the UI never gets stuck on an infinite spinner */
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+    ]);
+  };
+
   const handleLogin = async () => {
     const cleaned = getFullPhone();
     if (cleaned.length < 9) {
@@ -79,23 +87,21 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      const result = await login(cleaned, pin);
+      const result = await withTimeout(
+        login(cleaned, pin),
+        20000,
+        "Login is taking too long. Please check your connection and try again."
+      );
       if (result.error) {
         setError(result.error);
-        setLoading(false);
       } else if (!result.user) {
-        // login() returned no error but also no user — should not happen, but guard against stuck loading
         setError("Login failed unexpectedly. Please try again.");
-        setLoading(false);
       }
-      // On success (result.user truthy), the useEffect watching `user` handles the redirect.
-      // Also reset loading as a safety net in case the context user update is delayed.
-      else {
-        setLoading(false);
-      }
+      // On success, user is already set in context by login() — useEffect handles redirect
     } catch (err) {
       console.error("Login failed:", err);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
@@ -123,21 +129,28 @@ function LoginContent() {
     setLoading(true);
 
     try {
-      const result = await signup(cleaned, pin, name.trim(), referralCode.trim() || undefined);
+      const result = await withTimeout(
+        signup(cleaned, pin, name.trim(), referralCode.trim() || undefined),
+        25000,
+        "Signup is taking too long. Please check your connection and try again."
+      );
       if (result.error) {
         setError(result.error);
         setLoading(false);
         return;
       }
-      // Init rewards in background
-      if (result.user) {
-        initRewardsAsync(result.user.id, result.user.name, referralCode.trim() || undefined).catch(() => {});
+      if (!result.user) {
+        setError("Signup failed unexpectedly. Please try again.");
+        setLoading(false);
+        return;
       }
-      // Always reset loading — the useEffect watching `user` handles the redirect
-      setLoading(false);
+      // Init rewards in background
+      initRewardsAsync(result.user.id, result.user.name, referralCode.trim() || undefined).catch(() => {});
+      // User is already set in context by signup() — useEffect handles redirect
     } catch (err) {
       console.error("Signup failed:", err);
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   };

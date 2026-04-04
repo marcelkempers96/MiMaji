@@ -350,6 +350,49 @@ export async function createOrder(params: {
   const timeout = setTimeout(() => controller.abort(), 60000);
 
   try {
+    // Wait for the Supabase session to be restored before creating the order.
+    // Without this, RLS sees auth.uid()=NULL and blocks profile/order inserts.
+    // This is critical for new signups where the session may not be established yet.
+    const hasSession = await waitForSupabaseSession(5000);
+    if (!hasSession) {
+      // No Supabase session — fall back to localStorage-only order
+      console.warn("No Supabase session for order creation — saving locally");
+      clearTimeout(timeout);
+      const orderId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const order: OrderRecord = {
+        id: orderId,
+        customer_id: params.customerId,
+        delivery_address: params.deliveryAddress,
+        delivery_address_details: params.deliveryAddressDetails || null,
+        quantity: Math.min(params.quantity, 10),
+        price_total: params.priceTotal,
+        product_name: params.productName,
+        order_items: params.orderItems,
+        status,
+        mpesa_ref: params.mpesaRef || null,
+        estimated_delivery_minutes: null,
+        created_at: now,
+        updated_at: now,
+        vendor_id: null,
+        vendor_name: null,
+        vendor_location: null,
+        vendors_tried: [],
+        current_vendor_offer: null,
+        scheduled_date: params.scheduledDate || null,
+        scheduled_time: params.scheduledTime || null,
+        delivery_code: params.deliveryCode || generateDeliveryCode(orderId),
+        payment_method: params.paymentMethod || null,
+        brand_preference: params.brandPreference || [],
+        customer_name: params.customerName || undefined,
+        customer_phone: params.customerPhone || undefined,
+      };
+      const orders = getMockOrders();
+      orders.push(order);
+      saveMockOrders(orders);
+      return { orderId, error: null };
+    }
+
     // Ensure the customer has a profile (foreign key requirement)
     const { data: profile, error: profileCheckErr } = await supabase
       .from("profiles")
