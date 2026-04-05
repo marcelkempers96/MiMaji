@@ -149,7 +149,7 @@ export default function InvoicesPage() {
       <h3>From</h3>
       <p><strong>MiMaji Ltd</strong></p>
       <p>Nairobi, Kenya</p>
-      <p>Till: 123456</p>
+      <p>M-PESA: 0758434076</p>
     </div>
   </div>
   <table>

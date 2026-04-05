@@ -327,15 +327,11 @@ export default function AccountSettingsPage() {
         <div className="bg-[#E8F5E9] rounded-xl p-4">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-text-secondary">Business Number (Paybill)</span>
-              <span className="text-sm font-bold text-text-primary font-mono">123456</span>
-            </div>
-            <div className="h-px bg-white/50" />
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-text-secondary">Account Number</span>
-              <span className="text-sm font-bold text-text-primary font-mono">{user?.phone || "Your Phone Number"}</span>
+              <span className="text-xs text-text-secondary">Send Money To</span>
+              <span className="text-sm font-bold text-text-primary font-mono">0758434076</span>
             </div>
           </div>
+          <p className="text-text-secondary text-[10px] mt-2">Paste your M-PESA confirmation code so we can track your order.</p>
         </div>
       </div>
 
