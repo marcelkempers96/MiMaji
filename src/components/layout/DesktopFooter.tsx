@@ -111,8 +111,8 @@ export default function DesktopFooter() {
           <div className="flex items-center gap-6 mb-4">
             <div>
               <p className="text-white/50 text-xs uppercase tracking-wide font-semibold mb-1">M-PESA Payment</p>
-              <p className="text-white/80 text-sm">Till Number: <span className="font-bold text-white">123456</span></p>
-              <p className="text-white/80 text-sm">Account No: <span className="font-bold text-white">Your Phone Number</span></p>
+              <p className="text-white/80 text-sm">Send Money To: <span className="font-bold text-white">0758434076</span></p>
+              <p className="text-white/60 text-xs mt-1">Paste your M-PESA confirmation code so we can track your order.</p>
             </div>
           </div>
         </div>

@@ -48,16 +48,16 @@ export default function PaymentMethodsPage() {
         </div>
       </div>
 
-      {/* M-PESA Pay via App */}
+      {/* M-PESA / Cash on Delivery */}
       <div className="bg-surface shadow-card rounded-xl p-5 mb-3">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-[#E8F5E9] flex items-center justify-center flex-shrink-0">
             <CreditCard size={24} className="text-[#2ECC71]" />
           </div>
           <div className="flex-1">
-            <p className="font-bold text-sm text-text-primary">Pay via M-PESA App</p>
-            <p className="text-text-secondary text-sm">Paybill / Till number</p>
-            <p className="text-text-secondary text-xs mt-0.5">Manual payment via M-PESA app</p>
+            <p className="font-bold text-sm text-text-primary">M-PESA / Cash on Delivery</p>
+            <p className="text-text-secondary text-sm">Send money to 0758434076</p>
+            <p className="text-text-secondary text-xs mt-0.5">Or pay cash to the driver on delivery</p>
           </div>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function PaymentMethodsPage() {
       <div className="bg-[#FFF5EC] rounded-xl p-4 mt-5">
         <p className="text-text-primary text-sm font-semibold mb-1">About M-PESA Payments</p>
         <p className="text-text-secondary text-xs leading-relaxed">
-          MiMaji accepts payments exclusively through M-PESA. You can either receive an STK push to your registered phone number, or pay manually via the M-PESA app using our Paybill/Till number.
+          We are in the process of getting a new till number. In the meantime, please send money to 0758434076 and paste your M-PESA payment confirmation code so we can track your order.
         </p>
       </div>
 

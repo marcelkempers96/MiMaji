@@ -131,17 +131,14 @@ export default function AboutUsPage() {
 
       {/* M-PESA Payment Info */}
       <div className="bg-[#FFF5EC] rounded-xl p-4 mb-4">
-        <p className="text-xs font-bold text-text-primary mb-2">MiMaji M-PESA Payment Details</p>
+        <p className="text-xs font-bold text-text-primary mb-2">MiMaji M-PESA Payment</p>
         <div className="bg-white rounded-lg p-3 space-y-1.5">
           <div className="flex justify-between">
-            <span className="text-xs text-text-secondary">Business Number (Paybill)</span>
-            <span className="text-xs font-bold text-text-primary font-mono">123456</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-xs text-text-secondary">Account Number</span>
-            <span className="text-xs font-bold text-text-primary font-mono">Your Phone Number</span>
+            <span className="text-xs text-text-secondary">Send Money To</span>
+            <span className="text-xs font-bold text-text-primary font-mono">0758434076</span>
           </div>
         </div>
+        <p className="text-text-secondary text-[10px] mt-2">Paste your M-PESA confirmation code so we can track your order.</p>
       </div>
     </>
   );

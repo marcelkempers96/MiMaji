@@ -200,6 +200,12 @@ export default function HomePage() {
               Order for Office
             </Link>
             <Link
+              href="/corporate#water-tanks"
+              className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
+            >
+              Water Tank Services →
+            </Link>
+            <Link
               href="/corporate"
               className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
             >
@@ -354,9 +360,9 @@ function MobileFooter() {
       </div>
 
       <div className="bg-primary-light rounded-xl p-3 mb-4">
-        <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide mb-1">M-PESA Payment Details</p>
-        <p className="text-text-primary text-sm">Till Number: <span className="font-bold">123456</span></p>
-        <p className="text-text-primary text-sm">Account No: <span className="font-bold">Your Phone Number</span></p>
+        <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide mb-1">M-PESA Payment</p>
+        <p className="text-text-primary text-sm">Send Money To: <span className="font-bold">0758434076</span></p>
+        <p className="text-text-secondary text-xs mt-1">Paste your M-PESA confirmation code so we can track your order.</p>
       </div>
 
       <div className="border-t border-[#E0E0E0] pt-4 flex items-center justify-between">
@@ -395,7 +401,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white relative overflow-hidden">
         <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10" />
-        <div className="max-w-6xl mx-auto px-8 py-20 flex items-center gap-12 relative z-10">
+        <div className="max-w-6xl mx-auto px-8 py-16 flex items-center gap-12 relative z-10">
           <div className="flex-1">
             <h1 className="text-5xl font-extrabold leading-tight">
               Order Water Online<br />
@@ -449,7 +455,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       </section>
 
       {/* How It Works */}
-      <section className="bg-surface py-16">
+      <section className="bg-surface py-14">
         <div className="max-w-6xl mx-auto px-8">
           <h2 className="text-2xl font-bold text-text-primary mb-8 text-center">How It Works</h2>
           <div className="grid grid-cols-3 gap-8">
@@ -479,7 +485,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       </section>
 
       {/* Locations Banner */}
-      <section className="max-w-6xl mx-auto px-8 py-12">
+      <section className="max-w-6xl mx-auto px-8 py-14">
         <div className="bg-surface shadow-card rounded-2xl overflow-hidden flex items-center gap-0">
           <div className="flex-1 p-10">
             <h2 className="text-2xl font-extrabold text-text-primary mb-3">Delivering from 30 Locations Across Nairobi</h2>
@@ -497,7 +503,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       </section>
 
       {/* Features Grid */}
-      <section className="max-w-6xl mx-auto px-8 py-16">
+      <section className="max-w-6xl mx-auto px-8 py-14">
         <div className="grid grid-cols-3 gap-8">
           <div className="bg-surface shadow-card rounded-2xl p-8 text-center hover:shadow-card-hover transition-shadow">
             <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-4">
@@ -527,7 +533,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       </section>
 
       {/* Special Offers */}
-      <section className="bg-surface py-16">
+      <section className="bg-surface py-14">
         <div className="max-w-6xl mx-auto px-8">
           <h2 className="text-2xl font-bold text-text-primary mb-8">Special Offers</h2>
           <div className="grid grid-cols-2 gap-6">
@@ -555,7 +561,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
 
       {/* Office Ordering Banner */}
       <section className="bg-gradient-to-br from-primary to-[#1a5a9a] text-white">
-        <div className="max-w-6xl mx-auto px-8 py-16 flex items-center gap-12">
+        <div className="max-w-6xl mx-auto px-8 py-14 flex items-center gap-12">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
               <Building2 size={28} />
@@ -571,6 +577,12 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
               >
                 <ShoppingCart size={18} />
                 Order for Office
+              </Link>
+              <Link
+                href="/corporate#water-tanks"
+                className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
+              >
+                Water Tank Services →
               </Link>
               <Link
                 href="/corporate"
@@ -589,7 +601,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       </section>
 
       {/* Water Quality Guide Banner */}
-      <section className="max-w-6xl mx-auto px-8 py-12">
+      <section className="max-w-6xl mx-auto px-8 py-14">
         <Link href="/water-guide">
           <div className="bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-2xl overflow-hidden hover:shadow-card-hover transition-shadow flex items-stretch">
             <div className="flex-1 p-10">
@@ -611,7 +623,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       </section>
 
       {/* Impact Section */}
-      <section className="max-w-6xl mx-auto px-8 py-16">
+      <section className="max-w-6xl mx-auto px-8 py-14">
         <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-2xl p-10 flex items-center gap-8">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">

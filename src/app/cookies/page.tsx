@@ -20,9 +20,9 @@ export default function CookiesPage() {
     <>
       <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
         <p className="text-text-secondary text-xs mb-1">Last updated: 17 March 2026</p>
-        <p className="text-text-secondary text-xs">Operated by: Reef Support B.V.</p>
+        <p className="text-text-secondary text-xs">Operated by: MiMaji</p>
         <p className="text-text-secondary text-sm mt-3 leading-relaxed">
-          Reef Support B.V. operates the MiMaji website at mimaji.co.ke (&quot;Site&quot;). This Cookie Policy explains our use of cookies and comparable tracking technologies when you visit our Site. By continuing to browse the Site, you acknowledge and accept the practices described below.
+          MiMaji operates the MiMaji website at mimaji.co.ke (&quot;Site&quot;). This Cookie Policy explains our use of cookies and comparable tracking technologies when you visit our Site. By continuing to browse the Site, you acknowledge and accept the practices described below.
         </p>
       </div>
 

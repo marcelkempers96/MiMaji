@@ -183,6 +183,62 @@ function CorporateContent({ user, desktop }: { user: { name: string; phone: stri
         </div>
       </div>
 
+      {/* Water Tank Delivery Banner */}
+      <div id="water-tanks" className={`bg-gradient-to-r from-[#E3F2FD] to-[#BBDEFB] rounded-2xl overflow-hidden mb-8 ${desktop ? "flex items-stretch" : ""}`}>
+        <div className={`${desktop ? "flex-1 p-10" : "p-5"}`}>
+          <div className="flex items-center gap-3 mb-3">
+            <Droplets size={desktop ? 28 : 22} className="text-primary" />
+            <h2 className={`font-extrabold text-text-primary ${desktop ? "text-2xl" : "text-lg"}`}>
+              Water Tank Delivery
+            </h2>
+          </div>
+          <p className={`text-text-secondary ${desktop ? "text-base mb-4 max-w-lg" : "text-sm mb-3"}`}>
+            Need a reliable water storage solution? MiMaji delivers water tanks directly to your home, office, or project site. We offer a wide range of tank sizes — from 500L for residential use up to 10,000L+ for commercial and agricultural needs.
+          </p>
+          <ul className={`space-y-2 ${desktop ? "mb-6" : "mb-4"}`}>
+            {[
+              "Fast delivery across Nairobi and surrounding areas",
+              "Vertical, horizontal & loft tank designs available",
+              "UV-protected, food-grade materials for safe water storage",
+              "Professional installation support available on request",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2 text-sm text-text-secondary">
+                <CheckCircle2 size={16} className="text-[#2ECC71] flex-shrink-0 mt-0.5" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <div className={`flex ${desktop ? "items-center gap-4" : "flex-col gap-3"}`}>
+            <Link
+              href="/contact"
+              className={`inline-flex items-center justify-center gap-2 bg-primary hover:bg-[#1a5a9a] text-white font-bold rounded-full transition-colors ${desktop ? "px-8 py-4 text-base" : "px-6 py-3 text-sm"}`}
+            >
+              <Droplets size={18} />
+              Order a Water Tank
+            </Link>
+            <a
+              href="https://wa.me/254758434076?text=Hi%20MiMaji%2C%20I%27m%20interested%20in%20ordering%20a%20water%20tank.%20Can%20you%20share%20available%20sizes%20and%20pricing%3F"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1fb855] text-white font-bold rounded-full transition-colors ${desktop ? "px-8 py-4 text-base" : "px-6 py-3 text-sm"}`}
+            >
+              <MessageCircle size={18} />
+              WhatsApp Us
+            </a>
+          </div>
+        </div>
+        {desktop && (
+          <div className="flex-1 min-h-[300px]">
+            <img src={watertank.src} alt="Water tanks for delivery" className="w-full h-full object-cover" />
+          </div>
+        )}
+        {!desktop && (
+          <div className="h-48">
+            <img src={watertank.src} alt="Water tanks for delivery" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </div>
+
       {/* Bottom CTA */}
       <div className={`bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl text-white ${desktop ? "p-12" : "p-6"}`}>
         <h2 className={`font-extrabold ${desktop ? "text-3xl mb-3" : "text-xl mb-2"}`}>
