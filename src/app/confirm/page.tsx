@@ -291,13 +291,8 @@ export default function ConfirmOrderPage() {
   // Rewards discount amount
   const rewardsDiscount = claimRewards && rewardsApplied > 0 ? Math.round(rewardsApplied * pricePerLitre) : 0;
 
-  // Cash on delivery service fee: 20 KES, then round up total to next 50
-  const COD_SERVICE_FEE = 20;
-  const subtotalAfterRewards = Math.max(cartTotal - rewardsDiscount, 0);
-  const codRawTotal = subtotalAfterRewards + COD_SERVICE_FEE;
-  const codRoundedTotal = Math.ceil(codRawTotal / 50) * 50;
-  const codFeeAmount = codRoundedTotal - subtotalAfterRewards;
-  const finalTotal = paymentMethod === "cash" ? codRoundedTotal : Math.max(cartTotal - rewardsDiscount, 0);
+  // Final total: no additional COD charge for M-PESA / Cash on Delivery
+  const finalTotal = Math.max(cartTotal - rewardsDiscount, 0);
 
   // ── Guards (AFTER all hooks) ──
 
@@ -1116,12 +1111,6 @@ export default function ConfirmOrderPage() {
                 <span className="text-[#2ECC71] font-semibold">- KES {rewardsDiscount.toLocaleString()}</span>
               </div>
             )}
-            {paymentMethod === "cash" && (
-              <div className="flex justify-between items-center text-sm mb-1">
-                <span className="text-text-secondary">COD Service Fee (rounded to nearest 50)</span>
-                <span className="text-text-secondary">+ KES {codFeeAmount.toLocaleString()}</span>
-              </div>
-            )}
 
             <div className="h-px bg-gray-100 my-3" />
 
@@ -1261,7 +1250,7 @@ export default function ConfirmOrderPage() {
                   <p className="text-text-primary text-xs font-semibold">Cash Option</p>
                 </div>
                 <p className="text-text-secondary text-xs">
-                  You can also pay KES {finalTotal.toLocaleString()} in cash to the driver on delivery. A small service fee of KES {COD_SERVICE_FEE} applies for cash payments (total rounded up to the nearest KES 50 for easy change).
+                  You can also pay KES {finalTotal.toLocaleString()} in cash to the driver on delivery.
                 </p>
               </div>
             </div>
