@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     // Point to your deployed Vercel URL so API routes & SSR work
     // Update this to your actual production URL
-    url: 'https://mimaji.vercel.app',
+    url: 'https://mimaji.co.ke',
     cleartext: false,
   },
 };
