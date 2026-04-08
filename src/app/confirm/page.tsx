@@ -410,6 +410,22 @@ export default function ConfirmOrderPage() {
       deliveryCode,
     };
 
+    // Notify the owner on WhatsApp for cash and manual M-PESA orders.
+    // STK-push orders are notified server-side from the M-PESA callback,
+    // so we skip them here to avoid double notifications.
+    if (paymentMethod !== "stk-push") {
+      try {
+        fetch("/api/notify-new-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+          keepalive: true,
+        }).catch((e) => console.error("Owner WhatsApp notification failed:", e));
+      } catch (e) {
+        console.error("Owner WhatsApp notification failed:", e);
+      }
+    }
+
     // Save delivery code for cross-device access
     try {
       const codeKey = `mimaji_user_delivery_code_${user.id}`;
