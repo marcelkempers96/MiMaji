@@ -66,6 +66,17 @@ export async function POST(req: NextRequest) {
         } catch (e) {
           console.error("Error auto-assigning vendor:", e);
         }
+
+        // Notify the owner on WhatsApp that a paid order just came in.
+        // Fire-and-forget — never block or fail the callback on notification issues.
+        try {
+          const { notifyOwnerOfNewOrder } = await import("@/lib/whatsapp");
+          notifyOwnerOfNewOrder(payment.order_id).catch((e) =>
+            console.error("Owner WhatsApp notification failed:", e)
+          );
+        } catch (e) {
+          console.error("Error triggering owner WhatsApp notification:", e);
+        }
       }
     } else {
       console.log("M-Pesa Payment Failed:", { resultCode, resultDesc, merchantRequestID });
