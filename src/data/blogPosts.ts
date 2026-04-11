@@ -627,6 +627,139 @@ export const blogPosts: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "nairobi-water-shortage-2026-affected-estates",
+    title: "Nairobi Water Shortage 2026: Which Estates Are Affected and What to Do",
+    excerpt:
+      "Nairobi is in the grip of one of its worst water crises in recent years. If your taps are dry right now, you are not alone \u2014 this guide covers which estates are affected and what you can do.",
+    author: "MiMaji Research Team",
+    publishedDate: "March 2026",
+    readingTime: "10 min read",
+    category: "Water Crisis",
+    content: [
+      {
+        type: "paragraph",
+        text: "\u26a0\ufe0f THIS IS A LIVING DOCUMENT \u2014 This blog is updated regularly as new water disruptions are announced. Bookmark this page and check back during water shortages for the latest information. Last update: March 17, 2026 \u2014 Post-flood pipeline restoration update.",
+      },
+      {
+        type: "paragraph",
+        text: "Nairobi is in the grip of one of its worst water crises in recent years. A combination of chronic infrastructure underinvestment, catastrophic March 2026 flooding, and a growing population-supply gap has left millions of residents scrambling for clean water. If your taps are dry right now, you are not alone \u2014 and this guide will help you understand what is happening and what you can do about it.",
+      },
+      {
+        type: "heading",
+        text: "The Current Situation: March 2026",
+      },
+      {
+        type: "paragraph",
+        text: "On the night of Friday, March 6, 2026, severe storms hit Nairobi. The resulting floods were devastating: at least 33 people died within the city, and over 66 fatalities were recorded nationwide. But the floods also caused catastrophic damage to Nairobi\u2019s water infrastructure.",
+      },
+      {
+        type: "paragraph",
+        text: "The most critical damage was to the main transmission pipeline along Outering Road near the Nairobi River crossing. This pipeline is a lifeline for much of eastern Nairobi, carrying treated water from the Ng\u2019ethu Treatment Plant to hundreds of thousands of homes. High-velocity floodwater broke the pipeline, cutting supply immediately to over 15 estates.",
+      },
+      {
+        type: "paragraph",
+        text: "Simultaneously, debris clogged the Mwagu Intake at the Ng\u2019ethu Treatment Plant, reducing treatment capacity. Multiple secondary distribution lines in Eastlands were also damaged, including the Eastleigh-Kiambiu line and the Korogocho-Dandora pipeline.",
+      },
+      {
+        type: "heading",
+        text: "Which Estates Are Currently Affected",
+      },
+      {
+        type: "paragraph",
+        text: "As of March 17, 2026, NCWSC has confirmed the restoration of the main Outering Road pipeline and has resumed water supply to six major estates. However, several areas remain under repair and are experiencing partial or no supply.",
+      },
+      {
+        type: "table",
+        headers: ["Estate", "Status", "Notes"],
+        rows: [
+          ["Buruburu Phase 1 & 2", "\u2705 Restored", "Main pipeline repaired; supply resuming gradually"],
+          ["Kariobangi South & North", "\u2705 Restored", "Supply returning; may be intermittent for days"],
+          ["Dandora Phase 1", "\u2705 Restored", "Main line fixed; secondary lines still under repair"],
+          ["Parts of Mathare", "\u2705 Partially Restored", "Some sections still without supply"],
+          ["Eastleigh Section 3", "\u26a0\ufe0f Intermittent", "Distribution lines damaged; repairs ongoing"],
+          ["Kiambiu", "\u26a0\ufe0f Under Repair", "Engineers working to restore; timeline uncertain"],
+          ["Korogocho", "\u26a0\ufe0f Under Repair", "Pipeline repair in progress; expected restoration soon"],
+          ["Jerusalem / Uhuru", "\u26a0\ufe0f Limited Supply", "Affected by secondary line damage"],
+          ["Jericho / Ofafa / Harambee", "\u26a0\ufe0f Limited Supply", "Gradual restoration expected"],
+          ["Lower Kabete Lane", "\u26a0\ufe0f Limited Supply", "Brookeside Drive line affected"],
+          ["Ngumo Nera", "\u274c No Supply (since Jan 2026)", "Ombudsman has demanded NCWSC explain prolonged shortage"],
+        ],
+      },
+      {
+        type: "heading",
+        text: "Earlier Disruptions in 2026",
+      },
+      {
+        type: "subheading",
+        text: "February 2026: Sasumua Dam Shutdown",
+      },
+      {
+        type: "paragraph",
+        text: "On February 20, 2026, NCWSC shut down the Sasumua Water Treatment Plant for 26 hours to carry out essential maintenance. Sasumua supplies about 11% of Nairobi\u2019s water, and the shutdown affected estates in Westlands, Parklands, Riverside, Kileleshwa, Kilimani, Hurlingham, Dagoretti, Kangemi, Karen, Lang\u2019ata, Southlands, Kibera, and parts of Ngara and Gigiri. While planned, the shutdown highlighted how fragile the system is \u2014 even a single day\u2019s maintenance causes widespread impact.",
+      },
+      {
+        type: "subheading",
+        text: "January\u2013March 2026: Ngumo Nera Estate",
+      },
+      {
+        type: "paragraph",
+        text: "Residents of Ngumo Nera Estate have reported a complete absence of water since January 2026. The prolonged shortage prompted the Office of the Ombudsman (Commission on Administrative Justice) to formally demand an explanation from NCWSC\u2019s acting Managing Director, citing residents\u2019 constitutional rights and public health risks.",
+      },
+      {
+        type: "heading",
+        text: "The Bigger Picture: Why Nairobi\u2019s Water Keeps Failing",
+      },
+      {
+        type: "paragraph",
+        text: "The March 2026 floods are not an isolated incident. They exposed the structural vulnerability of Nairobi\u2019s water system. The fundamental numbers tell the story: daily demand exceeds 900 million litres, but available supply is only about 525 million litres. That is a 42% shortfall every single day, even without floods or infrastructure failures.",
+      },
+      {
+        type: "paragraph",
+        text: "The city\u2019s water infrastructure was designed decades ago for a much smaller population. Pipes are aging, treatment plants are operating at or beyond capacity, and non-revenue water losses (from leaks, illegal connections, and faulty metering) consume over 40% of treated water before it reaches consumers.",
+      },
+      {
+        type: "paragraph",
+        text: "The recently announced KSh 38 billion infrastructure upgrade programme aims to address these challenges through pipeline replacement, distribution network expansion, sewer infrastructure improvement, and wastewater treatment upgrades. However, implementation will take years, and observers have cautioned that success depends on sustained financing and efficient execution.",
+      },
+      {
+        type: "heading",
+        text: "What to Do When Your Taps Are Dry",
+      },
+      {
+        type: "subheading",
+        text: "Immediate Steps",
+      },
+      {
+        type: "paragraph",
+        text: "Check NCWSC\u2019s official channels first. Follow @NairobiWater on X (Twitter) and dial *260# to check service status and request emergency bowser delivery (Option 5). Check whether your estate is on the published affected list.",
+      },
+      {
+        type: "paragraph",
+        text: "Alert your building management. If you live in an apartment building, the caretaker or building management should be coordinating with NCWSC and arranging emergency supply. Buildings with rooftop tanks may have buffer supply that can last 1 to 3 days.",
+      },
+      {
+        type: "paragraph",
+        text: "Order water through MiMaji. The MiMaji app connects you directly with KEBS-certified water suppliers who are not dependent on the damaged pipeline. Even when NCWSC supply is down, MiMaji\u2019s suppliers operate from boreholes and purification plants that continue producing water independently. Download the app, enter your location, and get clean water delivered within 30 to 60 minutes.",
+      },
+      {
+        type: "subheading",
+        text: "Preparation for Future Shortages",
+      },
+      {
+        type: "paragraph",
+        text: "Invest in water storage. Even a single 1,000-litre tank (approximately KSh 8,000 to KSh 12,000) gives a family of four roughly 5 days of buffer at minimum usage levels. Fill it whenever supply is available.",
+      },
+      {
+        type: "paragraph",
+        text: "Keep emergency water treatment supplies at home. A bottle of WaterGuard (KSh 30 to KSh 50) can treat hundreds of litres of water and lasts months. This is essential insurance if you need to use water from an unverified source during an emergency.",
+      },
+      {
+        type: "paragraph",
+        text: "Set up a MiMaji subscription. Weekly scheduled deliveries ensure you always have clean water arriving, regardless of what NCWSC\u2019s pipes are doing. Think of it as water insurance.",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
