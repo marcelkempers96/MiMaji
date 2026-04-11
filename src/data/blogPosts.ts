@@ -760,6 +760,166 @@ export const blogPosts: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "20-litre-water-jug-delivery-nairobi-buyers-guide",
+    title: "20-Litre Water Jug Delivery in Nairobi: Complete Buyer\u2019s Guide",
+    excerpt:
+      "The 20-litre water jug is Nairobi\u2019s unofficial unit of survival. But not all jugs are created equal. This guide covers types, quality checks, storage, and how much your household actually needs.",
+    author: "MiMaji Research Team",
+    publishedDate: "March 2026",
+    readingTime: "11 min read",
+    category: "Guides",
+    content: [
+      {
+        type: "paragraph",
+        text: "The 20-litre water jug is Nairobi\u2019s unofficial unit of survival. Whether you call it a jerrycan, a jug, a drum, or a \u201ctwenty,\u201d it is the container that keeps households running when taps fail. But not all 20-litre water jugs are created equal. The water inside them can range from KEBS-certified, lab-tested purity to contaminated borehole runoff that will send your family to the hospital.",
+      },
+      {
+        type: "paragraph",
+        text: "This comprehensive guide covers everything you need to know to make smart, safe choices when buying water in Nairobi.",
+      },
+      {
+        type: "heading",
+        text: "Types of 20-Litre Water Available in Nairobi",
+      },
+      {
+        type: "subheading",
+        text: "1. Purified/Treated Water (KEBS-Certified)",
+      },
+      {
+        type: "paragraph",
+        text: "This is water that has been processed through a certified treatment system \u2014 typically reverse osmosis (RO), UV sterilisation, or a combination \u2014 and packaged in sealed, food-grade containers. Suppliers must hold a KEBS Standardization Mark, which requires a Public Health Hygiene License, medical certificates for all staff, a County Business License, and compliance with KS EAS 153 drinking water standards.",
+      },
+      {
+        type: "paragraph",
+        text: "Price range: KSh 150\u2013350 per 20L jug. Quality: Highest. Lab-tested, sealed, traceable. Where to find: Supermarkets, water shops, delivery apps like MiMaji.",
+      },
+      {
+        type: "subheading",
+        text: "2. Kiosk/ATM Water",
+      },
+      {
+        type: "paragraph",
+        text: "Water dispensed from water kiosks or automated vending machines (water ATMs). These are typically connected to a purification system (RO or UV) and dispense water into your own container. Many kiosks are operated by franchises like Jibu or by NCWSC community standpipes.",
+      },
+      {
+        type: "paragraph",
+        text: "Price range: KSh 5\u201315 per 20L. Quality: Generally good if the kiosk is KEBS-certified. Variable if not. Caveat: Your container must be clean. If you refill a dirty jerrycan, the clean water is immediately contaminated.",
+      },
+      {
+        type: "subheading",
+        text: "3. Borehole Water",
+      },
+      {
+        type: "paragraph",
+        text: "Sourced from underground aquifers via drilled boreholes. Quality depends entirely on the geology of the area, the depth of the borehole, proximity to contamination sources (pit latrines, industrial waste), and whether any treatment is applied after extraction.",
+      },
+      {
+        type: "paragraph",
+        text: "Price range: KSh 10\u201330 per 20L from a vendor. Quality: Highly variable. May contain fluoride, nitrates, heavy metals, or bacteria. Should not be consumed without testing.",
+      },
+      {
+        type: "subheading",
+        text: "4. NCWSC Tap Water (Collected and Resold)",
+      },
+      {
+        type: "paragraph",
+        text: "Some vendors collect treated water from NCWSC taps during supply hours and resell it during rationing periods. While the source is treated, the collection, storage, and transport methods introduce contamination risk.",
+      },
+      {
+        type: "paragraph",
+        text: "Price range: KSh 20\u201350 per 20L from vendors. Quality: Depends on handling. The water at source is treated; the journey to your door may compromise it.",
+      },
+      {
+        type: "heading",
+        text: "How to Verify Water Quality: The Consumer\u2019s Checklist",
+      },
+      {
+        type: "paragraph",
+        text: "Before you buy water from any supplier, run through this quality checklist:",
+      },
+      {
+        type: "table",
+        headers: ["Check", "What to Look For", "Red Flag"],
+        rows: [
+          ["KEBS Standardization Mark", "SM logo with permit number on label/container", "No SM mark = not KEBS certified"],
+          ["Batch Number", "Every sealed jug should have a batch or lot number", "No batch number = no traceability"],
+          ["Seal Integrity", "Factory-sealed cap with tamper-evident ring", "Broken seal, loose cap, or hand-tied plastic"],
+          ["Container Condition", "Clean, food-grade plastic, no discolouration", "Reused chemical containers, yellow/brown staining"],
+          ["Visual Clarity", "Water should be clear with no visible particles", "Cloudiness, floating particles, colour tint"],
+          ["Odour", "Should be odourless or very slight chlorine smell", "Musty, chemical, or sewage odour"],
+          ["Supplier Registration", "Ask for their county business licence number", "Cannot provide any documentation"],
+          ["Treatment Method", "Should be able to tell you: RO, UV, chlorination, etc.", "Does not know or gives vague answers"],
+        ],
+      },
+      {
+        type: "heading",
+        text: "How to Store Water Safely at Home",
+      },
+      {
+        type: "paragraph",
+        text: "Even perfectly clean water can become contaminated if stored improperly. Here are the essential storage rules:",
+      },
+      {
+        type: "paragraph",
+        text: "Use only food-grade containers. Never store drinking water in containers that previously held chemicals, fuel, or non-food substances. The residues cannot be fully removed by washing and will leach into the water over time. Food-grade containers are typically marked with a recycling symbol and the number 1 (PET), 2 (HDPE), or 5 (PP).",
+      },
+      {
+        type: "paragraph",
+        text: "Keep containers covered and sealed. Open containers invite dust, insects, and airborne bacteria. If using a jerrycan, keep the cap on when not dispensing. If using a bucket or basin for intermediate storage, cover it with a clean cloth or lid.",
+      },
+      {
+        type: "paragraph",
+        text: "Replace stored water every 48 to 72 hours. Even treated water can develop bacterial growth after several days in storage, especially in Nairobi\u2019s warm climate. If you are storing water for emergencies, add a small amount of WaterGuard to extend its safe shelf life.",
+      },
+      {
+        type: "paragraph",
+        text: "Clean your storage containers regularly. Wash jerrycans and tanks with a dilute chlorine solution (1 teaspoon of bleach per 5 litres of water) at least once a week. Rinse thoroughly before refilling.",
+      },
+      {
+        type: "paragraph",
+        text: "Keep water away from sunlight. UV radiation can degrade plastic containers and promote algae growth. Store in a cool, shaded area.",
+      },
+      {
+        type: "heading",
+        text: "How Much Water Does Your Household Need?",
+      },
+      {
+        type: "paragraph",
+        text: "The World Health Organization recommends a minimum of 50 to 100 litres per person per day for all domestic purposes (drinking, cooking, bathing, cleaning, laundry). For a family of four, that translates to 200 to 400 litres per day \u2014 or 10 to 20 twenty-litre jugs.",
+      },
+      {
+        type: "paragraph",
+        text: "In practice, most Nairobi households use less than the WHO minimum, particularly during shortages. As a practical benchmark:",
+      },
+      {
+        type: "table",
+        headers: ["Household Size", "Minimum Daily Need", "Comfortable Daily Need", "Weekly 20L Jugs (Comfortable)"],
+        rows: [
+          ["1 person", "50L (2.5 jugs)", "80L (4 jugs)", "28 jugs"],
+          ["2 people", "100L (5 jugs)", "160L (8 jugs)", "56 jugs"],
+          ["Family of 4", "200L (10 jugs)", "300L (15 jugs)", "105 jugs"],
+          ["Family of 6", "300L (15 jugs)", "450L (22.5 jugs)", "158 jugs"],
+        ],
+      },
+      {
+        type: "paragraph",
+        text: "Note: The \u201ccomfortable\u201d figures include bathing, laundry, and cleaning. If you have piped water for non-drinking purposes and only need drinking and cooking water, 2 to 4 jugs per day is typically sufficient for a family of four.",
+      },
+      {
+        type: "heading",
+        text: "Why MiMaji Is the Smartest Way to Buy Water Jugs",
+      },
+      {
+        type: "paragraph",
+        text: "MiMaji eliminates the guesswork from buying water in Nairobi. Every supplier on our platform has been verified against every item on the quality checklist above. You never have to wonder whether your water is safe, whether the price is fair, or whether the container has been properly handled.",
+      },
+      {
+        type: "paragraph",
+        text: "Order in seconds through the app. Pay via M-Pesa. Track your delivery in real time. Rate your experience. And know that every single jug meets KEBS standards \u2014 because we have already checked so you do not have to.",
+      },
+    ],
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
