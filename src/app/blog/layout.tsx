@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { blog1NairobiWater } from "@/assets/images";
 
 export const metadata: Metadata = {
   title: "MiMaji Blog — Water, Safety & Delivery in Nairobi",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/blog1-nairobi-water.png",
+        url: blog1NairobiWater.src,
         alt: "MiMaji Blog — water safety, delivery, and pricing in Nairobi",
       },
     ],
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     title: "MiMaji Blog — Water, Safety & Delivery in Nairobi",
     description:
       "Articles on water safety, pricing, and sustainability in Nairobi.",
-    images: ["/blog1-nairobi-water.png"],
+    images: [blog1NairobiWater.src],
   },
 };
 

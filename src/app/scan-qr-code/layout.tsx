@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { qrCodeBeforeAfterImpact } from "@/assets/images";
 
 export const metadata: Metadata = {
   title: "Scan QR Code — Verify Your Water | MiMaji",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/qrcode-before-and-after-impact-of-using-mimaji-tool.png",
+        url: qrCodeBeforeAfterImpact.src,
         alt: "Before and after impact of using the MiMaji QR code water verification tool",
       },
     ],
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     title: "Scan QR Code — Verify Your Water | MiMaji",
     description:
       "Scan a MiMaji bottle's QR code to see its source, lab results, and KEBS status.",
-    images: ["/qrcode-before-and-after-impact-of-using-mimaji-tool.png"],
+    images: [qrCodeBeforeAfterImpact.src],
   },
 };
 

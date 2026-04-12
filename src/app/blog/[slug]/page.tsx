@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { logo1 } from "@/assets/images";
+import { logo1, images } from "@/assets/images";
 import { Clock, ArrowLeft, Tag, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -100,7 +100,7 @@ function ArticleHeader({
       </div>
       {post.heroImage && (
         <img
-          src={post.heroImage}
+          src={images[post.heroImage]?.src ?? post.heroImage}
           alt={post.heroImageAlt || post.title}
           className={`w-full object-cover rounded-2xl shadow-card mt-6 ${desktop ? "max-h-[420px]" : "max-h-64"}`}
         />
@@ -169,7 +169,7 @@ function ArticleBody({ sections, desktop }: { sections: BlogSection[]; desktop?:
             return (
               <figure key={i} className="my-6">
                 <img
-                  src={section.src}
+                  src={images[section.src]?.src ?? section.src}
                   alt={section.alt}
                   loading="lazy"
                   className="w-full rounded-2xl shadow-card object-cover"

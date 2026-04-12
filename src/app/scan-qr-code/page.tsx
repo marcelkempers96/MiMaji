@@ -1,6 +1,11 @@
 "use client";
 
-import { logo1 } from "@/assets/images";
+import {
+  logo1,
+  qrCodeBeforeAfterImpact,
+  qrCodeFunctionInfo,
+  qrCodeHowItWorks,
+} from "@/assets/images";
 import {
   QrCode,
   Camera,
@@ -107,7 +112,7 @@ function PageContent({ desktop }: { desktop?: boolean }) {
       {/* Before & After impact */}
       <figure className="mb-6">
         <img
-          src="/qrcode-before-and-after-impact-of-using-mimaji-tool.png"
+          src={qrCodeBeforeAfterImpact.src}
           alt="Before and after the impact of using the MiMaji QR code water verification tool"
           loading="lazy"
           className="w-full rounded-2xl shadow-card object-cover"
@@ -121,7 +126,7 @@ function PageContent({ desktop }: { desktop?: boolean }) {
       <div className="bg-surface shadow-card rounded-2xl p-5 md:p-6 mb-6">
         <h3 className="font-bold text-text-primary text-base md:text-lg mb-4">How scanning will work</h3>
         <img
-          src="/qr-code-how-it-works-step-by-step.png"
+          src={qrCodeHowItWorks.src}
           alt="Step by step diagram of how the MiMaji QR code works, from scan to Water Passport"
           loading="lazy"
           className="w-full rounded-xl mb-5 object-cover"
@@ -172,7 +177,7 @@ function PageContent({ desktop }: { desktop?: boolean }) {
           specific jug.
         </p>
         <img
-          src="/qr-code-function-information-shown-in-the-app.png"
+          src={qrCodeFunctionInfo.src}
           alt="MiMaji QR code Water Passport showing vendor, source, lab results, and KEBS certification"
           loading="lazy"
           className="w-full rounded-xl object-cover"
