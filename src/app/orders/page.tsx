@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1 } from "@/assets/images";
-import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle, KeyRound, Copy, Calendar, RefreshCw } from "lucide-react";
+import { Droplets, ChevronRight, Gift, Package, Truck, CheckCircle2, Clock, FileText, Smartphone, Banknote, XCircle, KeyRound, Copy, Calendar, RefreshCw, MessageCircle } from "lucide-react";
 import { getProductImage, products } from "@/data/products";
 import { useState, useEffect, useCallback } from "react";
 
@@ -13,6 +13,7 @@ import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
 import { getRewardsSummaryAsync } from "@/lib/rewards";
+import { buildWhatsAppOrderLink, OWNER_WHATSAPP_NUMBER } from "@/lib/whatsappShare";
 
 const statusSteps = [
   { key: "Processing", label: "Processing", icon: Clock },
@@ -106,6 +107,35 @@ export default function OrdersPage() {
     setMpesaCodeInputs((prev) => { const n = { ...prev }; delete n[orderId]; return n; });
   };
 
+  const buildOrderWhatsAppLink = (order: OrderRecord) => {
+    const items =
+      order.order_items && order.order_items.length > 0
+        ? order.order_items.map((i) => ({
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price,
+          }))
+        : [
+            {
+              name: order.product_name || "Water Order",
+              quantity: order.quantity || 1,
+              price: order.price_total,
+            },
+          ];
+
+    return buildWhatsAppOrderLink({
+      orderId: order.id,
+      customerName: order.customer_name || user?.name || "",
+      customerPhone: order.customer_phone || user?.phone || "",
+      items,
+      total: order.price_total,
+      address: order.delivery_address || "—",
+      timestamp: order.created_at,
+      paymentMethod: order.payment_method || "cash",
+      mpesaRef: order.mpesa_ref,
+    });
+  };
+
   const handleReorder = (order: OrderRecord) => {
     clearCart();
     const items = order.order_items && order.order_items.length > 0
@@ -160,6 +190,27 @@ export default function OrdersPage() {
         </div>
       ) : (
         <>
+          {/* WhatsApp reminder — shown whenever the customer has any orders */}
+          {orders.length > 0 && (
+            <div className="bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4 mb-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
+                  <MessageCircle size={20} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-text-primary mb-1">
+                    Important: Confirm your order on WhatsApp
+                  </p>
+                  <p className="text-text-secondary text-xs leading-relaxed">
+                    For every order, please take a screenshot (or use the <span className="font-semibold">Send to WhatsApp</span> button on the order below) and send it on WhatsApp to
+                    <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>
+                    . Your order details, name, timestamp and delivery address will be pre-filled so you can send right away.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Live Orders Section */}
           {liveOrders.length > 0 && (
             <div className="mb-5">
@@ -301,6 +352,19 @@ export default function OrdersPage() {
                         </div>
                       </div>
                     )}
+
+                    <a
+                      href={buildOrderWhatsAppLink(order)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full bg-[#25D366] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#1ebe5b] transition-colors mb-2"
+                    >
+                      <MessageCircle size={16} />
+                      Send Order to WhatsApp
+                    </a>
+                    <p className="text-[10px] text-text-secondary text-center mb-2">
+                      Important: send this (or a screenshot) to +{OWNER_WHATSAPP_NUMBER} to confirm your M-PESA payment.
+                    </p>
 
                     <Link
                       href={`/track?orderId=${order.id}`}
@@ -497,6 +561,15 @@ export default function OrdersPage() {
                         Re-order
                       </button>
                     </div>
+                    <a
+                      href={buildOrderWhatsAppLink(order)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 flex items-center justify-center gap-2 w-full bg-[#25D366] text-white rounded-xl py-2 text-xs font-semibold hover:bg-[#1ebe5b] transition-colors"
+                    >
+                      <MessageCircle size={14} />
+                      Send Order to WhatsApp
+                    </a>
                   </div>
                 );
               })}
