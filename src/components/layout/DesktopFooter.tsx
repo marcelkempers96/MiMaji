@@ -90,6 +90,7 @@ export default function DesktopFooter() {
             <div className="flex flex-col gap-2">
               <Link href="/about" className="text-white/60 text-sm hover:text-white transition-colors">About Us</Link>
               <Link href="/impact" className="text-white/60 text-sm hover:text-white transition-colors">Our Impact</Link>
+              <a href="http://mimaji.org/" target="_blank" rel="noopener noreferrer" className="text-white/60 text-sm hover:text-white transition-colors">MiMaji Foundation</a>
               <Link href="/vendors" className="text-white/60 text-sm hover:text-white transition-colors">Vendor Map</Link>
               <Link href="/water-guide" className="text-white/60 text-sm hover:text-white transition-colors">Water Guide</Link>
               <Link href="/blog" className="text-white/60 text-sm hover:text-white transition-colors">Blog</Link>
