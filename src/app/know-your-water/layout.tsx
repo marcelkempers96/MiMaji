@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { qrCodeBeforeAfterImpact } from "@/assets/images";
 
 export const metadata: Metadata = {
   title: "Know Your Water — Every Drop Verified | MiMaji",
@@ -11,6 +12,19 @@ export const metadata: Metadata = {
       "The only Nairobi water delivery with a Water Passport. Scan QR code for vendor, source, lab tests & KEBS status. Order verified water.",
     url: "/know-your-water",
     type: "website",
+    images: [
+      {
+        url: qrCodeBeforeAfterImpact.src,
+        alt: "Before and after impact of using the MiMaji QR code water verification tool",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Know Your Water — Every Drop Verified | MiMaji",
+    description:
+      "The only Nairobi water delivery with a Water Passport. Scan QR code for vendor, source, lab tests & KEBS status.",
+    images: [qrCodeBeforeAfterImpact.src],
   },
 };
 

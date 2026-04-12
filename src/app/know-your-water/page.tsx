@@ -1,6 +1,11 @@
 "use client";
 
-import { logo1 } from "@/assets/images";
+import {
+  logo1,
+  qrCodeBeforeAfterImpact,
+  qrCodeFunctionInfo,
+  qrCodeHowItWorks,
+} from "@/assets/images";
 import {
   ShieldCheck,
   QrCode,
@@ -48,6 +53,7 @@ function PageContent({ desktop }: { desktop?: boolean }) {
   return (
     <>
       <HeroSection desktop={desktop} />
+      <BeforeAfterImpact desktop={desktop} />
       <HowItWorks desktop={desktop} />
       <WaterPassport desktop={desktop} />
       <WhyWeBuiltThis desktop={desktop} />
@@ -91,6 +97,31 @@ function HeroSection({ desktop }: { desktop?: boolean }) {
   );
 }
 
+/* ─── Before / After Impact ─── */
+function BeforeAfterImpact({ desktop }: { desktop?: boolean }) {
+  return (
+    <div className="mb-8">
+      <h2 className={`font-extrabold text-text-primary mb-2 ${desktop ? "text-3xl" : "text-xl"}`}>
+        Before and After MiMaji
+      </h2>
+      <p className="text-text-secondary text-sm mb-5">
+        Before MiMaji, you trusted the label on the jug. After MiMaji, you see the vendor, the source, and the lab results &mdash; in seconds.
+      </p>
+      <figure className="bg-surface shadow-card rounded-2xl overflow-hidden">
+        <img
+          src={qrCodeBeforeAfterImpact.src}
+          alt="Before and after impact of using the MiMaji QR code water verification tool"
+          loading="lazy"
+          className="w-full object-cover"
+        />
+        <figcaption className="text-text-secondary text-xs italic text-center px-4 py-3">
+          The difference a single scan makes for every Nairobi household.
+        </figcaption>
+      </figure>
+    </div>
+  );
+}
+
 /* ─── How It Works ─── */
 function HowItWorks({ desktop }: { desktop?: boolean }) {
   const steps = [
@@ -128,6 +159,17 @@ function HowItWorks({ desktop }: { desktop?: boolean }) {
       <p className="text-text-secondary text-sm mb-6">
         We built something no other water delivery service in Nairobi offers: a way to verify your water before you drink it.
       </p>
+      <figure className="mb-6">
+        <img
+          src={qrCodeHowItWorks.src}
+          alt="Step by step diagram of how the MiMaji QR code works, from scan to Water Passport"
+          loading="lazy"
+          className="w-full rounded-2xl shadow-card object-cover"
+        />
+        <figcaption className="text-text-secondary text-xs italic text-center mt-2">
+          Scan, verify, drink &mdash; the three steps from sticker to certainty.
+        </figcaption>
+      </figure>
       <div className={`grid gap-4 ${desktop ? "grid-cols-2" : "grid-cols-1"}`}>
         {steps.map((step, i) => (
           <div
@@ -173,6 +215,19 @@ function WaterPassport({ desktop }: { desktop?: boolean }) {
       <p className="text-text-secondary text-sm mb-5">
         When you scan the QR code or tap into any order, you&apos;ll see a Water Passport with:
       </p>
+
+      {/* In-app screenshot */}
+      <figure className="mb-5">
+        <img
+          src={qrCodeFunctionInfo.src}
+          alt="MiMaji QR code Water Passport showing vendor, source, lab results, and KEBS certification inside the app"
+          loading="lazy"
+          className="w-full rounded-2xl shadow-card object-cover"
+        />
+        <figcaption className="text-text-secondary text-xs italic text-center mt-2">
+          The Water Passport as it appears inside the MiMaji app after a scan.
+        </figcaption>
+      </figure>
 
       {/* Water Passport Card */}
       <div className="bg-surface shadow-card rounded-2xl overflow-hidden">
