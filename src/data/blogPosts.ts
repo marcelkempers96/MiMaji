@@ -7,6 +7,7 @@ export interface BlogPost {
   readingTime: string;
   category: string;
   heroImage?: string;
+  heroImageAlt?: string;
   content: BlogSection[];
 }
 
@@ -14,9 +15,140 @@ export type BlogSection =
   | { type: "paragraph"; text: string }
   | { type: "heading"; text: string }
   | { type: "table"; headers: string[]; rows: string[][] }
-  | { type: "subheading"; text: string };
+  | { type: "subheading"; text: string }
+  | { type: "image"; src: string; alt: string; caption?: string };
 
 export const blogPosts: BlogPost[] = [
+  {
+    slug: "the-story-behind-the-mimaji-qr-code",
+    title: "The Story Behind the MiMaji QR Code: How a Sticker Became Your Water Passport",
+    excerpt:
+      "Every MiMaji jug carries a small square that changes everything. Here is the story of how the MiMaji QR code came about, what it actually does, and why it is quietly revolutionising the way Nairobi drinks water.",
+    author: "MiMaji Founding Team",
+    publishedDate: "April 2026",
+    readingTime: "8 min read",
+    category: "MiMaji Story",
+    heroImage: "/qrcode-before-and-after-impact-of-using-mimaji-tool.png",
+    heroImageAlt:
+      "Before and after the impact of using the MiMaji QR code water verification tool",
+    content: [
+      {
+        type: "paragraph",
+        text: "It started with a simple question that most Nairobi households ask at least once a week: \u201cWhere did this water actually come from?\u201d If you have ever bought a 20-litre jug from a random vendor on the roadside, or accepted a refill at the office without knowing the source, you already know how unsatisfying the answer usually is. A shrug. A guess. A brand name that may or may not be real. We built the MiMaji QR code because that shrug should not be the final answer for something you and your family drink every day.",
+      },
+      {
+        type: "image",
+        src: "/qrcode-before-and-after-impact-of-using-mimaji-tool.png",
+        alt: "Before and after showing the impact of using the MiMaji QR code tool",
+        caption:
+          "Before MiMaji: you trust the label. After MiMaji: you see the lab results, the vendor, and the source.",
+      },
+      {
+        type: "heading",
+        text: "How the Idea Came About",
+      },
+      {
+        type: "paragraph",
+        text: "The first version of MiMaji was not about QR codes at all. It was about delivery \u2014 getting clean, tested water to customers quickly and affordably. But very early on, a pattern emerged. Customers did not just want water delivered. They wanted proof. They wanted to know that the water inside the jug matched the promise on the outside. They would ask our riders questions like: \u201cWhich borehole did this come from?\u201d \u201cWhen was it filled?\u201d \u201cIs this really KEBS certified?\u201d",
+      },
+      {
+        type: "paragraph",
+        text: "We realised that trust cannot be verbal. In a market where counterfeit water is refilled into branded jugs and resold, verbal reassurance means very little. So we asked ourselves: what if every single jug carried its own unique digital identity? What if you could point your phone at a sticker and instantly see the complete journey of that water \u2014 the vendor, the source, the lab test results, the bottling date, and the KEBS status? That idea became the MiMaji QR code.",
+      },
+      {
+        type: "heading",
+        text: "What the QR Code Actually Does",
+      },
+      {
+        type: "paragraph",
+        text: "The MiMaji QR code is not a marketing gimmick. It is a full verification system printed on a sticker. When you scan it with your phone camera, a \u201cWater Passport\u201d opens inside the MiMaji app (or your browser) showing you everything we know about that specific jug:",
+      },
+      {
+        type: "image",
+        src: "/qr-code-function-information-shown-in-the-app.png",
+        alt:
+          "MiMaji QR code function showing water passport information inside the app",
+        caption:
+          "The Water Passport that appears after scanning a MiMaji QR code \u2014 vendor, source, test results, and certification.",
+      },
+      {
+        type: "subheading",
+        text: "The information shown includes:",
+      },
+      {
+        type: "paragraph",
+        text: "1. Vendor identity \u2014 the verified MiMaji partner who filled the jug, including their location and quality rating from other customers.",
+      },
+      {
+        type: "paragraph",
+        text: "2. Water source \u2014 the specific borehole, treatment plant, or approved source the water came from.",
+      },
+      {
+        type: "paragraph",
+        text: "3. Lab test results \u2014 pH, TDS (total dissolved solids), turbidity, bacterial counts, and any heavy metal testing relevant to the batch.",
+      },
+      {
+        type: "paragraph",
+        text: "4. KEBS certification status \u2014 whether the vendor holds a current KS EAS 153 certification and the last audit date.",
+      },
+      {
+        type: "paragraph",
+        text: "5. Bottling date and batch number \u2014 so you can see how fresh the water is and whether it has been stored correctly.",
+      },
+      {
+        type: "heading",
+        text: "How It Works, Step by Step",
+      },
+      {
+        type: "paragraph",
+        text: "The process is designed to be fast. You do not need to install anything special. You do not need to create an account to scan. You just need a phone camera and two seconds of your time.",
+      },
+      {
+        type: "image",
+        src: "/qr-code-how-it-works-step-by-step.png",
+        alt:
+          "Step by step diagram of how the MiMaji QR code works, from scan to Water Passport",
+        caption:
+          "Scan, verify, drink. The MiMaji QR code flow in three steps.",
+      },
+      {
+        type: "paragraph",
+        text: "Step 1: Find the sticker. Every MiMaji jug and bottle carries a branded QR sticker on the label. It is usually on the front near the cap.",
+      },
+      {
+        type: "paragraph",
+        text: "Step 2: Open your phone camera and point it at the code. Your phone will recognise it automatically and offer to open a link. Tap the link.",
+      },
+      {
+        type: "paragraph",
+        text: "Step 3: The Water Passport loads. You see the vendor, source, lab results, and certification. If anything looks wrong, you can report it directly from the same page and our quality team investigates within 24 hours.",
+      },
+      {
+        type: "heading",
+        text: "Why This Matters for Nairobi",
+      },
+      {
+        type: "paragraph",
+        text: "Nairobi has a water trust problem. The city\u2019s tap water is rationed and often contaminated after it leaves the treatment plant. Informal vendors sell refilled jugs with no testing. Even branded water is sometimes counterfeited. In that environment, a label on the jug is worth very little. What customers actually need is a way to verify, in real time, that the water they are about to drink is what the vendor claims it to be.",
+      },
+      {
+        type: "paragraph",
+        text: "The MiMaji QR code gives every Nairobi household that power. It turns a passive jug of water into an auditable, traceable product. It forces vendors to be honest because any customer can verify the claim in seconds. And it gives parents, office managers, and anyone responsible for the water their people drink a way to make informed decisions \u2014 not guesses.",
+      },
+      {
+        type: "heading",
+        text: "What Comes Next",
+      },
+      {
+        type: "paragraph",
+        text: "We are working on two big upgrades. First, a tamper-evident sticker that changes colour if the jug has been refilled by an unauthorised vendor. Second, an in-app community score where customers can rate their experience with each specific batch, so the MiMaji network becomes self-policing. The QR code started as a way to prove where the water came from. It is becoming a full-fledged trust layer for the Nairobi water market.",
+      },
+      {
+        type: "paragraph",
+        text: "If you have not scanned a MiMaji QR code yet, the easiest way to try it is to order your first jug. Every single delivery includes a sticker. Point your camera, see the Water Passport, and drink with confidence. That is the whole point.",
+      },
+    ],
+  },
   {
     slug: "is-nairobi-tap-water-safe-to-drink-2026",
     title: "Is Nairobi Tap Water Safe to Drink in 2026? What the Data Actually Says",
@@ -26,6 +158,8 @@ export const blogPosts: BlogPost[] = [
     publishedDate: "March 2026",
     readingTime: "12 min read",
     category: "Water Safety",
+    heroImage: "/blog1-nairobi-water.png",
+    heroImageAlt: "Nairobi tap water safety \u2014 a glass of water from a Nairobi tap",
     content: [
       {
         type: "paragraph",
@@ -205,6 +339,8 @@ export const blogPosts: BlogPost[] = [
     publishedDate: "March 2026",
     readingTime: "10 min read",
     category: "Water Pricing",
+    heroImage: "/blog2-nairobi-water-costs.png",
+    heroImageAlt: "The real cost of water in Nairobi \u2014 estate-by-estate price comparison",
     content: [
       {
         type: "paragraph",
@@ -362,6 +498,9 @@ export const blogPosts: BlogPost[] = [
     publishedDate: "March 2026",
     readingTime: "10 min read",
     category: "Guides",
+    heroImage: "/blog3-nairobi-water-delivery-options.png",
+    heroImageAlt:
+      "Nairobi water delivery options \u2014 boda boda, truck, and app-based delivery compared",
     content: [
       {
         type: "paragraph",
@@ -636,6 +775,9 @@ export const blogPosts: BlogPost[] = [
     publishedDate: "March 2026",
     readingTime: "10 min read",
     category: "Water Crisis",
+    heroImage: "/blog4-nairobi-water-crisis.png",
+    heroImageAlt:
+      "Nairobi 2026 water crisis \u2014 dry taps and affected estates across the city",
     content: [
       {
         type: "paragraph",
@@ -769,6 +911,9 @@ export const blogPosts: BlogPost[] = [
     publishedDate: "March 2026",
     readingTime: "11 min read",
     category: "Guides",
+    heroImage: "/blog5-nairobi-water-types.png",
+    heroImageAlt:
+      "Different types of 20-litre water jugs available for delivery in Nairobi",
     content: [
       {
         type: "paragraph",

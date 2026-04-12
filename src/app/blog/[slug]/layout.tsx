@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getBlogPost } from "@/data/blogPosts";
+import { images } from "@/assets/images";
 
 export async function generateMetadata({
   params,
@@ -19,6 +20,18 @@ export async function generateMetadata({
   const description =
     post.excerpt.length > 160 ? post.excerpt.slice(0, 157) + "..." : post.excerpt;
 
+  const resolvedHero = post.heroImage
+    ? images[post.heroImage]?.src ?? post.heroImage
+    : undefined;
+  const ogImages = resolvedHero
+    ? [
+        {
+          url: resolvedHero,
+          alt: post.heroImageAlt || post.title,
+        },
+      ]
+    : undefined;
+
   return {
     title: post.title,
     description,
@@ -31,11 +44,13 @@ export async function generateMetadata({
       publishedTime: post.publishedDate,
       authors: [post.author],
       tags: [post.category],
+      images: ogImages,
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description,
+      images: resolvedHero ? [resolvedHero] : undefined,
     },
   };
 }

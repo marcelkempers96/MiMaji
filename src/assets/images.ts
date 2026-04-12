@@ -25,6 +25,14 @@ import watermany from "./watermany.png";
 import watertruck from "./watertruck.png";
 import watertank from "./watertank.png";
 import watercleaning from "./watercleaning.png";
+import blog1NairobiWater from "./blog1-nairobi-water.png";
+import blog2NairobiWaterCosts from "./blog2-nairobi-water-costs.png";
+import blog3NairobiWaterDeliveryOptions from "./blog3-nairobi-water-delivery-options.png";
+import blog4NairobiWaterCrisis from "./blog4-nairobi-water-crisis.png";
+import blog5NairobiWaterTypes from "./blog5-nairobi-water-types.png";
+import qrCodeBeforeAfterImpact from "./qrcode-before-and-after-impact-of-using-mimaji-tool.png";
+import qrCodeFunctionInfo from "./qr-code-function-information-shown-in-the-app.png";
+import qrCodeHowItWorks from "./qr-code-how-it-works-step-by-step.png";
 
 export const images: Record<string, typeof logo1> = {
   "/logo1.png": logo1,
@@ -49,6 +57,14 @@ export const images: Record<string, typeof logo1> = {
   "/impactmain.png": impactMain,
   "/majimap.png": majimap,
   "/test1.png": test1,
+  "/blog1-nairobi-water.png": blog1NairobiWater,
+  "/blog2-nairobi-water-costs.png": blog2NairobiWaterCosts,
+  "/blog3-nairobi-water-delivery-options.png": blog3NairobiWaterDeliveryOptions,
+  "/blog4-nairobi-water-crisis.png": blog4NairobiWaterCrisis,
+  "/blog5-nairobi-water-types.png": blog5NairobiWaterTypes,
+  "/qrcode-before-and-after-impact-of-using-mimaji-tool.png": qrCodeBeforeAfterImpact,
+  "/qr-code-function-information-shown-in-the-app.png": qrCodeFunctionInfo,
+  "/qr-code-how-it-works-step-by-step.png": qrCodeHowItWorks,
 };
 
-export { logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, order1, mpesa1, dev1, warehouse, clean1, impactMain, majimap, test1, webicon, watermany, watertruck, watertank, watercleaning };
+export { logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, order1, mpesa1, dev1, warehouse, clean1, impactMain, majimap, test1, webicon, watermany, watertruck, watertank, watercleaning, blog1NairobiWater, blog2NairobiWaterCosts, blog3NairobiWaterDeliveryOptions, blog4NairobiWaterCrisis, blog5NairobiWaterTypes, qrCodeBeforeAfterImpact, qrCodeFunctionInfo, qrCodeHowItWorks };
