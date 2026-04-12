@@ -834,11 +834,11 @@ CREATE TRIGGER on_auth_user_created
 
 -- ────────────────────────────────────────────────────────
 -- 8. Seed admin user profile (if the admin account exists)
--- Run after admin has signed up with phone 254758434076
+-- Run after admin has signed up with phone 254704476338
 -- ────────────────────────────────────────────────────────
 -- This updates the admin's role when they exist:
 UPDATE profiles SET role = 'admin'
-WHERE phone = '254758434076' AND role != 'admin';
+WHERE phone = '254704476338' AND role != 'admin';
 -- Fix: "Database error saving new user"
 -- Root cause: phone column has UNIQUE + NOT NULL constraints.
 -- If the trigger inserts an empty phone, it can violate UNIQUE when multiple

@@ -492,14 +492,14 @@ export default function VendorPortalPage() {
     <div className="bg-surface shadow-card rounded-xl p-5">
       <h3 className="font-bold text-sm text-text-primary mb-4 flex items-center gap-2"><Headphones size={16} className="text-primary" /> Vendor Support</h3>
       <div className="space-y-3">
-        <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-[#E8F5E9] rounded-lg hover:bg-[#C8E6C9] transition-colors">
+        <a href="https://wa.me/254704476338" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-[#E8F5E9] rounded-lg hover:bg-[#C8E6C9] transition-colors">
           <MessageCircle size={18} className="text-[#25D366]" />
           <div>
             <p className="font-semibold text-sm text-text-primary">WhatsApp Support</p>
-            <p className="text-text-secondary text-xs">+254 758 434 076</p>
+            <p className="text-text-secondary text-xs">+254 704 476 338</p>
           </div>
         </a>
-        <a href="tel:+254758434076" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
+        <a href="tel:+254704476338" className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
           <Phone size={18} className="text-primary" />
           <div>
             <p className="font-semibold text-sm text-text-primary">Call Support</p>

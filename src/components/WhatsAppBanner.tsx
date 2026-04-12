@@ -1,6 +1,6 @@
 "use client";
 
-const WHATSAPP_LINK = "https://wa.me/254758434076";
+const WHATSAPP_LINK = "https://wa.me/254704476338";
 
 function WhatsAppIcon({ size = 24, className = "" }: { size?: number; className?: string }) {
   return (

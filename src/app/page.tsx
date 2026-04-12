@@ -386,13 +386,13 @@ function MobileFooter() {
 
       <div className="flex flex-col gap-2 mb-6">
         <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide">Contact Us</p>
-        <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:underline transition-colors">
+        <a href="https://wa.me/254704476338" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:underline transition-colors">
           <MessageCircle size={14} />
-          WhatsApp: +254 758 434 076
+          WhatsApp: +254 704 476 338
         </a>
-        <a href="tel:+254758434076" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+        <a href="tel:+254704476338" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Phone size={14} />
-          +254 758 434 076
+          +254 704 476 338
         </a>
         <a href="mailto:support@mimaji.co.ke" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Mail size={14} />
@@ -402,7 +402,7 @@ function MobileFooter() {
 
       <div className="bg-primary-light rounded-xl p-3 mb-4">
         <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide mb-1">M-PESA Payment</p>
-        <p className="text-text-primary text-sm">Send Money To: <span className="font-bold">0758434076</span></p>
+        <p className="text-text-primary text-sm">Send Money To: <span className="font-bold">0704476338</span></p>
         <p className="text-text-secondary text-xs mt-1">Paste your M-PESA confirmation code so we can track your order.</p>
       </div>
 

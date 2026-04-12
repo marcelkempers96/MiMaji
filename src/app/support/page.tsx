@@ -7,7 +7,7 @@ import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 
-const WHATSAPP_LINK = "https://wa.me/254758434076";
+const WHATSAPP_LINK = "https://wa.me/254704476338";
 
 const faqs = [
   {
@@ -81,7 +81,7 @@ export default function SupportPage() {
                   Chat on WhatsApp
                 </a>
                 <a
-                  href="tel:+254758434076"
+                  href="tel:+254704476338"
                   className="block w-full bg-primary text-white rounded-xl py-3 text-center font-semibold text-sm hover:bg-[#1a5a9a] transition-colors mb-3"
                 >
                   Call Us
@@ -118,7 +118,7 @@ function SupportContent() {
           </div>
           <div>
             <p className="font-bold text-base">Chat with us on WhatsApp</p>
-            <p className="text-white/80 text-sm">+254 758 434 076 — 24/7 Support</p>
+            <p className="text-white/80 text-sm">+254 704 476 338 — 24/7 Support</p>
           </div>
         </div>
       </a>
@@ -146,13 +146,13 @@ function SupportContent() {
       {/* Contact Methods */}
       <h2 className="font-bold text-base text-text-primary mb-3 md:hidden">Other Ways to Reach Us</h2>
       <div className="flex flex-col gap-3 mb-6 md:hidden">
-        <a href="tel:+254758434076" className="bg-surface shadow-card rounded-xl p-4 flex items-center gap-3">
+        <a href="tel:+254704476338" className="bg-surface shadow-card rounded-xl p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
             <Phone size={18} className="text-primary" />
           </div>
           <div className="flex-1">
             <p className="font-medium text-sm text-text-primary">Call Us</p>
-            <p className="text-text-secondary text-xs">+254 758 434 076</p>
+            <p className="text-text-secondary text-xs">+254 704 476 338</p>
           </div>
           <ChevronRight size={16} className="text-text-secondary" />
         </a>

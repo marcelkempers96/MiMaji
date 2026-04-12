@@ -20,7 +20,7 @@ const sections = [
   { title: "12. Modifications", body: "We may revise these Terms at any time. Material changes will be communicated via the Platform or by email. Your continued use of MiMaji after changes are posted constitutes acceptance of the revised Terms. We recommend reviewing this page periodically." },
   { title: "13. Governing Law & Disputes", body: "These Terms are governed by the laws of the Republic of Kenya. Any dispute arising under these Terms shall first be submitted to good-faith mediation. If mediation fails, the dispute shall be referred to the courts of Nairobi, Kenya, which shall have exclusive jurisdiction." },
   { title: "14. Severability", body: "If any provision of these Terms is found to be unenforceable, the remaining provisions shall continue in full force and effect." },
-  { title: "15. Contact", body: "MiMaji\nEmail: legal@mimaji.co.ke\nPhone: +254 758 434 076\nWebsite: www.mimaji.co.ke" },
+  { title: "15. Contact", body: "MiMaji\nEmail: legal@mimaji.co.ke\nPhone: +254 704 476 338\nWebsite: www.mimaji.co.ke" },
 ];
 
 export default function TermsPage() {

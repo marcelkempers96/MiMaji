@@ -1666,7 +1666,7 @@ function AdminDashboardInner() {
                   <div>
                     <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Phone Number *</label>
                     <input type="text" value={newSub.phone} onChange={(e) => setNewSub({ ...newSub, phone: e.target.value })}
-                      placeholder="e.g. 254758434076" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                      placeholder="e.g. 254704476338" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
                   </div>
                   <div>
                     <label className="text-xs text-text-secondary font-semibold uppercase tracking-wide mb-1 block">Jugs Per Month (2-20) *</label>
@@ -2170,12 +2170,12 @@ function AdminDashboardInner() {
             <p className="text-sm text-text-secondary mt-0.5">
               Customer support requests are handled via WhatsApp at{" "}
               <a
-                href="https://wa.me/254758434076"
+                href="https://wa.me/254704476338"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary font-medium hover:underline"
               >
-                +254 758 434 076
+                +254 704 476 338
               </a>
             </p>
           </div>

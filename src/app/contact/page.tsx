@@ -7,8 +7,8 @@ import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import Link from "next/link";
 
-const WHATSAPP_NUMBER = "+254758434076";
-const WHATSAPP_LINK = `https://wa.me/254758434076`;
+const WHATSAPP_NUMBER = "+254704476338";
+const WHATSAPP_LINK = `https://wa.me/254704476338`;
 
 export default function ContactPage() {
   return (
@@ -58,14 +58,14 @@ function ContactContent() {
         </div>
         <div>
           <p className="font-bold text-base">WhatsApp Us</p>
-          <p className="text-white/80 text-sm">+254 758 434 076</p>
+          <p className="text-white/80 text-sm">+254 704 476 338</p>
           <p className="text-white/60 text-xs mt-0.5">24/7 — Fastest response</p>
         </div>
       </a>
 
       {/* Phone */}
       <a
-        href="tel:+254758434076"
+        href="tel:+254704476338"
         className="bg-surface shadow-card rounded-xl p-5 flex items-center gap-4 hover:shadow-card-hover transition-shadow"
       >
         <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
@@ -73,7 +73,7 @@ function ContactContent() {
         </div>
         <div>
           <p className="font-bold text-sm text-text-primary">Call Us</p>
-          <p className="text-text-secondary text-sm">+254 758 434 076</p>
+          <p className="text-text-secondary text-sm">+254 704 476 338</p>
         </div>
       </a>
 

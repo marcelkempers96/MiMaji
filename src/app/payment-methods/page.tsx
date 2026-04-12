@@ -56,7 +56,7 @@ export default function PaymentMethodsPage() {
           </div>
           <div className="flex-1">
             <p className="font-bold text-sm text-text-primary">M-PESA / Cash on Delivery</p>
-            <p className="text-text-secondary text-sm">Send money to 0758434076</p>
+            <p className="text-text-secondary text-sm">Send money to 0704476338</p>
             <p className="text-text-secondary text-xs mt-0.5">Or pay cash to the driver on delivery</p>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function PaymentMethodsPage() {
       <div className="bg-[#FFF5EC] rounded-xl p-4 mt-5">
         <p className="text-text-primary text-sm font-semibold mb-1">About M-PESA Payments</p>
         <p className="text-text-secondary text-xs leading-relaxed">
-          We are in the process of getting a new till number. In the meantime, please send money to 0758434076 and paste your M-PESA payment confirmation code so we can track your order.
+          We are in the process of getting a new till number. In the meantime, please send money to 0704476338 and paste your M-PESA payment confirmation code so we can track your order.
         </p>
       </div>
 

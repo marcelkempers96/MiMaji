@@ -709,9 +709,9 @@ export default function ConfirmOrderPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-text-secondary">Send Money To</p>
-                  <p className="text-sm font-bold text-text-primary font-mono">0758434076</p>
+                  <p className="text-sm font-bold text-text-primary font-mono">0704476338</p>
                 </div>
-                <button onClick={() => { navigator.clipboard.writeText("0758434076"); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                <button onClick={() => { navigator.clipboard.writeText("0704476338"); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
                   <Copy size={12} /> Copy
                 </button>
               </div>
@@ -726,7 +726,7 @@ export default function ConfirmOrderPage() {
                 </button>
               </div>
             </div>
-            <p className="text-text-secondary text-[10px] mt-2">We are in the process of getting a new till number. In the meantime, send money to 0758434076 and paste your M-PESA confirmation code above.</p>
+            <p className="text-text-secondary text-[10px] mt-2">We are in the process of getting a new till number. In the meantime, send money to 0704476338 and paste your M-PESA confirmation code above.</p>
           </div>
 
           {/* Screenshot reminder */}
@@ -820,9 +820,9 @@ export default function ConfirmOrderPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-text-secondary">Send Money To</p>
-                    <p className="text-sm font-bold text-text-primary font-mono">0758434076</p>
+                    <p className="text-sm font-bold text-text-primary font-mono">0704476338</p>
                   </div>
-                  <button onClick={() => handleCopy("0758434076", "biz-confirm")} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                  <button onClick={() => handleCopy("0704476338", "biz-confirm")} className="text-primary text-[10px] font-semibold flex items-center gap-1">
                     <Copy size={12} /> Copy
                   </button>
                 </div>
@@ -835,7 +835,7 @@ export default function ConfirmOrderPage() {
                 </div>
               </div>
               <p className="text-text-secondary text-[10px] mt-2 text-center">
-                Send money to 0758434076 and paste your M-PESA confirmation code in My Orders.
+                Send money to 0704476338 and paste your M-PESA confirmation code in My Orders.
               </p>
             </div>
           )}
@@ -1249,11 +1249,11 @@ export default function ConfirmOrderPage() {
               <div className="mt-3 bg-[#E8F5E9] rounded-lg p-3">
                 <p className="text-[#2ECC71] text-xs font-bold mb-1">Pay via M-PESA (Send Money)</p>
                 <p className="text-text-primary text-xs">
-                  We are in the process of getting a new till number. In the meantime, please send money to <span className="font-bold">0758434076</span> and paste your M-PESA payment confirmation code here so we can track your order.
+                  We are in the process of getting a new till number. In the meantime, please send money to <span className="font-bold">0704476338</span> and paste your M-PESA payment confirmation code here so we can track your order.
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-sm font-bold text-text-primary font-mono bg-white px-3 py-1.5 rounded-lg">0758434076</span>
-                  <button onClick={() => handleCopy("0758434076", "phone")} className="flex items-center gap-1 bg-white text-primary px-3 py-1.5 rounded-lg text-xs font-semibold">
+                  <span className="text-sm font-bold text-text-primary font-mono bg-white px-3 py-1.5 rounded-lg">0704476338</span>
+                  <button onClick={() => handleCopy("0704476338", "phone")} className="flex items-center gap-1 bg-white text-primary px-3 py-1.5 rounded-lg text-xs font-semibold">
                     {copied === "phone" ? <CheckCircle2 size={14} /> : <Copy size={14} />}
                     {copied === "phone" ? "Copied!" : "Copy"}
                   </button>
