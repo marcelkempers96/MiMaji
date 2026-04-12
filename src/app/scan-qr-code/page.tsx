@@ -104,9 +104,28 @@ function PageContent({ desktop }: { desktop?: boolean }) {
         </div>
       </div>
 
+      {/* Before & After impact */}
+      <figure className="mb-6">
+        <img
+          src="/qrcode-before-and-after-impact-of-using-mimaji-tool.png"
+          alt="Before and after the impact of using the MiMaji QR code water verification tool"
+          loading="lazy"
+          className="w-full rounded-2xl shadow-card object-cover"
+        />
+        <figcaption className="text-text-secondary text-xs italic text-center mt-2">
+          Before MiMaji: you trust the label. After MiMaji: you see the lab results, the vendor, and the source.
+        </figcaption>
+      </figure>
+
       {/* How to Scan */}
       <div className="bg-surface shadow-card rounded-2xl p-5 md:p-6 mb-6">
         <h3 className="font-bold text-text-primary text-base md:text-lg mb-4">How scanning will work</h3>
+        <img
+          src="/qr-code-how-it-works-step-by-step.png"
+          alt="Step by step diagram of how the MiMaji QR code works, from scan to Water Passport"
+          loading="lazy"
+          className="w-full rounded-xl mb-5 object-cover"
+        />
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">
@@ -141,6 +160,30 @@ function PageContent({ desktop }: { desktop?: boolean }) {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* What the Water Passport shows */}
+      <div className="bg-surface shadow-card rounded-2xl p-5 md:p-6 mb-6">
+        <h3 className="font-bold text-text-primary text-base md:text-lg mb-3">What you&apos;ll see in the app</h3>
+        <p className="text-text-secondary text-sm mb-4">
+          After a scan, the MiMaji Water Passport opens and shows the vendor,
+          water source, lab test results, and KEBS certification for that
+          specific jug.
+        </p>
+        <img
+          src="/qr-code-function-information-shown-in-the-app.png"
+          alt="MiMaji QR code Water Passport showing vendor, source, lab results, and KEBS certification"
+          loading="lazy"
+          className="w-full rounded-xl object-cover"
+        />
+        <div className="mt-4 text-center">
+          <Link
+            href="/blog/the-story-behind-the-mimaji-qr-code"
+            className="inline-flex items-center gap-1 text-primary text-sm font-semibold hover:underline"
+          >
+            Read the full story of the MiMaji QR code &rarr;
+          </Link>
         </div>
       </div>
 

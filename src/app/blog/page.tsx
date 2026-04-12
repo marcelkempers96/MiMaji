@@ -45,6 +45,14 @@ function BlogList({ desktop }: { desktop?: boolean }) {
           href={`/blog/${post.slug}`}
           className="block bg-surface rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow"
         >
+          {post.heroImage && (
+            <img
+              src={post.heroImage}
+              alt={post.heroImageAlt || post.title}
+              loading="lazy"
+              className={`w-full object-cover ${desktop ? "h-56" : "h-44"}`}
+            />
+          )}
           <div className="p-5 md:p-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="inline-flex items-center gap-1 bg-primary-light text-primary text-xs font-semibold px-2.5 py-1 rounded-full">

@@ -61,7 +61,21 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
   );
 }
 
-function ArticleHeader({ post, desktop }: { post: { title: string; category: string; publishedDate: string; readingTime: string; author: string }; desktop?: boolean }) {
+function ArticleHeader({
+  post,
+  desktop,
+}: {
+  post: {
+    title: string;
+    category: string;
+    publishedDate: string;
+    readingTime: string;
+    author: string;
+    heroImage?: string;
+    heroImageAlt?: string;
+  };
+  desktop?: boolean;
+}) {
   return (
     <div className="mb-8">
       <div className="flex items-center gap-2 mb-4">
@@ -84,6 +98,13 @@ function ArticleHeader({ post, desktop }: { post: { title: string; category: str
           {post.readingTime}
         </span>
       </div>
+      {post.heroImage && (
+        <img
+          src={post.heroImage}
+          alt={post.heroImageAlt || post.title}
+          className={`w-full object-cover rounded-2xl shadow-card mt-6 ${desktop ? "max-h-[420px]" : "max-h-64"}`}
+        />
+      )}
     </div>
   );
 }
@@ -143,6 +164,22 @@ function ArticleBody({ sections, desktop }: { sections: BlogSection[]; desktop?:
                   </tbody>
                 </table>
               </div>
+            );
+          case "image":
+            return (
+              <figure key={i} className="my-6">
+                <img
+                  src={section.src}
+                  alt={section.alt}
+                  loading="lazy"
+                  className="w-full rounded-2xl shadow-card object-cover"
+                />
+                {section.caption && (
+                  <figcaption className="text-text-secondary text-xs italic text-center mt-2">
+                    {section.caption}
+                  </figcaption>
+                )}
+              </figure>
             );
           default:
             return null;

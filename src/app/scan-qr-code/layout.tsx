@@ -11,6 +11,19 @@ export const metadata: Metadata = {
       "Scan a MiMaji bottle's QR code to see its source, lab results, and KEBS status. Order your first 20L jug today.",
     url: "/scan-qr-code",
     type: "website",
+    images: [
+      {
+        url: "/qrcode-before-and-after-impact-of-using-mimaji-tool.png",
+        alt: "Before and after impact of using the MiMaji QR code water verification tool",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Scan QR Code — Verify Your Water | MiMaji",
+    description:
+      "Scan a MiMaji bottle's QR code to see its source, lab results, and KEBS status.",
+    images: ["/qrcode-before-and-after-impact-of-using-mimaji-tool.png"],
   },
 };
 

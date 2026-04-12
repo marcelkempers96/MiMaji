@@ -19,6 +19,15 @@ export async function generateMetadata({
   const description =
     post.excerpt.length > 160 ? post.excerpt.slice(0, 157) + "..." : post.excerpt;
 
+  const ogImages = post.heroImage
+    ? [
+        {
+          url: post.heroImage,
+          alt: post.heroImageAlt || post.title,
+        },
+      ]
+    : undefined;
+
   return {
     title: post.title,
     description,
@@ -31,11 +40,13 @@ export async function generateMetadata({
       publishedTime: post.publishedDate,
       authors: [post.author],
       tags: [post.category],
+      images: ogImages,
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description,
+      images: post.heroImage ? [post.heroImage] : undefined,
     },
   };
 }
