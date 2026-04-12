@@ -1,7 +1,7 @@
 "use client";
 
 import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
-import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2 } from "lucide-react";
+import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2, QrCode } from "lucide-react";
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
@@ -234,6 +234,39 @@ export default function HomePage() {
           </div>
         </Link>
 
+        {/* Know Your Water - QR Code System */}
+        <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-xl overflow-hidden mb-3 relative">
+          <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
+            <QrCode size={120} className="text-white" />
+          </div>
+          <div className="p-4 relative z-10">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="bg-white/20 rounded-full px-2 py-0.5">
+                <span className="text-white text-[10px] font-bold uppercase tracking-wide">New</span>
+              </div>
+              <p className="font-bold text-sm text-white">Know Your Water</p>
+            </div>
+            <p className="text-white/80 text-xs mb-3">
+              Scan the QR code on any MiMaji bottle to see where your water comes from, lab test results, and verification status. Every drop, verified.
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/scan-qr-code"
+                className="inline-flex items-center gap-1 bg-white text-primary text-xs font-bold rounded-full px-3 py-1.5"
+              >
+                <QrCode size={12} />
+                Scan QR Code
+              </Link>
+              <Link
+                href="/know-your-water"
+                className="inline-flex items-center gap-1 text-white text-xs font-semibold"
+              >
+                Learn more →
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* Impact */}
         <h2 className="text-base font-bold text-text-primary mb-3">Impact</h2>
         <Link href="/impact">
@@ -309,6 +342,14 @@ function MobileFooter() {
         <Link href="/water-guide" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <Droplets size={16} />
           Water Guide
+        </Link>
+        <Link href="/know-your-water" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+          <Shield size={16} />
+          Know Your Water
+        </Link>
+        <Link href="/scan-qr-code" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
+          <QrCode size={16} />
+          Scan QR Code
         </Link>
         <Link href="/blog" className="flex items-center gap-2 text-text-secondary text-sm hover:text-primary transition-colors">
           <FileText size={16} />
@@ -620,6 +661,77 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
             </div>
           </div>
         </Link>
+      </section>
+
+      {/* Know Your Water - QR Code System Banner */}
+      <section className="max-w-6xl mx-auto px-8 pb-14">
+        <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl overflow-hidden flex items-stretch relative">
+          <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
+            <QrCode size={300} className="text-white" />
+          </div>
+          <div className="flex-1 p-10 relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-white/20 rounded-full px-3 py-1">
+                <span className="text-white text-xs font-bold uppercase tracking-wide">New</span>
+              </div>
+              <h2 className="text-2xl font-extrabold text-white">Know Your Water</h2>
+            </div>
+            <p className="text-white/80 text-base mb-5 max-w-lg">
+              Scan the QR code on any MiMaji bottle to see where your water comes from, lab test results, and verification status. Every drop, verified — no other water delivery service in Nairobi shows you this.
+            </p>
+            <div className="flex items-center gap-4 flex-wrap">
+              <Link
+                href="/scan-qr-code"
+                className="inline-flex items-center gap-2 bg-white text-primary font-bold rounded-full px-6 py-3 text-sm hover:bg-white/90 transition-colors"
+              >
+                <QrCode size={16} />
+                Scan QR Code
+              </Link>
+              <Link
+                href="/know-your-water"
+                className="text-white/90 text-sm font-semibold hover:text-white transition-colors"
+              >
+                Learn how it works →
+              </Link>
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center min-h-[240px] p-8 relative z-10">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xs">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-[#E0E0E0]">
+                <div className="flex items-center gap-2">
+                  <Droplets size={18} className="text-primary" />
+                  <span className="font-bold text-sm text-text-primary">Water Passport</span>
+                </div>
+                <span className="inline-flex items-center gap-1 bg-[#2ECC71] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                  <CheckCircle2 size={10} />
+                  Verified
+                </span>
+              </div>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Vendor</span>
+                  <span className="font-semibold text-text-primary">Chema Waters</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Source</span>
+                  <span className="font-semibold text-text-primary">Borehole – Ruiru</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">TDS</span>
+                  <span className="font-semibold text-[#2ECC71]">180 ppm ✓</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">pH</span>
+                  <span className="font-semibold text-[#2ECC71]">7.2 ✓</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">KEBS</span>
+                  <span className="font-semibold text-[#2ECC71]">Verified ✓</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Impact Section */}

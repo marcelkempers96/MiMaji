@@ -4,11 +4,71 @@ import Providers from "@/context/Providers";
 import AppShell from "@/components/layout/AppShell";
 import "./globals.css";
 
+const SITE_URL = "https://www.mimaji.co.ke";
+
 export const metadata: Metadata = {
-  title: "MiMaji — Water Delivery",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "MiMaji — Clean Water Delivery in Nairobi | Order 20L Jugs via M-Pesa",
+    template: "%s | MiMaji",
+  },
   description:
-    "Order water delivered to your door in Nairobi. Pay with M-Pesa. Fast, reliable, local.",
-  keywords: ["water delivery", "Nairobi", "M-Pesa", "20L jugs", "MiMaji"],
+    "Order KEBS-certified clean water delivered to your door in Nairobi. 20L jugs, transparent pricing, M-Pesa payment, GPS-tracked delivery. Every bottle verified with a Water Passport.",
+  keywords: [
+    "water delivery Nairobi",
+    "clean water Nairobi",
+    "20L water jug delivery",
+    "M-Pesa water delivery",
+    "KEBS certified water",
+    "drinking water Nairobi",
+    "water vendor Nairobi",
+    "MiMaji",
+    "water bottle delivery",
+    "purified water delivery",
+  ],
+  authors: [{ name: "MiMaji" }],
+  creator: "MiMaji",
+  publisher: "MiMaji",
+  applicationName: "MiMaji",
+  category: "Water Delivery",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_KE",
+    url: SITE_URL,
+    siteName: "MiMaji",
+    title: "MiMaji — Clean Water Delivery in Nairobi | Order 20L Jugs via M-Pesa",
+    description:
+      "Order KEBS-certified clean water delivered to your door in Nairobi. 20L jugs, transparent pricing, M-Pesa payment, GPS-tracked delivery. Every bottle verified.",
+    images: [
+      {
+        url: "/logo1.png",
+        width: 1200,
+        height: 630,
+        alt: "MiMaji — Clean Water Delivery in Nairobi",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MiMaji — Clean Water Delivery in Nairobi",
+    description:
+      "KEBS-certified water delivered to your door. 20L jugs. M-Pesa payment. GPS tracking. Every bottle verified.",
+    images: ["/logo1.png"],
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

@@ -75,6 +75,8 @@ export default function DesktopFooter() {
             <div className="flex flex-col gap-2">
               <Link href="/buy" className="text-white/60 text-sm hover:text-white transition-colors">Order Water</Link>
               <Link href="/products" className="text-white/60 text-sm hover:text-white transition-colors">Our Products</Link>
+              <Link href="/know-your-water" className="text-white/60 text-sm hover:text-white transition-colors">Know Your Water</Link>
+              <Link href="/scan-qr-code" className="text-white/60 text-sm hover:text-white transition-colors">Scan QR Code</Link>
               <Link href="/orders" className="text-white/60 text-sm hover:text-white transition-colors">My Orders</Link>
               <Link href="/subscriptions" className="text-white/60 text-sm hover:text-white transition-colors">Subscriptions</Link>
               <Link href="/rewards" className="text-white/60 text-sm hover:text-white transition-colors">Water Warriors Rewards</Link>
