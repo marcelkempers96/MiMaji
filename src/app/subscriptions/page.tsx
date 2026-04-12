@@ -142,7 +142,7 @@ export default function SubscriptionsPage() {
       (user ? `Name: ${user.name}\nPhone: ${user.phone}\n\n` : "") +
       `Please activate my subscription.`
     );
-    window.open(`https://wa.me/254758434076?text=${msg}`, "_blank");
+    window.open(`https://wa.me/254704476338?text=${msg}`, "_blank");
   };
 
   return (
@@ -396,7 +396,7 @@ function SubscriptionContent({ selectedPlan, setSelectedPlan, onSubscribe, subsc
           ))}
         </div>
         <a
-          href="https://wa.me/254758434076"
+          href="https://wa.me/254704476338"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 bg-[#F5A623] text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-[#e09520] transition-colors"

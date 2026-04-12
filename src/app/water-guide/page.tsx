@@ -463,8 +463,8 @@ function WaterGuideContent() {
         <p className="text-white/80 text-sm mb-4">Download the app at mimaji.co.ke</p>
         <p className="text-white/60 text-xs">
           Questions? WhatsApp{" "}
-          <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="text-[#25D366] font-semibold hover:underline">
-            +254 758 434 076
+          <a href="https://wa.me/254704476338" target="_blank" rel="noopener noreferrer" className="text-[#25D366] font-semibold hover:underline">
+            +254 704 476 338
           </a>
         </p>
       </div>

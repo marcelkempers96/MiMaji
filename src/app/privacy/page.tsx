@@ -17,7 +17,7 @@ const sections = [
   { title: "9. Age Restriction", body: "MiMaji is not designed for use by persons under the age of eighteen (18). We do not knowingly collect personal data from minors. If we become aware that a minor has provided us with personal data, we will take steps to delete that information." },
   { title: "10. External Links", body: "The Platform may contain links to third-party websites or services. We are not responsible for the privacy practices or content of those external sites. We encourage you to review the privacy policies of any site you visit." },
   { title: "11. Changes to This Policy", body: "We may update this Privacy Policy from time to time. When we make material changes, we will notify you by posting the revised policy on the Platform and updating the \u201cLast updated\u201d date. Continued use after such changes constitutes acceptance." },
-  { title: "12. Contact the Data Controller", body: "MiMaji\nEmail: privacy@mimaji.co.ke\nPhone: +254 758 434 076\nWebsite: www.mimaji.co.ke" },
+  { title: "12. Contact the Data Controller", body: "MiMaji\nEmail: privacy@mimaji.co.ke\nPhone: +254 704 476 338\nWebsite: www.mimaji.co.ke" },
 ];
 
 export default function PrivacyPage() {

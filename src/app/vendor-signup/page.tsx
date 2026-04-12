@@ -50,7 +50,7 @@ function VendorContent({ desktop }: { desktop?: boolean }) {
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <a
-              href="https://wa.me/254758434076?text=Hi%20MiMaji!%20I%20am%20interested%20in%20becoming%20a%20vendor%20partner."
+              href="https://wa.me/254704476338?text=Hi%20MiMaji!%20I%20am%20interested%20in%20becoming%20a%20vendor%20partner."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl px-6 py-3 font-semibold text-sm hover:bg-[#1fb855] transition-colors"
@@ -138,7 +138,7 @@ function VendorContent({ desktop }: { desktop?: boolean }) {
 
           <div className="flex flex-col gap-3">
             <a
-              href="https://wa.me/254758434076?text=Hi%20MiMaji!%20I%20would%20like%20to%20become%20a%20vendor%20partner.%0A%0A1.%20Business%20name:%0A2.%20Contact%20person%20%2B%20phone:%0A3.%20Email:%0A4.%20Location%20%2F%20delivery%20areas:%0A5.%20Products%20%2B%20prices:%0A6.%20M-Pesa%20number:%0A7.%20Business%20registration:%0A8.%20Special%20requests:"
+              href="https://wa.me/254704476338?text=Hi%20MiMaji!%20I%20would%20like%20to%20become%20a%20vendor%20partner.%0A%0A1.%20Business%20name:%0A2.%20Contact%20person%20%2B%20phone:%0A3.%20Email:%0A4.%20Location%20%2F%20delivery%20areas:%0A5.%20Products%20%2B%20prices:%0A6.%20M-Pesa%20number:%0A7.%20Business%20registration:%0A8.%20Special%20requests:"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl py-3.5 font-semibold text-sm hover:bg-[#1fb855] transition-colors"

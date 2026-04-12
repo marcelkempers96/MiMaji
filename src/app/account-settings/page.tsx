@@ -328,7 +328,7 @@ export default function AccountSettingsPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs text-text-secondary">Send Money To</span>
-              <span className="text-sm font-bold text-text-primary font-mono">0758434076</span>
+              <span className="text-sm font-bold text-text-primary font-mono">0704476338</span>
             </div>
           </div>
           <p className="text-text-secondary text-[10px] mt-2">Paste your M-PESA confirmation code so we can track your order.</p>

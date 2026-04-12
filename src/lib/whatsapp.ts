@@ -11,15 +11,15 @@
  * embeds fallback credentials and should only run inside API routes.
  *
  * Env var overrides (optional):
- *   - OWNER_WHATSAPP_PHONE   e.g. "254758434076" (international, no "+")
+ *   - OWNER_WHATSAPP_PHONE   e.g. "254704476338" (international, no "+")
  *   - CALLMEBOT_API_KEY      the key CallMeBot sent via WhatsApp
  */
 import { createServiceClient } from "@/lib/supabase";
 
 // Fallback values are the values the owner activated on 2026-04-08.
-// They only allow messages to 254758434076, so exposing them is low-risk,
+// They only allow messages to 254704476338, so exposing them is low-risk,
 // but env vars take precedence if set (for rotation).
-const OWNER_PHONE = process.env.OWNER_WHATSAPP_PHONE || "254758434076";
+const OWNER_PHONE = process.env.OWNER_WHATSAPP_PHONE || "254704476338";
 const CALLMEBOT_API_KEY = process.env.CALLMEBOT_API_KEY || "2398280";
 
 /**

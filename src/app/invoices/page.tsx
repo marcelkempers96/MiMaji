@@ -130,7 +130,7 @@ export default function InvoicesPage() {
     <div class="logo-section">
       <h1>MiMaji</h1>
       <p>Water Delivery — Nairobi</p>
-      <p>support@mimaji.co.ke | +254 758 434 076</p>
+      <p>support@mimaji.co.ke | +254 704 476 338</p>
     </div>
     <div class="invoice-info">
       <h2>Invoice</h2>
@@ -149,7 +149,7 @@ export default function InvoicesPage() {
       <h3>From</h3>
       <p><strong>MiMaji Ltd</strong></p>
       <p>Nairobi, Kenya</p>
-      <p>M-PESA: 0758434076</p>
+      <p>M-PESA: 0704476338</p>
     </div>
   </div>
   <table>

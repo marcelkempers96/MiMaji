@@ -217,7 +217,7 @@ function CorporateContent({ user, desktop }: { user: { name: string; phone: stri
               Order a Water Tank
             </Link>
             <a
-              href="https://wa.me/254758434076?text=Hi%20MiMaji%2C%20I%27m%20interested%20in%20ordering%20a%20water%20tank.%20Can%20you%20share%20available%20sizes%20and%20pricing%3F"
+              href="https://wa.me/254704476338?text=Hi%20MiMaji%2C%20I%27m%20interested%20in%20ordering%20a%20water%20tank.%20Can%20you%20share%20available%20sizes%20and%20pricing%3F"
               target="_blank"
               rel="noopener noreferrer"
               className={`inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1fb855] text-white font-bold rounded-full transition-colors ${desktop ? "px-8 py-4 text-base" : "px-6 py-3 text-sm"}`}
@@ -264,11 +264,11 @@ function CorporateContent({ user, desktop }: { user: { name: string; phone: stri
           </Link>
         </div>
         <div className={`flex ${desktop ? "items-center gap-6" : "flex-col gap-2"} mt-6 pt-4 border-t border-white/20`}>
-          <a href="https://wa.me/254758434076" target="_blank" rel="noopener noreferrer" className="text-[#25D366] text-sm font-semibold flex items-center gap-2 hover:underline">
-            <MessageCircle size={16} /> WhatsApp: +254 758 434 076
+          <a href="https://wa.me/254704476338" target="_blank" rel="noopener noreferrer" className="text-[#25D366] text-sm font-semibold flex items-center gap-2 hover:underline">
+            <MessageCircle size={16} /> WhatsApp: +254 704 476 338
           </a>
-          <a href="tel:+254758434076" className="text-white/70 text-sm flex items-center gap-2 hover:text-white transition-colors">
-            <Phone size={16} /> +254 758 434 076
+          <a href="tel:+254704476338" className="text-white/70 text-sm flex items-center gap-2 hover:text-white transition-colors">
+            <Phone size={16} /> +254 704 476 338
           </a>
           <a href="mailto:support@mimaji.co.ke" className="text-white/70 text-sm flex items-center gap-2 hover:text-white transition-colors">
             <Mail size={16} /> support@mimaji.co.ke

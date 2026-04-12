@@ -198,7 +198,7 @@ function ProductsContent({ desktop }: { desktop?: boolean }) {
                 ))}
               </div>
               <a
-                href="https://wa.me/254758434076"
+                href="https://wa.me/254704476338"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-[#F5A623] text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-[#e09520] transition-colors"
@@ -239,7 +239,7 @@ function ProductsContent({ desktop }: { desktop?: boolean }) {
                 ))}
               </div>
               <a
-                href="https://wa.me/254758434076"
+                href="https://wa.me/254704476338"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-primary text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors"
@@ -280,7 +280,7 @@ function ProductsContent({ desktop }: { desktop?: boolean }) {
                 ))}
               </div>
               <a
-                href="https://wa.me/254758434076"
+                href="https://wa.me/254704476338"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-[#2ECC71] text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-[#27ae60] transition-colors"
