@@ -30,9 +30,9 @@ import blog2NairobiWaterCosts from "./blog2-nairobi-water-costs.png";
 import blog3NairobiWaterDeliveryOptions from "./blog3-nairobi-water-delivery-options.png";
 import blog4NairobiWaterCrisis from "./blog4-nairobi-water-crisis.png";
 import blog5NairobiWaterTypes from "./blog5-nairobi-water-types.png";
-import qrCodeBeforeAfterImpact from "./qrcode-before-and-after-impact-of-using-mimaji-tool.png";
-import qrCodeFunctionInfo from "./qr-code-function-information-shown-in-the-app.png";
-import qrCodeHowItWorks from "./qr-code-how-it-works-step-by-step.png";
+import qrCodeBeforeAfterImpact from "./qrcode-before-and-after-impact-of-using-mimaji-tool copy.png";
+import qrCodeFunctionInfo from "./qr-code-function-information-shown-in-the-app copy.png";
+import qrCodeHowItWorks from "./qr-code-how-it-works-step-by-step copy.png";
 
 export const images: Record<string, typeof logo1> = {
   "/logo1.png": logo1,
