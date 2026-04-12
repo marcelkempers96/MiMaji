@@ -67,15 +67,16 @@ export async function POST(req: NextRequest) {
           console.error("Error auto-assigning vendor:", e);
         }
 
-        // Notify the owner on WhatsApp that a paid order just came in.
+        // Notify the owner + assigned vendor that a paid order just came in.
+        // Fans out across SMS, in-app, Telegram and (best-effort) WhatsApp.
         // Fire-and-forget — never block or fail the callback on notification issues.
         try {
-          const { notifyOwnerOfNewOrder } = await import("@/lib/whatsapp");
-          notifyOwnerOfNewOrder(payment.order_id).catch((e) =>
-            console.error("Owner WhatsApp notification failed:", e)
+          const { notifyNewOrder } = await import("@/lib/notifications");
+          notifyNewOrder(payment.order_id).catch((e) =>
+            console.error("New-order notification failed:", e)
           );
         } catch (e) {
-          console.error("Error triggering owner WhatsApp notification:", e);
+          console.error("Error triggering new-order notification:", e);
         }
       }
     } else {

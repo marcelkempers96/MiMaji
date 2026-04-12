@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { notifyOwnerOfNewOrder } from "@/lib/whatsapp";
+import { notifyNewOrder } from "@/lib/notifications";
 
 /**
  * POST /api/notify-new-order
  * Body: { orderId: string }
  *
- * Sends a WhatsApp notification to the owner for the given order via
- * CallMeBot. Used by the client after creating a cash or manual-M-PESA
- * order (STK Push orders are notified server-side from the M-PESA callback).
+ * Fans out a new-order notification across every configured channel
+ * (SMS → owner + assigned vendor, in-app row for the vendor portal,
+ * Telegram to owner, and a best-effort WhatsApp fallback). Used by the
+ * client after creating a cash or manual-M-PESA order (STK Push orders
+ * are notified server-side from the M-PESA callback).
  *
- * Fire-and-forget: the endpoint responds OK even if CallMeBot is slow or
- * fails, so notification issues never block the order flow.
+ * Fire-and-forget: the endpoint responds OK even if an individual channel
+ * is slow or fails, so notification issues never block the order flow.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Don't await — respond immediately so the client isn't blocked
-    notifyOwnerOfNewOrder(orderId).catch((e) =>
+    notifyNewOrder(orderId).catch((e) =>
       console.error("[notify-new-order] background error:", e)
     );
 
