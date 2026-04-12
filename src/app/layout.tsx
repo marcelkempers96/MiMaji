@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import Providers from "@/context/Providers";
 import AppShell from "@/components/layout/AppShell";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import "./globals.css";
 
 const SITE_URL = "https://www.mimaji.co.ke";
@@ -120,6 +121,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased bg-background text-text-primary">
+        <GoogleAnalytics />
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>
