@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound, Calendar, Gift, Info } from "lucide-react";
+import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound, Calendar, Gift, Info, MessageCircle, Camera } from "lucide-react";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -13,6 +13,7 @@ import { createOrder, formatOrderId, generateDeliveryCode, DeliveryAddressDetail
 import { assignOrderToVendor } from "@/lib/vendor";
 import { processOrderRewards, getRewardsSummaryAsync, useFreeLitresAsync } from "@/lib/rewards";
 import { getProductImage, products } from "@/data/products";
+import { buildWhatsAppOrderLink, OWNER_WHATSAPP_NUMBER } from "@/lib/whatsappShare";
 
 // ── Discount tier logic (same as cart page) ──
 const DISCOUNT_TIERS = [
@@ -101,7 +102,7 @@ export default function ConfirmOrderPage() {
   const { items, totalItems, deliveryFee, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mpesa-app");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   // Restore payment status from sessionStorage (survives app-switching on mobile)
   const [paymentStatus, setPaymentStatusRaw] = useState<"idle" | "loading" | "awaiting_code" | "awaiting_stk" | "confirmed" | "error">(() => {
     try {
@@ -936,6 +937,48 @@ export default function ConfirmOrderPage() {
             </p>
           </div>
 
+          {/* IMPORTANT: Send order confirmation on WhatsApp */}
+          <div className="bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
+                <MessageCircle size={20} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-text-primary mb-1">
+                  Important: Send order to WhatsApp
+                </p>
+                <p className="text-text-secondary text-xs leading-relaxed">
+                  Please take a screenshot of this confirmation (or use the button below, which copies
+                  your order details) and send it to MiMaji on WhatsApp at
+                  <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>
+                  . This confirms your M-PESA payment so we can dispatch your water.
+                </p>
+              </div>
+            </div>
+            <a
+              href={buildWhatsAppOrderLink({
+                orderId: order.orderId,
+                customerName: user?.name || "",
+                customerPhone: user?.phone || "",
+                items: order.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+                total: order.total,
+                address: order.address,
+                timestamp: new Date(),
+                paymentMethod: order.paymentMethod,
+                mpesaRef: order.mpesaRef,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl py-3 font-semibold text-sm hover:bg-[#1ebe5b] transition-colors"
+            >
+              <MessageCircle size={18} />
+              Send Order to WhatsApp
+            </a>
+            <p className="text-[10px] text-text-secondary text-center mt-2">
+              Opens WhatsApp with your name, order, timestamp &amp; delivery address pre-filled.
+            </p>
+          </div>
+
           {/* Track Order Button */}
           <Link href={`/track?orderId=${order.orderId}`}>
             <div className="w-full bg-primary text-white rounded-xl py-3.5 font-semibold text-sm text-center flex items-center justify-center gap-2 hover:bg-[#1a5a9a] transition-colors">
@@ -1186,33 +1229,7 @@ export default function ConfirmOrderPage() {
           {/* Payment Method Selection */}
           <h3 className="font-bold text-sm text-text-primary mb-3">Payment Method</h3>
 
-          {/* Option 1: STK Push — CROSSED OUT */}
-          <div
-            className="w-full flex items-center gap-3 rounded-xl p-4 mb-3 bg-gray-100 border-2 border-transparent opacity-40 cursor-not-allowed relative"
-          >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-200">
-              <Smartphone size={20} className="text-text-secondary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-text-secondary line-through">M-PESA (STK Push)</p>
-              <p className="text-text-secondary text-xs">Not available</p>
-            </div>
-          </div>
-
-          {/* Option 2: Pay via M-PESA App — CROSSED OUT */}
-          <div
-            className="w-full flex items-center gap-3 rounded-xl p-4 mb-3 bg-gray-100 border-2 border-transparent opacity-40 cursor-not-allowed relative"
-          >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-200">
-              <Smartphone size={20} className="text-text-secondary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-text-secondary line-through">Pay via M-PESA App (Paybill)</p>
-              <p className="text-text-secondary text-xs">Not available</p>
-            </div>
-          </div>
-
-          {/* Option 3: M-PESA / Cash on Delivery — ONLY SELECTABLE OPTION */}
+          {/* M-PESA / Cash on Delivery — the only available option */}
           <button
             onClick={() => setPaymentMethod("cash")}
             className={`w-full flex items-center gap-3 rounded-xl p-4 mb-4 transition-all text-left ${
@@ -1272,6 +1289,31 @@ export default function ConfirmOrderPage() {
             </div>
           )}
 
+
+          {/* WhatsApp reminder — shown before confirming */}
+          <div className="mt-4 bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
+                <MessageCircle size={20} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-text-primary mb-1">
+                  Important: Confirm on WhatsApp
+                </p>
+                <p className="text-text-secondary text-xs leading-relaxed mb-2">
+                  After you place this order, please take a screenshot (or copy &amp; paste the order details) and send it on WhatsApp to
+                  <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>.
+                  A &quot;Send to WhatsApp&quot; button will appear on the confirmation screen and in
+                  <Link href="/orders" className="text-primary font-semibold underline mx-1">My Orders</Link>
+                  with a ready-to-send message.
+                </p>
+                <div className="flex items-center gap-2 text-[11px] text-text-secondary">
+                  <Camera size={12} className="text-[#2ECC71]" />
+                  <span>Screenshot this page now if you&apos;d like a paper trail.</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Error Message */}
           {paymentStatus === "error" && (
