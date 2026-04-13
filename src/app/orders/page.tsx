@@ -192,22 +192,21 @@ export default function OrdersPage() {
         <>
           {/* WhatsApp reminder — shown whenever the customer has any orders */}
           {orders.length > 0 && (
-            <div className="bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4 mb-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
-                  <MessageCircle size={20} className="text-white" />
+            <div className="bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-2xl p-5 mb-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
+                  <MessageCircle size={24} className="text-white" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-text-primary mb-1">
-                    Important: Confirm your order on WhatsApp
-                  </p>
-                  <p className="text-text-secondary text-xs leading-relaxed">
-                    Tap the <span className="font-semibold">Confirm Order by WhatsApp</span> button on any order to send it to MiMaji at
-                    <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>
-                    . Your order details, name, timestamp and delivery address are pre-filled so you can send right away.
-                  </p>
-                </div>
+                <p className="text-lg md:text-xl font-extrabold text-text-primary leading-tight">
+                  Send your order on WhatsApp
+                </p>
               </div>
+              <p className="text-text-primary text-base md:text-lg font-semibold leading-snug mb-2">
+                Tap the green <span className="text-[#2ECC71]">&ldquo;Confirm Order by WhatsApp&rdquo;</span> button below.
+              </p>
+              <p className="text-text-secondary text-sm md:text-base leading-relaxed">
+                That&apos;s it — one tap sends your order straight to MiMaji on WhatsApp so we can start preparing your water.
+              </p>
             </div>
           )}
 
@@ -272,7 +271,7 @@ export default function OrdersPage() {
                           <span className="text-text-secondary text-xs">
                             {order.payment_method === "stk-push" ? "M-PESA STK Push" :
                              order.payment_method === "mpesa-app" ? "M-PESA App" :
-                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             order.payment_method === "cash" ? "M-PESA / Cash on Delivery" :
                              "M-PESA"}
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>
@@ -426,7 +425,7 @@ export default function OrdersPage() {
                           <span className="text-text-secondary text-[11px]">
                             {order.payment_method === "stk-push" ? "M-PESA STK Push" :
                              order.payment_method === "mpesa-app" ? "M-PESA App" :
-                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             order.payment_method === "cash" ? "M-PESA / Cash on Delivery" :
                              "M-PESA"}
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>
@@ -534,7 +533,7 @@ export default function OrdersPage() {
                           <span className="text-text-secondary text-[11px]">
                             {order.payment_method === "stk-push" ? "M-PESA STK Push" :
                              order.payment_method === "mpesa-app" ? "M-PESA App" :
-                             order.payment_method === "cash" ? "Cash on Delivery" :
+                             order.payment_method === "cash" ? "M-PESA / Cash on Delivery" :
                              "M-PESA"}
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>

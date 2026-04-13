@@ -909,7 +909,7 @@ export default function ConfirmOrderPage() {
               <p className="text-sm font-medium text-text-primary">
                 {order.paymentMethod === "stk-push" ? "M-PESA STK Push" :
                  order.paymentMethod === "mpesa-app" ? "M-PESA App" :
-                 "Cash on Delivery"}
+                 "M-PESA / Cash on Delivery"}
               </p>
             </div>
           </div>
@@ -938,22 +938,21 @@ export default function ConfirmOrderPage() {
           </div>
 
           {/* IMPORTANT: Confirm order on WhatsApp */}
-          <div className="bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4 mb-4">
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
-                <MessageCircle size={20} className="text-white" />
+          <div className="bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-2xl p-5 mb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
+                <MessageCircle size={28} className="text-white" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-text-primary mb-1">
-                  Important: Confirm your order on WhatsApp
-                </p>
-                <p className="text-text-secondary text-xs leading-relaxed">
-                  Tap the button below to send your order to MiMaji on WhatsApp at
-                  <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>
-                  . This confirms your order so we can dispatch your water.
-                </p>
-              </div>
+              <p className="text-xl md:text-2xl font-extrabold text-text-primary leading-tight">
+                One last step: Send on WhatsApp
+              </p>
             </div>
+            <p className="text-text-primary text-base md:text-lg font-semibold leading-snug mb-2">
+              Tap the green button below to send your order to MiMaji on WhatsApp.
+            </p>
+            <p className="text-text-secondary text-sm md:text-base leading-relaxed mb-4">
+              Your order details are already filled in — just press <span className="font-bold">Send</span> when WhatsApp opens. We&apos;ll start preparing your water right away.
+            </p>
             <a
               href={buildWhatsAppOrderLink({
                 orderId: order.orderId,
@@ -968,10 +967,10 @@ export default function ConfirmOrderPage() {
               })}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl py-3 font-semibold text-sm hover:bg-[#1ebe5b] transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl py-4 font-extrabold text-base md:text-lg hover:bg-[#1ebe5b] transition-colors shadow-md"
             >
-              <MessageCircle size={18} />
-              Confirm Order by WhatsApp
+              <MessageCircle size={22} />
+              Send Order on WhatsApp
             </a>
           </div>
 
@@ -1019,7 +1018,7 @@ export default function ConfirmOrderPage() {
               onClick={() => { setStkFailedPopup(false); setPaymentMethod("cash"); }}
               className="w-full bg-gray-100 text-text-primary py-3 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors"
             >
-              Cash on Delivery
+              M-PESA / Cash on Delivery
             </button>
           </div>
         </div>
@@ -1257,6 +1256,16 @@ export default function ConfirmOrderPage() {
               <p className="text-text-secondary text-xs mt-1">{errorMsg}</p>
             </div>
           )}
+
+          {/* Simple WhatsApp next-step hint */}
+          <div className="mt-4 bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
+              <MessageCircle size={20} className="text-white" />
+            </div>
+            <p className="text-sm md:text-base font-semibold text-text-primary leading-snug">
+              Next step: send your order to MiMaji on WhatsApp in one tap.
+            </p>
+          </div>
         </div>
 
         {/* Bottom: Confirm Order */}
