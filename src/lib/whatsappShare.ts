@@ -1,7 +1,6 @@
 /**
  * Client-safe helpers for building WhatsApp share links so customers can
- * forward their order details (and, ideally, a screenshot) to the MiMaji
- * owner on +254 704 476 338.
+ * forward their order details to the MiMaji owner on +254 704 476 338.
  *
  * This file is safe to import from client components — it contains no
  * secrets or server-only code. For the server-side CallMeBot notifications,
@@ -108,7 +107,7 @@ export function buildWhatsAppOrderMessage(params: ShareOrderParams): string {
   lines.push(
     `Delivery Address: ${params.address || "—"}`,
     "",
-    "I'm attaching my M-PESA payment screenshot. Please confirm my order. Thank you!",
+    "Please confirm my order. Thank you!",
   );
 
   return lines.join("\n");

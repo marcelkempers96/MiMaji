@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound, Calendar, Gift, Info, MessageCircle, Camera } from "lucide-react";
+import { Droplets, Smartphone, Copy, CheckCircle2, Banknote, MapPin, Truck, Clock, KeyRound, Calendar, Gift, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
@@ -937,7 +937,7 @@ export default function ConfirmOrderPage() {
             </p>
           </div>
 
-          {/* IMPORTANT: Send order confirmation on WhatsApp */}
+          {/* IMPORTANT: Confirm order on WhatsApp */}
           <div className="bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4 mb-4">
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
@@ -945,13 +945,12 @@ export default function ConfirmOrderPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-text-primary mb-1">
-                  Important: Send order to WhatsApp
+                  Important: Confirm your order on WhatsApp
                 </p>
                 <p className="text-text-secondary text-xs leading-relaxed">
-                  Please take a screenshot of this confirmation (or use the button below, which copies
-                  your order details) and send it to MiMaji on WhatsApp at
+                  Tap the button below to send your order to MiMaji on WhatsApp at
                   <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>
-                  . This confirms your M-PESA payment so we can dispatch your water.
+                  . This confirms your order so we can dispatch your water.
                 </p>
               </div>
             </div>
@@ -972,11 +971,8 @@ export default function ConfirmOrderPage() {
               className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white rounded-xl py-3 font-semibold text-sm hover:bg-[#1ebe5b] transition-colors"
             >
               <MessageCircle size={18} />
-              Send Order to WhatsApp
+              Confirm Order by WhatsApp
             </a>
-            <p className="text-[10px] text-text-secondary text-center mt-2">
-              Opens WhatsApp with your name, order, timestamp &amp; delivery address pre-filled.
-            </p>
           </div>
 
           {/* Track Order Button */}
@@ -1253,67 +1249,6 @@ export default function ConfirmOrderPage() {
               {paymentMethod === "cash" && <CheckCircle2 size={14} className="text-white" />}
             </div>
           </button>
-
-          {/* M-PESA / Cash on Delivery Info */}
-          {paymentMethod === "cash" && (
-            <div className="bg-primary-light rounded-xl p-4 mb-4">
-              <p className="font-bold text-sm text-text-primary mb-1">M-PESA / Cash on Delivery</p>
-              <p className="text-text-secondary text-xs">
-                Have <span className="font-bold text-text-primary">KES {finalTotal.toLocaleString()}</span> ready.
-                You can send money via M-PESA or pay the driver in cash when your water arrives.
-              </p>
-
-              <div className="mt-3 bg-[#E8F5E9] rounded-lg p-3">
-                <p className="text-[#2ECC71] text-xs font-bold mb-1">Pay via M-PESA (Send Money)</p>
-                <p className="text-text-primary text-xs">
-                  We are in the process of getting a new till number. In the meantime, please send money to <span className="font-bold">0704476338</span> and paste your M-PESA payment confirmation code here so we can track your order.
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-sm font-bold text-text-primary font-mono bg-white px-3 py-1.5 rounded-lg">0704476338</span>
-                  <button onClick={() => handleCopy("0704476338", "phone")} className="flex items-center gap-1 bg-white text-primary px-3 py-1.5 rounded-lg text-xs font-semibold">
-                    {copied === "phone" ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-                    {copied === "phone" ? "Copied!" : "Copy"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-2 bg-white/60 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Info size={14} className="text-primary flex-shrink-0" />
-                  <p className="text-text-primary text-xs font-semibold">Cash Option</p>
-                </div>
-                <p className="text-text-secondary text-xs">
-                  You can also pay KES {finalTotal.toLocaleString()} in cash to the driver on delivery.
-                </p>
-              </div>
-            </div>
-          )}
-
-
-          {/* WhatsApp reminder — shown before confirming */}
-          <div className="mt-4 bg-[#E8F5E9] border-2 border-[#2ECC71] rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#2ECC71] flex items-center justify-center flex-shrink-0">
-                <MessageCircle size={20} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-text-primary mb-1">
-                  Important: Confirm on WhatsApp
-                </p>
-                <p className="text-text-secondary text-xs leading-relaxed mb-2">
-                  After you place this order, please take a screenshot (or copy &amp; paste the order details) and send it on WhatsApp to
-                  <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>.
-                  A &quot;Send to WhatsApp&quot; button will appear on the confirmation screen and in
-                  <Link href="/orders" className="text-primary font-semibold underline mx-1">My Orders</Link>
-                  with a ready-to-send message.
-                </p>
-                <div className="flex items-center gap-2 text-[11px] text-text-secondary">
-                  <Camera size={12} className="text-[#2ECC71]" />
-                  <span>Screenshot this page now if you&apos;d like a paper trail.</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Error Message */}
           {paymentStatus === "error" && (
