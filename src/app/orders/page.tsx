@@ -202,9 +202,9 @@ export default function OrdersPage() {
                     Important: Confirm your order on WhatsApp
                   </p>
                   <p className="text-text-secondary text-xs leading-relaxed">
-                    For every order, please take a screenshot (or use the <span className="font-semibold">Send to WhatsApp</span> button on the order below) and send it on WhatsApp to
+                    Tap the <span className="font-semibold">Confirm Order by WhatsApp</span> button on any order to send it to MiMaji at
                     <span className="font-bold text-text-primary"> +{OWNER_WHATSAPP_NUMBER.replace(/(\d{3})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")}</span>
-                    . Your order details, name, timestamp and delivery address will be pre-filled so you can send right away.
+                    . Your order details, name, timestamp and delivery address are pre-filled so you can send right away.
                   </p>
                 </div>
               </div>
@@ -360,11 +360,8 @@ export default function OrdersPage() {
                       className="flex items-center justify-center gap-2 w-full bg-[#25D366] text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-[#1ebe5b] transition-colors mb-2"
                     >
                       <MessageCircle size={16} />
-                      Send Order to WhatsApp
+                      Confirm Order by WhatsApp
                     </a>
-                    <p className="text-[10px] text-text-secondary text-center mb-2">
-                      Important: send this (or a screenshot) to +{OWNER_WHATSAPP_NUMBER} to confirm your M-PESA payment.
-                    </p>
 
                     <Link
                       href={`/track?orderId=${order.id}`}
@@ -568,7 +565,7 @@ export default function OrdersPage() {
                       className="mt-3 flex items-center justify-center gap-2 w-full bg-[#25D366] text-white rounded-xl py-2 text-xs font-semibold hover:bg-[#1ebe5b] transition-colors"
                     >
                       <MessageCircle size={14} />
-                      Send Order to WhatsApp
+                      Confirm Order by WhatsApp
                     </a>
                   </div>
                 );
