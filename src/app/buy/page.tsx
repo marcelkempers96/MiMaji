@@ -48,7 +48,7 @@ function getCartItemId(productId: string, bottleType: BottleType): string {
 export default function BuyWaterPage() {
   const router = useRouter();
   const { addItem, removeItem, items, updateQuantity } = useCart();
-  const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("soft");
+  const [activeCategory, setActiveCategory] = useState<"hard" | "soft">("hard");
   const [activeSize, setActiveSize] = useState<string>("20L");
 
   // Selections keyed by cartItemId (e.g. "h20-refill", "s10-new")
@@ -240,8 +240,8 @@ function BuyContent({
         <p className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">Water Type</p>
         <div className="grid grid-cols-2 gap-2">
           {([
-            { key: "soft" as const, label: "Soft Bottle" },
             { key: "hard" as const, label: "Hard Jug" },
+            { key: "soft" as const, label: "Soft Bottle" },
           ]).map((cat) => (
             <button
               key={cat.key}
@@ -367,7 +367,7 @@ function ProductCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-bold text-sm text-text-primary">{product.name} — {product.size}</p>
+            <p className="font-bold text-sm text-text-primary">{product.name} {product.size}</p>
             {product.badge && (
               <span className="bg-[#2ECC71] text-white text-[9px] px-1.5 py-0.5 rounded-full font-semibold whitespace-nowrap">{product.badge}</span>
             )}
