@@ -192,11 +192,12 @@ export default function HomePage() {
               <p className="text-white/70 text-xs">Scheduled deliveries, volume discounts & monthly invoicing</p>
             </div>
           </div>
-          <div className="flex flex-col gap-2 mt-3">
+          <div className="flex flex-col items-start gap-2 mt-3">
             <Link
               href="/buy"
-              className="bg-cta-alt text-white text-center rounded-full px-4 py-2 text-xs font-bold hover:bg-[#d44a44] transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 bg-cta-alt text-white rounded-full px-4 py-2 text-sm font-bold hover:bg-[#d44a44] transition-colors whitespace-nowrap"
             >
+              <Building2 size={14} />
               Order for Office
             </Link>
             <Link
@@ -249,12 +250,12 @@ export default function HomePage() {
             <p className="text-white/80 text-xs mb-3">
               Scan the QR code on any MiMaji bottle to see where your water comes from, lab test results, and verification status. Every drop, verified.
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Link
                 href="/scan-qr-code"
-                className="inline-flex items-center gap-1 bg-white text-primary text-xs font-bold rounded-full px-3 py-1.5"
+                className="inline-flex items-center gap-1 bg-white text-primary text-sm font-bold rounded-full px-4 py-2"
               >
-                <QrCode size={12} />
+                <QrCode size={14} />
                 Scan QR Code
               </Link>
               <Link

@@ -10,12 +10,21 @@ const SITE_URL = "https://www.mimaji.co.ke";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "MiMaji — Clean Water Delivery in Nairobi | Order 20L Jugs via M-Pesa",
-    template: "%s | MiMaji",
+    default: "Order Water Online in Nairobi | MiMaji — Clean, Cheap & Verified Water on Demand",
+    template: "%s | MiMaji — Order Water Online",
   },
   description:
-    "Order KEBS-certified clean water delivered to your door in Nairobi. 20L jugs, transparent pricing, M-Pesa payment, GPS-tracked delivery. Every bottle verified with a Water Passport.",
+    "Order Water Online in Nairobi with MiMaji. Clean, affordable (cheap) and verifiable water on demand, delivered fast to your door. KEBS-certified 20L jugs, M-Pesa payment, GPS-tracked delivery. Serving all of Africa, starting with Nairobi.",
   keywords: [
+    "order water online",
+    "order water online Nairobi",
+    "order water online Kenya",
+    "order water online Africa",
+    "cheap water delivery Nairobi",
+    "fast water delivery Nairobi",
+    "verified water Nairobi",
+    "clean water on demand",
+    "affordable water delivery",
     "water delivery Nairobi",
     "clean water Nairobi",
     "20L water jug delivery",
@@ -26,6 +35,7 @@ export const metadata: Metadata = {
     "MiMaji",
     "water bottle delivery",
     "purified water delivery",
+    "water delivery Africa",
   ],
   authors: [{ name: "MiMaji" }],
   creator: "MiMaji",
@@ -51,23 +61,23 @@ export const metadata: Metadata = {
     locale: "en_KE",
     url: SITE_URL,
     siteName: "MiMaji",
-    title: "MiMaji — Clean Water Delivery in Nairobi | Order 20L Jugs via M-Pesa",
+    title: "Order Water Online in Nairobi | MiMaji — Clean, Cheap & Verified Water on Demand",
     description:
-      "Order KEBS-certified clean water delivered to your door in Nairobi. 20L jugs, transparent pricing, M-Pesa payment, GPS-tracked delivery. Every bottle verified.",
+      "Order Water Online in Nairobi. Clean, affordable and verifiable water on demand, delivered fast to your door. Pay with M-Pesa. Serving all of Africa, starting with Nairobi.",
     images: [
       {
         url: "/logo1.png",
         width: 1200,
         height: 630,
-        alt: "MiMaji — Clean Water Delivery in Nairobi",
+        alt: "Order Water Online in Nairobi — MiMaji",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MiMaji — Clean Water Delivery in Nairobi",
+    title: "Order Water Online in Nairobi | MiMaji",
     description:
-      "KEBS-certified water delivered to your door. 20L jugs. M-Pesa payment. GPS tracking. Every bottle verified.",
+      "Clean, affordable and verifiable water on demand, delivered fast to your door. Pay with M-Pesa. Serving all of Africa, starting with Nairobi.",
     images: ["/logo1.png"],
   },
   icons: {
@@ -118,6 +128,58 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": `${SITE_URL}#organization`,
+                  name: "MiMaji",
+                  url: SITE_URL,
+                  logo: `${SITE_URL}/logo1.png`,
+                  description:
+                    "Order Water Online in Nairobi. Clean, affordable and verifiable water on demand, delivered fast to your door. Serving all of Africa, starting with Nairobi.",
+                  areaServed: [
+                    { "@type": "City", name: "Nairobi" },
+                    { "@type": "Country", name: "Kenya" },
+                    { "@type": "Place", name: "Africa" },
+                  ],
+                  sameAs: ["https://mimaji.org"],
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": `${SITE_URL}#website`,
+                  url: SITE_URL,
+                  name: "MiMaji",
+                  description:
+                    "Order Water Online in Nairobi. Clean, affordable and verifiable water on demand, delivered fast to your door.",
+                  publisher: { "@id": `${SITE_URL}#organization` },
+                  inLanguage: "en-KE",
+                },
+                {
+                  "@type": "LocalBusiness",
+                  "@id": `${SITE_URL}#localbusiness`,
+                  name: "MiMaji — Order Water Online in Nairobi",
+                  image: `${SITE_URL}/logo1.png`,
+                  url: SITE_URL,
+                  telephone: "+254704476338",
+                  priceRange: "KSh",
+                  address: {
+                    "@type": "PostalAddress",
+                    addressLocality: "Nairobi",
+                    addressCountry: "KE",
+                  },
+                  areaServed: { "@type": "City", name: "Nairobi" },
+                  description:
+                    "Order Water Online in Nairobi with MiMaji. Clean, affordable and verifiable water on demand, delivered fast. Pay with M-Pesa.",
+                },
+              ],
+            }),
+          }}
         />
       </head>
       <body className="font-sans antialiased bg-background text-text-primary">
