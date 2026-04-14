@@ -1,7 +1,14 @@
 "use client";
 
-import { logo1, impactMain, majimap } from "@/assets/images";
-import { Droplets, Heart, MapPin, Users, Globe, TrendingUp } from "lucide-react";
+import {
+  logo1,
+  blog1NairobiWater,
+  blog2NairobiWaterCosts,
+  blog3NairobiWaterDeliveryOptions,
+  blog4NairobiWaterCrisis,
+  blog5NairobiWaterTypes,
+} from "@/assets/images";
+import { Droplets, Heart, MapPin, Users, Globe, TrendingUp, ExternalLink } from "lucide-react";
 
 import Link from "next/link";
 import TopBar from "@/components/layout/TopBar";
@@ -34,7 +41,7 @@ function ImpactContent() {
     <>
       {/* Impact Main Image */}
       <div className="rounded-2xl overflow-hidden mb-4">
-        <img src={impactMain.src} alt="MiMaji community water impact" className="w-full h-48 md:h-72 object-cover rounded-2xl" />
+        <img src={blog4NairobiWaterCrisis.src} alt="MiMaji community water impact across Kenya" className="w-full h-48 md:h-72 object-cover rounded-2xl" />
       </div>
 
       {/* Hero Banner */}
@@ -44,11 +51,21 @@ function ImpactContent() {
           <h1 className="text-2xl md:text-4xl font-extrabold">Water is Life</h1>
         </div>
         <p className="text-white/80 text-sm md:text-base max-w-xl leading-relaxed">
-          In Nairobi, we turn on a tap and expect water to flow. But across Kenya, 15 million people still walk hours for water that isn&apos;t even safe to drink. Children miss school for it. Mothers carry it on their backs. Communities are built &mdash; or broken &mdash; by access to it.
+          In Nairobi, we turn on a tap and expect water to flow. But across Kenya, 15 million people still walk hours for water that isn&apos;t even safe to drink. Children miss school for it. Mothers carry it on their backs. Communities are built, or broken, by access to it.
         </p>
         <p className="text-white/70 text-sm md:text-base max-w-xl mt-3 leading-relaxed">
-          MiMaji was born from a simple truth: water shouldn&apos;t be a privilege. Every order you place through MiMaji doesn&apos;t just bring clean water to your door &mdash; it helps carry it to someone who has never had that luxury.
+          MiMaji was born from a simple truth: water shouldn&apos;t be a privilege. Every order you place through MiMaji doesn&apos;t just bring clean water to your door, it helps carry it to someone who has never had that luxury.
         </p>
+        <a
+          href="https://mimaji.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-white text-primary font-bold rounded-full px-5 py-2.5 mt-5 text-sm hover:bg-white/90 transition-colors"
+        >
+          <Globe size={16} />
+          Visit MiMaji.org (Non Profit)
+          <ExternalLink size={14} />
+        </a>
       </div>
 
       {/* Our Promise */}
@@ -65,10 +82,16 @@ function ImpactContent() {
               clean water to underserved communities across Kenya.
             </p>
             <p className="text-text-secondary text-xs md:text-sm mt-2">
-              It&apos;s not charity &mdash; it&apos;s how business should work. You take care of your family, and together we take care of ours. Every litre counts.
+              It&apos;s not charity, it&apos;s how business should work. You take care of your family, and together we take care of ours. Every litre counts.
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Impact Image Strip (from blog) */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <img src={blog1NairobiWater.src} alt="Clean water in Nairobi" className="w-full h-32 md:h-44 object-cover rounded-xl" />
+        <img src={blog5NairobiWaterTypes.src} alt="Types of drinking water in Nairobi" className="w-full h-32 md:h-44 object-cover rounded-xl" />
       </div>
 
       {/* Impact Stats */}
@@ -110,6 +133,15 @@ function ImpactContent() {
         <p className="text-text-secondary text-sm mb-4">
           We can&apos;t fix what we can&apos;t see. MajiMap is our long-term initiative to map every water access point, borehole, and distribution network across Kenya. The goal is simple: understand where water flows and where it doesn&apos;t, so we can direct help to the communities that need it most. It&apos;s ambitious. It&apos;s necessary. And it starts with every delivery we make.
         </p>
+        <a
+          href="https://mimaji.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-primary text-sm font-semibold hover:underline mb-3"
+        >
+          Learn more at MiMaji.org
+          <ExternalLink size={12} />
+        </a>
         <div className="bg-primary-light rounded-xl p-4 mb-4">
           <h3 className="font-bold text-sm text-text-primary mb-2">How MajiMap Works</h3>
           <ul className="text-text-secondary text-sm space-y-2">
@@ -132,25 +164,26 @@ function ImpactContent() {
           </ul>
         </div>
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl overflow-hidden min-h-[160px]">
-          <img src={majimap.src} alt="MajiMap - Mapping water access across Kenya" className="object-cover w-full h-full" />
+          <img src={blog2NairobiWaterCosts.src} alt="MajiMap: Mapping water access across Kenya" className="object-cover w-full h-full" />
         </div>
       </div>
 
       {/* How You Help */}
       <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-2xl p-5 md:p-8 mb-6">
         <h2 className="font-extrabold text-lg text-text-primary mb-4">How Your Order Makes a Difference</h2>
+        <img src={blog3NairobiWaterDeliveryOptions.src} alt="MiMaji water delivery in Nairobi" className="w-full h-40 object-cover rounded-xl mb-4" />
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary">1</div>
             <div>
               <p className="font-bold text-sm text-text-primary">You Order Clean Water</p>
-              <p className="text-text-secondary text-xs">Safe, KEBS-certified water delivered straight to your home or office in Nairobi</p>
+              <p className="text-text-secondary text-xs">Safe, KEBS certified water delivered straight to your home or office in Nairobi</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary">2</div>
             <div>
-              <p className="font-bold text-sm text-text-primary">We Deliver &mdash; Rain or Shine</p>
+              <p className="font-bold text-sm text-text-primary">We Deliver, Rain or Shine</p>
               <p className="text-text-secondary text-xs">Our riders bring it to your doorstep, because no one should have to carry water on their back</p>
             </div>
           </div>
@@ -163,6 +196,25 @@ function ImpactContent() {
           </div>
         </div>
       </div>
+
+      {/* Non Profit CTA */}
+      <a
+        href="https://mimaji.org"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#2ECC71] to-[#27AE60] text-white rounded-2xl p-5 mb-4 hover:shadow-card transition-shadow"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+            <Globe size={20} className="text-white" />
+          </div>
+          <div>
+            <p className="font-extrabold text-sm">MiMaji.org Non Profit</p>
+            <p className="text-white/80 text-xs">Explore our community water projects across Africa</p>
+          </div>
+        </div>
+        <ExternalLink size={18} className="text-white/90 flex-shrink-0" />
+      </a>
 
       {/* CTA */}
       <Link
