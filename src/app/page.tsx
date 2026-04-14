@@ -195,7 +195,7 @@ export default function HomePage() {
           <div className="flex flex-col items-start gap-2 mt-3">
             <Link
               href="/buy"
-              className="inline-flex items-center gap-1 bg-cta-alt text-white rounded-full px-4 py-2 text-sm font-bold hover:bg-[#d44a44] transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 bg-white text-primary rounded-full px-4 py-2 text-sm font-bold hover:bg-white/90 transition-colors whitespace-nowrap"
             >
               <Building2 size={14} />
               Order for Office
