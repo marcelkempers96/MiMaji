@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
+import { logo1, foundationImpact, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2, QrCode } from "lucide-react";
 
 import Link from "next/link";
@@ -272,13 +272,22 @@ export default function HomePage() {
         {/* Impact */}
         <h2 className="text-base font-bold text-text-primary mb-3">Impact</h2>
         <Link href="/impact">
-          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-5 mb-5 hover:shadow-card transition-shadow">
-            <div className="flex items-center gap-3 mb-2">
-              <Heart size={22} className="text-[#2ECC71]" />
-              <p className="font-bold text-sm text-text-primary">Water is Life</p>
+          <div className="relative overflow-hidden bg-[#EAF2FB] rounded-xl mb-5 hover:shadow-card transition-shadow">
+            <img
+              src={foundationImpact.src}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-[#EAF2FB]/85" />
+            <div className="relative p-5">
+              <p className="font-bold text-sm text-text-primary mb-1">Water is Life</p>
+              <p className="text-text-primary/80 text-xs mb-2">
+                Every 100L you order sends 10L to rural communities across Kenya through the{" "}
+                <span className="font-bold text-text-primary">MiMaji Foundation</span>.
+              </p>
+              <p className="text-[#0F3D66] text-xs font-semibold">Learn about our impact →</p>
             </div>
-            <p className="text-text-secondary text-xs mb-2">For every 100L delivered, we supply 10L to rural communities in need across Kenya.</p>
-            <p className="text-[#2ECC71] text-xs font-semibold">Learn about our impact →</p>
           </div>
         </Link>
 
@@ -733,16 +742,15 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
 
       {/* Impact Section */}
       <section className="max-w-6xl mx-auto px-8 py-14">
-        <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-2xl p-10 flex items-center gap-8">
+        <div className="bg-gradient-to-r from-[#EAF2FB] to-[#C7DEF5] rounded-2xl p-10 flex items-center gap-8">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <Heart size={28} className="text-[#2ECC71]" />
-              <h2 className="text-2xl font-extrabold text-text-primary">Water is Life</h2>
-            </div>
-            <p className="text-text-secondary text-base mb-4">
-              For every <span className="font-bold text-[#2ECC71]">100 Litres</span> delivered, we supply <span className="font-bold text-[#2ECC71]">10 Litres</span> to rural communities in Kenya.
+            <h2 className="text-2xl font-extrabold text-text-primary mb-3">Water is Life</h2>
+            <p className="text-text-primary/80 text-base mb-4">
+              For every <span className="font-bold text-primary">100 Litres</span> delivered, the{" "}
+              <span className="font-bold text-text-primary">MiMaji Foundation</span> supplies{" "}
+              <span className="font-bold text-primary">10 Litres</span> to rural communities in Kenya.
             </p>
-            <Link href="/impact" className="inline-flex items-center gap-2 bg-[#2ECC71] text-white rounded-full px-6 py-3 font-bold text-sm hover:bg-[#27ae60] transition-colors">
+            <Link href="/impact" className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-6 py-3 font-bold text-sm hover:bg-[#1a5a9a] transition-colors">
               Learn About Our Impact →
             </Link>
           </div>
