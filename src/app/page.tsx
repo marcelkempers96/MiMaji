@@ -52,7 +52,10 @@ export default function HomePage() {
               Order Water Online
             </h1>
             <p className="text-white text-sm mt-1 drop-shadow-sm">& Track Your Delivery</p>
-            <p className="text-white/90 text-xs mt-2">Premium purified water delivered to your door in Nairobi. Pay with M-Pesa.</p>
+            <p className="text-white/90 text-xs mt-2">
+              Premium purified water delivered to your door in Nairobi.{" "}
+              <span className="font-bold text-white">Pay only on-delivery</span> with M-Pesa.
+            </p>
             <Link
               href="/buy"
               className="inline-flex items-center gap-2 bg-[#4A9FD7] hover:bg-[#3B8BC4] text-white font-bold rounded-full px-6 py-3 mt-4 text-sm transition-colors shadow-lg"
@@ -451,7 +454,8 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
               <span className="text-white">& Track Your Delivery</span>
             </h1>
             <p className="text-white/90 text-lg mt-4 max-w-md">
-              Premium purified water delivered to your door in Nairobi. Pay with M-Pesa. Fast, reliable, local.
+              Premium purified water delivered to your door in Nairobi.{" "}
+              <span className="font-bold text-white">Pay only on-delivery</span> with M-Pesa. Fast, reliable, local.
             </p>
             <div className="flex gap-4 mt-8">
               <Link
