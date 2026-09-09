@@ -11,6 +11,7 @@ import trackOrder from "./track-order.png";
 import rewards from "./rewards.png";
 import officeBottle from "./officebottle.png";
 import impactWaterIsLife from "./impactwaterislife.png";
+import foundationImpact from "./mimaji-foundation-impact.jpg";
 import mimajiLocations from "./mimajilocations.png";
 import order1 from "./order1.png";
 import mpesa1 from "./mpesa1.png";
@@ -48,6 +49,7 @@ export const images: Record<string, typeof logo1> = {
   "/rewards.png": rewards,
   "/officebottle.png": officeBottle,
   "/impactwaterislife.png": impactWaterIsLife,
+  "/mimaji-foundation-impact.jpg": foundationImpact,
   "/mimajilocations.png": mimajiLocations,
   "/order1.png": order1,
   "/mpesa1.png": mpesa1,
@@ -67,4 +69,4 @@ export const images: Record<string, typeof logo1> = {
   "/qr-code-how-it-works-step-by-step.png": qrCodeHowItWorks,
 };
 
-export { logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, order1, mpesa1, dev1, warehouse, clean1, impactMain, majimap, test1, webicon, watermany, watertruck, watertank, watercleaning, blog1NairobiWater, blog2NairobiWaterCosts, blog3NairobiWaterDeliveryOptions, blog4NairobiWaterCrisis, blog5NairobiWaterTypes, qrCodeBeforeAfterImpact, qrCodeFunctionInfo, qrCodeHowItWorks };
+export { foundationImpact, logo1, soft5L, soft10L, soft20L, hard10L, hard20L, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, order1, mpesa1, dev1, warehouse, clean1, impactMain, majimap, test1, webicon, watermany, watertruck, watertank, watercleaning, blog1NairobiWater, blog2NairobiWaterCosts, blog3NairobiWaterDeliveryOptions, blog4NairobiWaterCrisis, blog5NairobiWaterTypes, qrCodeBeforeAfterImpact, qrCodeFunctionInfo, qrCodeHowItWorks };

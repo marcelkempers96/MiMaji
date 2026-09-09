@@ -119,15 +119,6 @@ export default function DesktopFooter() {
             </div>
           </div>
         </div>
-        <div className="border-t border-white/20 pt-6 pb-6">
-          <div className="flex items-center gap-6 mb-4">
-            <div>
-              <p className="text-white/50 text-xs uppercase tracking-wide font-semibold mb-1">M-PESA Payment</p>
-              <p className="text-white/80 text-sm">Send Money To: <span className="font-bold text-white">0704476338</span></p>
-              <p className="text-white/60 text-xs mt-1">Paste your M-PESA confirmation code so we can track your order.</p>
-            </div>
-          </div>
-        </div>
         <div className="border-t border-white/20 pt-6 pb-6 flex items-center justify-between">
           <p className="text-white/40 text-xs">&copy; 2026 MiMaji. All rights reserved.</p>
           <div className="flex items-center gap-4">

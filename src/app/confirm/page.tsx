@@ -13,7 +13,8 @@ import { createOrder, formatOrderId, generateDeliveryCode, DeliveryAddressDetail
 import { assignOrderToVendor } from "@/lib/vendor";
 import { processOrderRewards, getRewardsSummaryAsync, useFreeLitresAsync } from "@/lib/rewards";
 import { getProductImage, products } from "@/data/products";
-import { buildWhatsAppOrderLink, OWNER_WHATSAPP_NUMBER } from "@/lib/whatsappShare";
+import { buildWhatsAppOrderLink } from "@/lib/whatsappShare";
+import { VENDOR_MPESA_LOCAL } from "@/lib/contact";
 
 // ── Discount tier logic (same as cart page) ──
 const DISCOUNT_TIERS = [
@@ -710,9 +711,9 @@ export default function ConfirmOrderPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-text-secondary">Send Money To</p>
-                  <p className="text-sm font-bold text-text-primary font-mono">0704476338</p>
+                  <p className="text-sm font-bold text-text-primary font-mono">{VENDOR_MPESA_LOCAL}</p>
                 </div>
-                <button onClick={() => { navigator.clipboard.writeText("0704476338"); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                <button onClick={() => { navigator.clipboard.writeText(VENDOR_MPESA_LOCAL); }} className="text-primary text-[10px] font-semibold flex items-center gap-1">
                   <Copy size={12} /> Copy
                 </button>
               </div>
@@ -727,7 +728,7 @@ export default function ConfirmOrderPage() {
                 </button>
               </div>
             </div>
-            <p className="text-text-secondary text-[10px] mt-2">We are in the process of getting a new till number. In the meantime, send money to 0704476338 and paste your M-PESA confirmation code above.</p>
+            <p className="text-text-secondary text-[10px] mt-2">We are in the process of getting a new till number. In the meantime, send money to {VENDOR_MPESA_LOCAL} and paste your M-PESA confirmation code above.</p>
           </div>
 
           {/* Screenshot reminder */}
@@ -821,9 +822,9 @@ export default function ConfirmOrderPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-text-secondary">Send Money To</p>
-                    <p className="text-sm font-bold text-text-primary font-mono">0704476338</p>
+                    <p className="text-sm font-bold text-text-primary font-mono">{VENDOR_MPESA_LOCAL}</p>
                   </div>
-                  <button onClick={() => handleCopy("0704476338", "biz-confirm")} className="text-primary text-[10px] font-semibold flex items-center gap-1">
+                  <button onClick={() => handleCopy(VENDOR_MPESA_LOCAL, "biz-confirm")} className="text-primary text-[10px] font-semibold flex items-center gap-1">
                     <Copy size={12} /> Copy
                   </button>
                 </div>
@@ -836,7 +837,7 @@ export default function ConfirmOrderPage() {
                 </div>
               </div>
               <p className="text-text-secondary text-[10px] mt-2 text-center">
-                Send money to 0704476338 and paste your M-PESA confirmation code in My Orders.
+                Send money to {VENDOR_MPESA_LOCAL} and paste your M-PESA confirmation code in My Orders.
               </p>
             </div>
           )}

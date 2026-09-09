@@ -13,7 +13,7 @@ import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
 import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
 import { getRewardsSummaryAsync } from "@/lib/rewards";
-import { buildWhatsAppOrderLink, OWNER_WHATSAPP_NUMBER } from "@/lib/whatsappShare";
+import { buildWhatsAppOrderLink } from "@/lib/whatsappShare";
 
 const statusSteps = [
   { key: "Processing", label: "Processing", icon: Clock },

@@ -1,6 +1,6 @@
 "use client";
 
-import { logo1, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
+import { logo1, foundationImpact, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2, QrCode } from "lucide-react";
 
 import Link from "next/link";
@@ -67,21 +67,21 @@ export default function HomePage() {
         {/* Action Tabs */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           <Link href="/buy">
-            <div className="bg-surface shadow-card rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-card-hover transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center">
-                <Droplets size={22} className="text-primary" />
+            <div className="bg-[#D6E8F8] shadow-card rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-card-hover transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-surface flex items-center justify-center overflow-hidden">
+                <img src={threeBottles.src} alt="" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-sm text-text-primary">Order Water</span>
-              <span className="text-text-secondary text-xs">Browse & buy</span>
+              <span className="text-[#4A5C6E] text-xs">Browse &amp; buy</span>
             </div>
           </Link>
           <AuthLink href="/orders">
             <div className="bg-surface shadow-card rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-card-hover transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center">
-                <Truck size={22} className="text-primary" />
+              <div className="w-14 h-14 rounded-2xl bg-primary-light flex items-center justify-center">
+                <Truck size={26} className="text-primary" />
               </div>
               <span className="font-bold text-sm text-text-primary">My Orders</span>
-              <span className="text-text-secondary text-xs">Track & view</span>
+              <span className="text-text-secondary text-xs">Track &amp; view</span>
             </div>
           </AuthLink>
         </div>
@@ -111,7 +111,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Choose Your Water</p>
-              <p className="text-text-secondary text-xs">Hard jug 20L or soft bottle 5L/10L/20L</p>
+              <p className="text-text-secondary text-xs">Hard jug 10L/18.9L/20L or soft bottle 5L/10L/18.9L/20L</p>
             </div>
           </div>
           <div className="flex items-start gap-3 mb-3">
@@ -129,7 +129,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Get It Delivered</p>
-              <p className="text-text-secondary text-xs">Track your delivery in real-time. Average 35 min.</p>
+              <p className="text-text-secondary text-xs">Track your delivery in real-time.</p>
             </div>
           </div>
         </div>
@@ -150,11 +150,11 @@ export default function HomePage() {
         <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-xl p-4 mb-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-              <Droplets size={20} className="text-primary" />
+              <Truck size={20} className="text-primary" />
             </div>
             <div>
-              <p className="font-bold text-sm text-text-primary">First Order Free Delivery</p>
-              <p className="text-text-secondary text-xs mt-0.5">No delivery fee on your first order</p>
+              <p className="font-bold text-sm text-text-primary">Free Delivery</p>
+              <p className="text-text-secondary text-xs mt-0.5">On your first order</p>
             </div>
           </div>
         </div>
@@ -192,23 +192,24 @@ export default function HomePage() {
               <p className="text-white/70 text-xs">Scheduled deliveries, volume discounts & monthly invoicing</p>
             </div>
           </div>
-          <div className="flex flex-col items-start gap-2 mt-3">
+          <div className="flex flex-col items-start gap-3 mt-4">
             <Link
               href="/buy"
-              className="inline-flex items-center gap-1 bg-white text-primary rounded-full px-4 py-2 text-sm font-bold hover:bg-white/90 transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 bg-white border-2 border-white text-primary rounded-full px-4 py-2 text-sm font-bold hover:bg-white/90 transition-colors whitespace-nowrap"
             >
               <Building2 size={14} />
               Order for Office
             </Link>
             <Link
               href="/corporate#water-tanks"
-              className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
+              className="inline-flex items-center gap-1 border-2 border-white/70 text-white rounded-full px-4 py-2 text-sm font-bold hover:bg-white/10 transition-colors whitespace-nowrap"
             >
-              Water Tank Services →
+              <Droplets size={14} />
+              Water Tank Services
             </Link>
             <Link
               href="/corporate"
-              className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
+              className="text-white/80 text-xs font-semibold hover:text-white transition-colors mt-2"
             >
               Set Up Corporate Account →
             </Link>
@@ -271,13 +272,22 @@ export default function HomePage() {
         {/* Impact */}
         <h2 className="text-base font-bold text-text-primary mb-3">Impact</h2>
         <Link href="/impact">
-          <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-xl p-5 mb-5 hover:shadow-card transition-shadow">
-            <div className="flex items-center gap-3 mb-2">
-              <Heart size={22} className="text-[#2ECC71]" />
-              <p className="font-bold text-sm text-text-primary">Water is Life</p>
+          <div className="relative overflow-hidden bg-[#EAF2FB] rounded-xl mb-5 hover:shadow-card transition-shadow">
+            <img
+              src={foundationImpact.src}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-[#EAF2FB]/85" />
+            <div className="relative p-5">
+              <p className="font-bold text-sm text-text-primary mb-1">Water is Life</p>
+              <p className="text-text-primary/80 text-xs mb-2">
+                Every 100L you order sends 10L to rural communities across Kenya through the{" "}
+                <span className="font-bold text-text-primary">MiMaji Foundation</span>.
+              </p>
+              <p className="text-[#0F3D66] text-xs font-semibold">Learn about our impact →</p>
             </div>
-            <p className="text-text-secondary text-xs mb-2">For every 100L delivered, we supply 10L to rural communities in need across Kenya.</p>
-            <p className="text-[#2ECC71] text-xs font-semibold">Learn about our impact →</p>
           </div>
         </Link>
 
@@ -401,12 +411,6 @@ function MobileFooter() {
         </a>
       </div>
 
-      <div className="bg-primary-light rounded-xl p-3 mb-4">
-        <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide mb-1">M-PESA Payment</p>
-        <p className="text-text-primary text-sm">Send Money To: <span className="font-bold">0704476338</span></p>
-        <p className="text-text-secondary text-xs mt-1">Paste your M-PESA confirmation code so we can track your order.</p>
-      </div>
-
       <div className="border-t border-[#E0E0E0] pt-4 flex items-center justify-between">
         <p className="text-text-secondary/50 text-xs">&copy; 2026 MiMaji</p>
         <p className="text-text-secondary/50 text-xs">v2.3.0</p>
@@ -480,7 +484,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
                   <span className="text-text-primary text-xs font-bold">Your Water Delivery</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-primary font-extrabold text-lg">35 min</span>
+                  <span className="text-primary font-extrabold text-sm">Live tracking</span>
                   <div className="flex gap-1">
                     <div className="w-6 h-6 bg-primary-light rounded flex items-center justify-center">
                       <Droplets size={12} className="text-primary" />
@@ -506,7 +510,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
                 <img src={order1.src} alt="Choose water" className="w-full h-full object-contain" />
               </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Choose Your Water</h3>
-              <p className="text-text-secondary text-sm">Browse hard jugs and soft bottles in 5L, 10L, and 20L sizes</p>
+              <p className="text-text-secondary text-sm">Browse hard jugs and soft bottles in 5L, 10L, 18.9L, and 20L sizes</p>
             </div>
             <div className="text-center">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4">
@@ -520,7 +524,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
                 <img src={dev1.src} alt="Delivery" className="w-full h-full object-contain" />
               </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Get It Delivered</h3>
-              <p className="text-text-secondary text-sm">Track your delivery in real-time. Average delivery in 35 minutes</p>
+              <p className="text-text-secondary text-sm">Track your delivery in real-time</p>
             </div>
           </div>
         </div>
@@ -552,7 +556,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
               <img src={threeBottles.src} alt="Order Water" className="object-cover w-full h-full" />
             </div>
             <h3 className="font-bold text-text-primary text-lg mb-2">Order Water</h3>
-            <p className="text-text-secondary text-sm">Browse purified water in 5L, 10L & 20L. Hard jug or soft bottle.</p>
+            <p className="text-text-secondary text-sm">Browse purified water in 5L, 10L, 18.9L &amp; 20L. Hard jug or soft bottle.</p>
             <Link href="/buy" className="text-primary text-sm font-semibold mt-4 inline-block hover:underline">Shop Now →</Link>
           </div>
           <div className="bg-surface shadow-card rounded-2xl p-8 text-center hover:shadow-card-hover transition-shadow">
@@ -590,11 +594,11 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
             </div>
             <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-2xl p-8 flex items-center gap-6">
               <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                <Droplets size={28} className="text-primary" />
+                <Truck size={28} className="text-primary" />
               </div>
               <div>
-                <p className="font-bold text-lg text-text-primary">First Order Free Delivery</p>
-                <p className="text-text-secondary text-sm mt-1">No delivery fee on your first order — try MiMaji risk-free</p>
+                <p className="font-bold text-lg text-text-primary">Free Delivery</p>
+                <p className="text-text-secondary text-sm mt-1">On your first order</p>
               </div>
             </div>
           </div>
@@ -615,16 +619,17 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
             <div className="flex items-center gap-6 mt-6 flex-wrap">
               <Link
                 href="/buy"
-                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-6 py-3 text-sm transition-colors whitespace-nowrap flex-shrink-0"
+                className="inline-flex items-center gap-2 bg-cta-alt border-2 border-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-6 py-3 text-sm transition-colors whitespace-nowrap flex-shrink-0"
               >
                 <ShoppingCart size={18} />
                 Order for Office
               </Link>
               <Link
                 href="/corporate#water-tanks"
-                className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
+                className="inline-flex items-center gap-2 border-2 border-white/70 text-white font-bold rounded-full px-6 py-3 text-sm hover:bg-white/10 transition-colors whitespace-nowrap flex-shrink-0"
               >
-                Water Tank Services →
+                <Droplets size={18} />
+                Water Tank Services
               </Link>
               <Link
                 href="/corporate"
@@ -737,16 +742,15 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
 
       {/* Impact Section */}
       <section className="max-w-6xl mx-auto px-8 py-14">
-        <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-2xl p-10 flex items-center gap-8">
+        <div className="bg-gradient-to-r from-[#EAF2FB] to-[#C7DEF5] rounded-2xl p-10 flex items-center gap-8">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <Heart size={28} className="text-[#2ECC71]" />
-              <h2 className="text-2xl font-extrabold text-text-primary">Water is Life</h2>
-            </div>
-            <p className="text-text-secondary text-base mb-4">
-              For every <span className="font-bold text-[#2ECC71]">100 Litres</span> delivered, we supply <span className="font-bold text-[#2ECC71]">10 Litres</span> to rural communities in Kenya.
+            <h2 className="text-2xl font-extrabold text-text-primary mb-3">Water is Life</h2>
+            <p className="text-text-primary/80 text-base mb-4">
+              For every <span className="font-bold text-primary">100 Litres</span> delivered, the{" "}
+              <span className="font-bold text-text-primary">MiMaji Foundation</span> supplies{" "}
+              <span className="font-bold text-primary">10 Litres</span> to rural communities in Kenya.
             </p>
-            <Link href="/impact" className="inline-flex items-center gap-2 bg-[#2ECC71] text-white rounded-full px-6 py-3 font-bold text-sm hover:bg-[#27ae60] transition-colors">
+            <Link href="/impact" className="inline-flex items-center gap-2 bg-primary text-white rounded-full px-6 py-3 font-bold text-sm hover:bg-[#1a5a9a] transition-colors">
               Learn About Our Impact →
             </Link>
           </div>
