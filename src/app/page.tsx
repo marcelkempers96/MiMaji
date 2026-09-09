@@ -150,11 +150,11 @@ export default function HomePage() {
         <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-xl p-4 mb-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-              <Droplets size={20} className="text-primary" />
+              <Truck size={20} className="text-primary" />
             </div>
             <div>
-              <p className="font-bold text-sm text-text-primary">First Order Free Delivery</p>
-              <p className="text-text-secondary text-xs mt-0.5">No delivery fee on your first order</p>
+              <p className="font-bold text-sm text-text-primary">Free Delivery</p>
+              <p className="text-text-secondary text-xs mt-0.5">On your first order</p>
             </div>
           </div>
         </div>
@@ -192,23 +192,24 @@ export default function HomePage() {
               <p className="text-white/70 text-xs">Scheduled deliveries, volume discounts & monthly invoicing</p>
             </div>
           </div>
-          <div className="flex flex-col items-start gap-2 mt-3">
+          <div className="flex flex-col items-start gap-3 mt-4">
             <Link
               href="/buy"
-              className="inline-flex items-center gap-1 bg-white text-primary rounded-full px-4 py-2 text-sm font-bold hover:bg-white/90 transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1 bg-white border-2 border-white text-primary rounded-full px-4 py-2 text-sm font-bold hover:bg-white/90 transition-colors whitespace-nowrap"
             >
               <Building2 size={14} />
               Order for Office
             </Link>
             <Link
               href="/corporate#water-tanks"
-              className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
+              className="inline-flex items-center gap-1 border-2 border-white/70 text-white rounded-full px-4 py-2 text-sm font-bold hover:bg-white/10 transition-colors whitespace-nowrap"
             >
-              Water Tank Services →
+              <Droplets size={14} />
+              Water Tank Services
             </Link>
             <Link
               href="/corporate"
-              className="text-white/80 text-xs font-semibold hover:text-white transition-colors"
+              className="text-white/80 text-xs font-semibold hover:text-white transition-colors mt-2"
             >
               Set Up Corporate Account →
             </Link>
@@ -584,11 +585,11 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
             </div>
             <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-2xl p-8 flex items-center gap-6">
               <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                <Droplets size={28} className="text-primary" />
+                <Truck size={28} className="text-primary" />
               </div>
               <div>
-                <p className="font-bold text-lg text-text-primary">First Order Free Delivery</p>
-                <p className="text-text-secondary text-sm mt-1">No delivery fee on your first order — try MiMaji risk-free</p>
+                <p className="font-bold text-lg text-text-primary">Free Delivery</p>
+                <p className="text-text-secondary text-sm mt-1">On your first order</p>
               </div>
             </div>
           </div>
@@ -609,16 +610,17 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
             <div className="flex items-center gap-6 mt-6 flex-wrap">
               <Link
                 href="/buy"
-                className="inline-flex items-center gap-2 bg-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-6 py-3 text-sm transition-colors whitespace-nowrap flex-shrink-0"
+                className="inline-flex items-center gap-2 bg-cta-alt border-2 border-cta-alt hover:bg-[#d44a44] text-white font-bold rounded-full px-6 py-3 text-sm transition-colors whitespace-nowrap flex-shrink-0"
               >
                 <ShoppingCart size={18} />
                 Order for Office
               </Link>
               <Link
                 href="/corporate#water-tanks"
-                className="text-white/80 text-sm font-semibold hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
+                className="inline-flex items-center gap-2 border-2 border-white/70 text-white font-bold rounded-full px-6 py-3 text-sm hover:bg-white/10 transition-colors whitespace-nowrap flex-shrink-0"
               >
-                Water Tank Services →
+                <Droplets size={18} />
+                Water Tank Services
               </Link>
               <Link
                 href="/corporate"
