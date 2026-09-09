@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import RevenueChart from "@/components/RevenueChart";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
 import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay, mapSupabaseToVendor } from "@/lib/vendorStore";
@@ -119,15 +120,7 @@ function parseLitres(order: OrderRecord): number {
   return total;
 }
 
-function getLast7Days(): string[] {
-  const days: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
-  }
-  return days;
-}
+
 
 // ── Admin API helpers (bypass RLS via service role) ──
 // Admin code is stored in localStorage (not sessionStorage) so it survives
@@ -529,20 +522,6 @@ function AdminDashboardInner() {
       return s + o.quantity;
     }, 0);
 
-  const last7Days = getLast7Days();
-  const revenueByDay = last7Days.map((day) => {
-    const dayOrders = orders.filter((o: OrderRecord) => o.created_at.startsWith(day));
-    return {
-      date: day,
-      label: new Date(day + "T00:00:00").toLocaleDateString("en-KE", {
-        weekday: "short",
-        day: "numeric",
-      }),
-      revenue: dayOrders.reduce((s: number, o: OrderRecord) => s + o.price_total, 0),
-      count: dayOrders.length,
-    };
-  });
-  const maxRevenue = Math.max(...revenueByDay.map((d) => d.revenue), 1);
 
   function vendorOrderCount(vendorId: string): number {
     return orders.filter((o: OrderRecord) => o.vendor_id === vendorId).length;
@@ -1839,47 +1818,7 @@ function AdminDashboardInner() {
               </div>
             </div>
 
-            {/* Revenue by day chart */}
-            <div className="bg-surface shadow-card rounded-2xl p-5">
-              <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                <Calendar size={18} />
-                Revenue — Last 7 Days
-              </h2>
-              <div className="space-y-3">
-                {revenueByDay.map((day) => (
-                  <div key={day.date} className="flex items-center gap-3">
-                    <span className="text-xs text-text-secondary w-16 shrink-0">
-                      {day.label}
-                    </span>
-                    <div className="flex-1 bg-gray-100 rounded-full h-7 relative overflow-hidden">
-                      <div
-                        className="h-full bg-primary/80 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
-                        style={{
-                          width: `${Math.max(
-                            (day.revenue / maxRevenue) * 100,
-                            day.revenue > 0 ? 8 : 0
-                          )}%`,
-                        }}
-                      >
-                        {day.revenue > 0 && (
-                          <span className="text-[10px] text-white font-medium whitespace-nowrap">
-                            {formatKES(day.revenue)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-xs text-text-secondary w-20 text-right shrink-0">
-                      {day.count} order{day.count !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {revenueByDay.every((d) => d.revenue === 0) && (
-                <p className="text-center text-text-secondary text-sm mt-4">
-                  No revenue data for the last 7 days.
-                </p>
-              )}
-            </div>
+            <RevenueChart orders={orders} />
           </section>
         )}
 

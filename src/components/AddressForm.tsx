@@ -57,7 +57,6 @@ export default function AddressForm({
   defaultSave = true,
   submitLabel = "Save Address",
 }: AddressFormProps) {
-  const [label, setLabel] = useState(initial?.label || "");
   const [streetName, setStreetName] = useState(initial?.streetName || "");
   const [buildingName, setBuildingName] = useState(initial?.buildingName || "");
   const [unitNumber, setUnitNumber] = useState(initial?.unitNumber || "");
@@ -70,7 +69,6 @@ export default function AddressForm({
   const [isCustomNeighbourhood, setIsCustomNeighbourhood] = useState(
     initial?.neighbourhood ? !NAIROBI_NEIGHBOURHOODS.includes(initial.neighbourhood) : false
   );
-  const [addressType, setAddressType] = useState<"home" | "office">(initial?.type || "home");
   const [saveForFuture, setSaveForFuture] = useState(defaultSave);
   const [lat, setLat] = useState<number | undefined>(initial?.lat);
   const [lng, setLng] = useState<number | undefined>(initial?.lng);
@@ -306,7 +304,15 @@ export default function AddressForm({
 
     const loc: SavedLocation = {
       id: initial?.id || `loc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      label: label.trim() || (addressType === "home" ? "Home" : "Office"),
+      // SavedLocation.label is required and is the heading in the saved-address
+      // list, so it is derived now that the picker is gone: keep an existing
+      // label when editing, otherwise name the address after its area.
+      label:
+        initial?.label?.trim() ||
+        neighbourhood.trim() ||
+        streetName.trim() ||
+        LOCATION_TYPES.find((lt) => lt.value === locationType)?.label ||
+        "Address",
       address: buildDisplayAddress({
         streetName: streetName.trim(),
         buildingName: buildingName.trim(),
@@ -315,7 +321,7 @@ export default function AddressForm({
         neighbourhood: neighbourhood.trim(),
         postalCode: postalCode.trim(),
       }),
-      type: addressType,
+      type: locationType === "office" ? "office" : "home",
       streetName: streetName.trim(),
       buildingName: buildingName.trim(),
       unitNumber: unitNumber.trim(),
@@ -419,41 +425,6 @@ export default function AddressForm({
 
       {/* Divider between search and address details */}
       <div className="border-t border-gray-100 my-5" />
-
-      {/* Address Label */}
-      <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">
-        Address Label
-      </label>
-      <div className="flex gap-2 mb-3">
-        <button
-          onClick={() => { setAddressType("home"); setLabel("Home"); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
-            label === "Home" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
-          }`}
-        >
-          <Home size={14} /> Home
-        </button>
-        <button
-          onClick={() => { setAddressType("office"); setLabel("Office"); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
-            label === "Office" ? "bg-primary text-white" : "bg-gray-50 text-text-secondary border border-gray-200"
-          }`}
-        >
-          <Briefcase size={14} /> Office
-        </button>
-        <input
-          type="text"
-          value={label !== "Home" && label !== "Office" ? label : ""}
-          onChange={(e) => { setLabel(e.target.value); setAddressType("home"); }}
-          onFocus={() => { if (label === "Home" || label === "Office") setLabel(""); }}
-          placeholder="Custom label..."
-          className={`flex-1 rounded-full border px-4 py-2 text-xs font-semibold outline-none transition-colors ${
-            label !== "Home" && label !== "Office" && label
-              ? "border-primary text-primary bg-primary-light"
-              : "border-gray-200 text-text-secondary bg-gray-50"
-          }`}
-        />
-      </div>
 
       {/* Location Type */}
       <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 block">

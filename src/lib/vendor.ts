@@ -246,10 +246,14 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
       })
       .sort((a, b) => b.score - a.score);
 
-    if (candidates.length === 0) return null;
-    const nextVendor = candidates[0].vendor;
+    // Never leave the order unassigned: once every vendor has been tried,
+    // fall back to the first available one rather than returning nothing.
+    const nextVendor = candidates[0]?.vendor || allVendors[0];
+    if (!nextVendor) return null;
 
     orders[idx].current_vendor_offer = nextVendor.id;
+    orders[idx].vendor_id = nextVendor.id;
+    orders[idx].vendor_name = nextVendor.name;
     orders[idx].updated_at = new Date().toISOString();
     saveMockOrders(orders);
     return { vendorId: nextVendor.id, vendorName: nextVendor.name };
@@ -293,53 +297,68 @@ export async function assignOrderToVendor(orderId: string): Promise<{ vendorId: 
       if (order.scheduled_time) checkTime = order.scheduled_time as string;
     }
 
-    // Score each untried vendor
     type ServiceTime = { day: string; open: boolean; open_time: string; close_time: string };
     type VendorRow = { id: string; name: string; brands?: string[]; areas_served?: string[]; vendor_locations?: Array<{ lat: number; lng: number }>; vendor_service_times?: ServiceTime[] };
-    const candidates = (vendors as VendorRow[])
-      .filter((v) => {
-        if (triedIds.includes(v.id)) return false;
-        // Check service times — if vendor has schedule data, ensure they're open
-        if (v.vendor_service_times && v.vendor_service_times.length > 0) {
-          const dayEntry = v.vendor_service_times.find((st) => st.day === checkDay);
-          if (!dayEntry || !dayEntry.open) return false;
-          if (checkTime < dayEntry.open_time || checkTime > dayEntry.close_time) return false;
+    const allVendors = vendors as VendorRow[];
+
+    // A vendor with no schedule rows is treated as always open.
+    const isOpenAt = (v: VendorRow) => {
+      if (!v.vendor_service_times || v.vendor_service_times.length === 0) return true;
+      const dayEntry = v.vendor_service_times.find((st) => st.day === checkDay);
+      if (!dayEntry || !dayEntry.open) return false;
+      return checkTime >= dayEntry.open_time && checkTime <= dayEntry.close_time;
+    };
+
+    const scoreOf = (v: VendorRow) => {
+      let score = 0;
+
+      // Brand match: +10 per matching brand
+      if (brandPref.length > 0) {
+        const matches = brandPref.filter((b) => (v.brands || []).includes(b)).length;
+        score += matches * 10;
+      }
+
+      // Area match: +8 if vendor serves delivery neighbourhood
+      if (deliveryArea && (v.areas_served || []).some((a) => a.toLowerCase() === deliveryArea.toLowerCase())) {
+        score += 8;
+      }
+
+      // Proximity: closer = higher score (max 5 points)
+      if (deliveryLat && deliveryLng && v.vendor_locations && v.vendor_locations.length > 0) {
+        let minDist = Infinity;
+        for (const loc of v.vendor_locations) {
+          const d = haversineKm(deliveryLat, deliveryLng, loc.lat, loc.lng);
+          if (d < minDist) minDist = d;
         }
-        return true;
-      })
-      .map((v) => {
-        let score = 0;
+        score += Math.max(0, 5 - minDist);
+      }
 
-        // Brand match: +10 per matching brand
-        if (brandPref.length > 0) {
-          const matches = brandPref.filter((b) => (v.brands || []).includes(b)).length;
-          score += matches * 10;
-        }
+      return score;
+    };
 
-        // Area match: +8 if vendor serves delivery neighbourhood
-        if (deliveryArea && (v.areas_served || []).some((a) => a.toLowerCase() === deliveryArea.toLowerCase())) {
-          score += 8;
-        }
+    const best = (pool: VendorRow[]): VendorRow | null =>
+      pool.length === 0
+        ? null
+        : pool.map((v) => ({ v, score: scoreOf(v) })).sort((a, b) => b.score - a.score)[0].v;
 
-        // Proximity: closer = higher score (max 5 points)
-        if (deliveryLat && deliveryLng && v.vendor_locations && v.vendor_locations.length > 0) {
-          let minDist = Infinity;
-          for (const loc of v.vendor_locations) {
-            const d = haversineKm(deliveryLat, deliveryLng, loc.lat, loc.lng);
-            if (d < minDist) minDist = d;
-          }
-          score += Math.max(0, 5 - minDist);
-        }
+    const untried = allVendors.filter((v) => !triedIds.includes(v.id));
 
-        return { vendor: v, score };
-      })
-      .sort((a, b) => b.score - a.score);
+    // An order must never be left unassigned, so fall back in steps rather
+    // than giving up: the best untried vendor open right now, else the best
+    // untried vendor whatever their hours, else the best of all active
+    // vendors once every one of them has already been tried. Only a system
+    // with no active vendors at all yields nothing.
+    const next = best(untried.filter(isOpenAt)) || best(untried) || best(allVendors);
+    if (!next) return null;
 
-    if (candidates.length === 0) return null;
-    const next = candidates[0].vendor;
-
+    // Assign outright, not merely offer. vendor_name is what the admin order
+    // table reads, and leaving it null is what showed orders as "Unassigned".
+    // current_vendor_offer stays set so the vendor still sees it as awaiting
+    // their acceptance and can decline, which reassigns to the next vendor.
     await supabase.from("orders").update({
       current_vendor_offer: next.id,
+      vendor_id: next.id,
+      vendor_name: next.name,
       updated_at: new Date().toISOString(),
     }).eq("id", orderId);
 
@@ -423,6 +442,10 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
     if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
     orders[idx].vendors_tried = triedIds;
     orders[idx].current_vendor_offer = null;
+    // assignOrderToVendor now sets vendor_id/vendor_name, so clear the
+    // rejecting vendor before reassigning or a stale name would stick.
+    orders[idx].vendor_id = null;
+    orders[idx].vendor_name = null;
     orders[idx].updated_at = new Date().toISOString();
     saveMockOrders(orders);
 
@@ -442,9 +465,14 @@ export async function rejectOrder(orderId: string, vendorId: string): Promise<{ 
   const triedIds = (order.vendors_tried as string[]) || [];
   if (!triedIds.includes(vendorId)) triedIds.push(vendorId);
 
+  // assignOrderToVendor now sets vendor_id/vendor_name, so clear the
+  // rejecting vendor before reassigning or a stale name would stick.
   await supabase.from("orders").update({
     vendors_tried: triedIds,
     current_vendor_offer: null,
+    vendor_id: null,
+    vendor_name: null,
+    vendor_location: null,
     updated_at: new Date().toISOString(),
   }).eq("id", orderId);
 

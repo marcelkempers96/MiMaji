@@ -93,12 +93,9 @@ export default function HomePage() {
           </div>
           <div className="p-4">
             <p className="font-bold text-sm text-text-primary mb-1">Delivering from 30 Locations Across Nairobi</p>
-            <p className="text-text-secondary text-xs mb-2">
+            <p className="text-text-secondary text-xs">
               We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
             </p>
-            <Link href="/vendors" className="text-primary text-xs font-semibold hover:underline">
-              See all vendors →
-            </Link>
           </div>
         </div>
 
@@ -535,12 +532,9 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
         <div className="bg-surface shadow-card rounded-2xl overflow-hidden flex items-center gap-0">
           <div className="flex-1 p-10">
             <h2 className="text-2xl font-extrabold text-text-primary mb-3">Delivering from 30 Locations Across Nairobi</h2>
-            <p className="text-text-secondary text-base mb-6 max-w-md">
+            <p className="text-text-secondary text-base max-w-md">
               We partner with verified vendors across the city to ensure fast, reliable delivery wherever you are.
             </p>
-            <Link href="/vendors" className="text-primary text-sm font-semibold hover:underline">
-              See all vendors →
-            </Link>
           </div>
           <div className="flex-1 flex items-center justify-center p-4">
             <img src={mimajiLocations.src} alt="MiMaji delivery locations across Nairobi" className="w-full max-h-[300px] object-contain" />
