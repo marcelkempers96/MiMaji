@@ -48,12 +48,16 @@ export default function HomePage() {
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5 relative overflow-hidden">
           <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none" />
           <div className="relative z-20">
-            <h1 className="text-2xl font-extrabold leading-tight drop-shadow-md">
-              Order Water Online
+            {/* On a dark ground white is already maximum emphasis, so "Fresh"
+                is carried by both weight and brightness: the rest of the
+                heading steps back to bold/85% and "Fresh" holds extrabold at
+                full white. Weight alone was invisible at this size. */}
+            <h1 className="text-2xl font-bold leading-tight drop-shadow-md text-white/85">
+              Order <span className="font-extrabold text-white">Fresh</span> Water Online
             </h1>
             <p className="text-white text-sm mt-1 drop-shadow-sm">& Track Your Delivery</p>
             <p className="text-white/90 text-xs mt-2">
-              Premium purified water delivered to your door in Nairobi.{" "}
+              Premium purified water delivered to your doorstep in Nairobi.{" "}
               <span className="font-bold text-white">Pay only on-delivery</span> with M-Pesa.
             </p>
             <Link
@@ -449,12 +453,12 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
         <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10" />
         <div className="max-w-6xl mx-auto px-8 py-16 flex items-center gap-12 relative z-10">
           <div className="flex-1">
-            <h1 className="text-5xl font-extrabold leading-tight">
-              Order Water Online<br />
+            <h1 className="text-5xl font-bold leading-tight text-white/85">
+              Order <span className="font-extrabold text-white">Fresh</span> Water Online<br />
               <span className="text-white">& Track Your Delivery</span>
             </h1>
             <p className="text-white/90 text-lg mt-4 max-w-md">
-              Premium purified water delivered to your door in Nairobi.{" "}
+              Premium purified water delivered to your doorstep in Nairobi.{" "}
               <span className="font-bold text-white">Pay only on-delivery</span> with M-Pesa. Fast, reliable, local.
             </p>
             <div className="flex gap-4 mt-8">
