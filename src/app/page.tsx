@@ -258,7 +258,7 @@ export default function HomePage() {
         {/* Impact */}
         <h2 className="text-base font-bold text-text-primary mb-3">Impact</h2>
         <Link href="/impact">
-          <div className="relative overflow-hidden bg-[#EAF2FB] rounded-xl mb-5 hover:shadow-card transition-shadow">
+          <div className="relative overflow-hidden bg-[#EAF2FB] rounded-xl mb-5 min-h-[200px] flex hover:shadow-card transition-shadow">
             <img
               src={foundationImpact.src}
               alt=""
@@ -266,7 +266,7 @@ export default function HomePage() {
               className="absolute inset-0 w-full h-full object-cover object-center"
             />
             <div className="absolute inset-0 bg-[#EAF2FB]/85" />
-            <div className="relative p-5">
+            <div className="relative p-5 flex flex-col justify-center">
               <p className="font-bold text-sm text-text-primary mb-1">Water is Life</p>
               <p className="text-text-primary/80 text-xs mb-2">
                 Every 100L you order sends 10L to rural communities across Kenya through the{" "}
