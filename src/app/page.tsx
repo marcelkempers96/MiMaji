@@ -133,7 +133,7 @@ export default function HomePage() {
 
         {/* Special Offers */}
         <h2 className="text-base font-bold text-text-primary mb-3">Special Offers</h2>
-        <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-xl p-4 mb-3">
+        <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-xl p-4 mb-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
               <Gift size={20} className="text-cta-alt" />
@@ -141,17 +141,6 @@ export default function HomePage() {
             <div>
               <p className="font-bold text-sm text-text-primary">Bulk Order Discount</p>
               <p className="text-text-secondary text-xs mt-0.5">Order 3+ jugs and save up to 20%</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-xl p-4 mb-5">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-              <Truck size={20} className="text-primary" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-text-primary">Free Delivery</p>
-              <p className="text-text-secondary text-xs mt-0.5">On your first order</p>
             </div>
           </div>
         </div>
@@ -576,7 +565,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
       <section className="bg-surface py-14">
         <div className="max-w-6xl mx-auto px-8">
           <h2 className="text-2xl font-bold text-text-primary mb-8">Special Offers</h2>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-2xl p-8 flex items-center gap-6">
               <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
                 <Gift size={28} className="text-cta-alt" />
@@ -584,15 +573,6 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
               <div>
                 <p className="font-bold text-lg text-text-primary">Bulk Order Discount</p>
                 <p className="text-text-secondary text-sm mt-1">Order 3+ jugs and save up to 20% on your delivery</p>
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-2xl p-8 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                <Truck size={28} className="text-primary" />
-              </div>
-              <div>
-                <p className="font-bold text-lg text-text-primary">Free Delivery</p>
-                <p className="text-text-secondary text-sm mt-1">On your first order</p>
               </div>
             </div>
           </div>

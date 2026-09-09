@@ -142,7 +142,7 @@ function ProductsContent({ desktop }: { desktop?: boolean }) {
           <Truck size={20} className="text-primary flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-bold text-sm text-text-primary">Delivery</p>
-            <p className="text-text-secondary text-xs">KES 100 per order. First order delivery is FREE.</p>
+            <p className="text-text-secondary text-xs">KES 100 per order.</p>
           </div>
         </div>
         <div className="flex items-start gap-3">
