@@ -67,21 +67,21 @@ export default function HomePage() {
         {/* Action Tabs */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           <Link href="/buy">
-            <div className="bg-surface shadow-card rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-card-hover transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center">
-                <Droplets size={22} className="text-primary" />
+            <div className="bg-[#D6E8F8] shadow-card rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-card-hover transition-shadow">
+              <div className="w-14 h-14 rounded-2xl bg-surface flex items-center justify-center overflow-hidden">
+                <img src={threeBottles.src} alt="" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-sm text-text-primary">Order Water</span>
-              <span className="text-text-secondary text-xs">Browse & buy</span>
+              <span className="text-[#4A5C6E] text-xs">Browse &amp; buy</span>
             </div>
           </Link>
           <AuthLink href="/orders">
             <div className="bg-surface shadow-card rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-card-hover transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center">
-                <Truck size={22} className="text-primary" />
+              <div className="w-14 h-14 rounded-2xl bg-primary-light flex items-center justify-center">
+                <Truck size={26} className="text-primary" />
               </div>
               <span className="font-bold text-sm text-text-primary">My Orders</span>
-              <span className="text-text-secondary text-xs">Track & view</span>
+              <span className="text-text-secondary text-xs">Track &amp; view</span>
             </div>
           </AuthLink>
         </div>
