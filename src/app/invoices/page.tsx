@@ -4,6 +4,7 @@ import { logo1 } from "@/assets/images";
 import { FileText, Download, ChevronRight, Droplets } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { VENDOR_MPESA_LOCAL } from "@/lib/contact";
 import TopBar from "@/components/layout/TopBar";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
@@ -149,7 +150,7 @@ export default function InvoicesPage() {
       <h3>From</h3>
       <p><strong>MiMaji Ltd</strong></p>
       <p>Nairobi, Kenya</p>
-      <p>M-PESA: 0704476338</p>
+      <p>M-PESA: ${VENDOR_MPESA_LOCAL}</p>
     </div>
   </div>
   <table>

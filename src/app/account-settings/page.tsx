@@ -2,7 +2,7 @@
 
 import { logo1 } from "@/assets/images";
 import { useState, useEffect } from "react";
-import { User, Mail, Phone, Smartphone, Save, Building2, Camera, Banknote } from "lucide-react";
+import { User, Mail, Phone, Smartphone, Save, Building2, Camera } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -312,27 +312,6 @@ export default function AccountSettingsPage() {
             )}
           </div>
         )}
-      </div>
-
-      {/* Support - M-PESA Info */}
-      <div className="bg-surface shadow-card rounded-xl p-5 mb-3">
-        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2 block">Support & Payment Info</label>
-        <div className="flex items-start gap-3 mb-3">
-          <Banknote size={20} className="text-[#2ECC71] flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm text-text-primary font-medium">MiMaji M-PESA Payment Details</p>
-            <p className="text-text-secondary text-xs">For any missed payments or manual transfers</p>
-          </div>
-        </div>
-        <div className="bg-[#E8F5E9] rounded-xl p-4">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-text-secondary">Send Money To</span>
-              <span className="text-sm font-bold text-text-primary font-mono">0704476338</span>
-            </div>
-          </div>
-          <p className="text-text-secondary text-[10px] mt-2">Paste your M-PESA confirmation code so we can track your order.</p>
-        </div>
       </div>
 
       {/* Save Button */}

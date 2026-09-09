@@ -401,12 +401,6 @@ function MobileFooter() {
         </a>
       </div>
 
-      <div className="bg-primary-light rounded-xl p-3 mb-4">
-        <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide mb-1">M-PESA Payment</p>
-        <p className="text-text-primary text-sm">Send Money To: <span className="font-bold">0704476338</span></p>
-        <p className="text-text-secondary text-xs mt-1">Paste your M-PESA confirmation code so we can track your order.</p>
-      </div>
-
       <div className="border-t border-[#E0E0E0] pt-4 flex items-center justify-between">
         <p className="text-text-secondary/50 text-xs">&copy; 2026 MiMaji</p>
         <p className="text-text-secondary/50 text-xs">v2.3.0</p>

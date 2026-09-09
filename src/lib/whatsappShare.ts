@@ -1,14 +1,19 @@
 /**
  * Client-safe helpers for building WhatsApp share links so customers can
- * forward their order details to the MiMaji owner on +254 704 476 338.
+ * forward their order details to the fulfilment vendor, who handles both
+ * payment and delivery. The number lives in `src/lib/contact.ts`.
  *
  * This file is safe to import from client components — it contains no
- * secrets or server-only code. For the server-side CallMeBot notifications,
- * see `src/lib/whatsapp.ts`.
+ * secrets or server-only code. For the server-side CallMeBot owner alert,
+ * see `src/lib/whatsapp.ts` (a separate channel, still routed to MiMaji).
  */
+import { VENDOR_WHATSAPP_NUMBER } from "@/lib/contact";
 
-/** Owner WhatsApp number in international format, no "+". */
-export const OWNER_WHATSAPP_NUMBER = "254704476338";
+/**
+ * The vendor's WhatsApp number in international format, no "+".
+ * Re-exported so pages can render it without importing two modules.
+ */
+export { VENDOR_WHATSAPP_NUMBER };
 
 export interface ShareOrderItem {
   name: string;
@@ -119,5 +124,5 @@ export function buildWhatsAppOrderMessage(params: ShareOrderParams): string {
  */
 export function buildWhatsAppOrderLink(params: ShareOrderParams): string {
   const message = buildWhatsAppOrderMessage(params);
-  return `https://wa.me/${OWNER_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${VENDOR_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
