@@ -111,7 +111,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Choose Your Water</p>
-              <p className="text-text-secondary text-xs">Hard jug 20L or soft bottle 5L/10L/20L</p>
+              <p className="text-text-secondary text-xs">Hard jug 10L/18.9L/20L or soft bottle 5L/10L/18.9L/20L</p>
             </div>
           </div>
           <div className="flex items-start gap-3 mb-3">
@@ -129,7 +129,7 @@ export default function HomePage() {
             </div>
             <div>
               <p className="font-bold text-sm text-text-primary">Get It Delivered</p>
-              <p className="text-text-secondary text-xs">Track your delivery in real-time. Average 35 min.</p>
+              <p className="text-text-secondary text-xs">Track your delivery in real-time.</p>
             </div>
           </div>
         </div>
@@ -474,7 +474,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
                   <span className="text-text-primary text-xs font-bold">Your Water Delivery</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-primary font-extrabold text-lg">35 min</span>
+                  <span className="text-primary font-extrabold text-sm">Live tracking</span>
                   <div className="flex gap-1">
                     <div className="w-6 h-6 bg-primary-light rounded flex items-center justify-center">
                       <Droplets size={12} className="text-primary" />
@@ -500,7 +500,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
                 <img src={order1.src} alt="Choose water" className="w-full h-full object-contain" />
               </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Choose Your Water</h3>
-              <p className="text-text-secondary text-sm">Browse hard jugs and soft bottles in 5L, 10L, and 20L sizes</p>
+              <p className="text-text-secondary text-sm">Browse hard jugs and soft bottles in 5L, 10L, 18.9L, and 20L sizes</p>
             </div>
             <div className="text-center">
               <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4">
@@ -514,7 +514,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
                 <img src={dev1.src} alt="Delivery" className="w-full h-full object-contain" />
               </div>
               <h3 className="font-bold text-text-primary text-lg mb-2">Get It Delivered</h3>
-              <p className="text-text-secondary text-sm">Track your delivery in real-time. Average delivery in 35 minutes</p>
+              <p className="text-text-secondary text-sm">Track your delivery in real-time</p>
             </div>
           </div>
         </div>
@@ -546,7 +546,7 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
               <img src={threeBottles.src} alt="Order Water" className="object-cover w-full h-full" />
             </div>
             <h3 className="font-bold text-text-primary text-lg mb-2">Order Water</h3>
-            <p className="text-text-secondary text-sm">Browse purified water in 5L, 10L & 20L. Hard jug or soft bottle.</p>
+            <p className="text-text-secondary text-sm">Browse purified water in 5L, 10L, 18.9L &amp; 20L. Hard jug or soft bottle.</p>
             <Link href="/buy" className="text-primary text-sm font-semibold mt-4 inline-block hover:underline">Shop Now →</Link>
           </div>
           <div className="bg-surface shadow-card rounded-2xl p-8 text-center hover:shadow-card-hover transition-shadow">
