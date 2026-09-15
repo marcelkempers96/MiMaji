@@ -21,6 +21,25 @@ export default function AboutUsPage() {
         </p>
       </div>
 
+      {/* Intro video — a YouTube Short, so the frame is 9:16 and capped in
+          width so it does not tower over the desktop layout. Uses the
+          nocookie host and loads lazily, since an eager YouTube player is a
+          heavy thing to pull on mobile data before anyone presses play. */}
+      <div className="bg-surface shadow-card rounded-xl p-5 mb-4">
+        <h3 className="font-bold text-base text-text-primary mb-3">Watch MiMaji in Action</h3>
+        <div className="relative mx-auto w-full max-w-[300px] aspect-[9/16] rounded-xl overflow-hidden bg-black">
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/vCJnOR3KOmM"
+            title="MiMaji — clean water delivered across Nairobi"
+            loading="lazy"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+            className="absolute inset-0 h-full w-full border-0"
+          />
+        </div>
+      </div>
+
       {/* A Note from the Team */}
       <div className="bg-surface shadow-card rounded-xl p-6 mb-4">
         <h3 className="font-bold text-base text-text-primary mb-3 flex items-center gap-2">

@@ -332,7 +332,7 @@ function BuyContent({
       {/* Pricing info */}
       <div className="px-4 mt-4">
         <p className="text-text-secondary text-xs">
-          Delivery: KES 100 per order (first order FREE). <span className="font-semibold">New</span> = brand new sealed bottle. <span className="font-semibold">Refill</span> = swap your empty bottle for a freshly filled one at a lower price. Bulk discount: up to 20% off on 3+ jugs.
+          Delivery: KES 100 per order. <span className="font-semibold">New</span> = brand new sealed bottle. <span className="font-semibold">Refill</span> = swap your empty bottle for a freshly filled one at a lower price. Bulk discount: up to 20% off on 3+ jugs.
         </p>
       </div>
     </>

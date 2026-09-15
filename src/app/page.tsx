@@ -6,6 +6,7 @@ import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phon
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
 import DesktopFooter from "@/components/layout/DesktopFooter";
+import InstallAppBanner from "@/components/InstallAppBanner";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -48,11 +49,18 @@ export default function HomePage() {
         <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 text-white mb-5 relative overflow-hidden">
           <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none" />
           <div className="relative z-20">
-            <h1 className="text-2xl font-extrabold leading-tight drop-shadow-md">
-              Order Water Online
+            {/* On a dark ground white is already maximum emphasis, so "Fresh"
+                is carried by both weight and brightness: the rest of the
+                heading steps back to bold/85% and "Fresh" holds extrabold at
+                full white. Weight alone was invisible at this size. */}
+            <h1 className="text-2xl font-bold leading-tight drop-shadow-md text-white/85">
+              Order <span className="font-extrabold text-white">Fresh</span> Water Online
             </h1>
             <p className="text-white text-sm mt-1 drop-shadow-sm">& Track Your Delivery</p>
-            <p className="text-white/90 text-xs mt-2">Premium purified water delivered to your door in Nairobi. Pay with M-Pesa.</p>
+            <p className="text-white/90 text-xs mt-2">
+              Premium purified water delivered to your doorstep in Nairobi.{" "}
+              <span className="font-bold text-white">Pay only on-delivery</span> with M-Pesa.
+            </p>
             <Link
               href="/buy"
               className="inline-flex items-center gap-2 bg-[#4A9FD7] hover:bg-[#3B8BC4] text-white font-bold rounded-full px-6 py-3 mt-4 text-sm transition-colors shadow-lg"
@@ -131,30 +139,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Special Offers */}
-        <h2 className="text-base font-bold text-text-primary mb-3">Special Offers</h2>
-        <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-xl p-4 mb-3">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-              <Gift size={20} className="text-cta-alt" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-text-primary">Bulk Order Discount</p>
-              <p className="text-text-secondary text-xs mt-0.5">Order 3+ jugs and save up to 20%</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-xl p-4 mb-5">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-              <Truck size={20} className="text-primary" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-text-primary">Free Delivery</p>
-              <p className="text-text-secondary text-xs mt-0.5">On your first order</p>
-            </div>
-          </div>
-        </div>
+        <InstallAppBanner />
 
         {/* Rewards */}
         <h2 className="text-base font-bold text-text-primary mb-3">Rewards & Referrals</h2>
@@ -269,7 +254,7 @@ export default function HomePage() {
         {/* Impact */}
         <h2 className="text-base font-bold text-text-primary mb-3">Impact</h2>
         <Link href="/impact">
-          <div className="relative overflow-hidden bg-[#EAF2FB] rounded-xl mb-5 hover:shadow-card transition-shadow">
+          <div className="relative overflow-hidden bg-[#EAF2FB] rounded-xl mb-5 min-h-[200px] flex hover:shadow-card transition-shadow">
             <img
               src={foundationImpact.src}
               alt=""
@@ -277,7 +262,7 @@ export default function HomePage() {
               className="absolute inset-0 w-full h-full object-cover object-center"
             />
             <div className="absolute inset-0 bg-[#EAF2FB]/85" />
-            <div className="relative p-5">
+            <div className="relative p-5 flex flex-col justify-center">
               <p className="font-bold text-sm text-text-primary mb-1">Water is Life</p>
               <p className="text-text-primary/80 text-xs mb-2">
                 Every 100L you order sends 10L to rural communities across Kenya through the{" "}
@@ -446,12 +431,13 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
         <img src={watermany.src} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10" />
         <div className="max-w-6xl mx-auto px-8 py-16 flex items-center gap-12 relative z-10">
           <div className="flex-1">
-            <h1 className="text-5xl font-extrabold leading-tight">
-              Order Water Online<br />
+            <h1 className="text-5xl font-bold leading-tight text-white/85">
+              Order <span className="font-extrabold text-white">Fresh</span> Water Online<br />
               <span className="text-white">& Track Your Delivery</span>
             </h1>
             <p className="text-white/90 text-lg mt-4 max-w-md">
-              Premium purified water delivered to your door in Nairobi. Pay with M-Pesa. Fast, reliable, local.
+              Premium purified water delivered to your doorstep in Nairobi.{" "}
+              <span className="font-bold text-white">Pay only on-delivery</span> with M-Pesa. Fast, reliable, local.
             </p>
             <div className="flex gap-4 mt-8">
               <Link
@@ -568,33 +554,6 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
             <h3 className="font-bold text-text-primary text-lg mb-2">Earn Rewards</h3>
             <p className="text-text-secondary text-sm">Join Water Warriors! Earn points with every order for free water & discounts.</p>
             <Link href="/rewards" className="text-primary text-sm font-semibold mt-4 inline-block hover:underline">View Rewards →</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Special Offers */}
-      <section className="bg-surface py-14">
-        <div className="max-w-6xl mx-auto px-8">
-          <h2 className="text-2xl font-bold text-text-primary mb-8">Special Offers</h2>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="bg-gradient-to-r from-[#EAF2FB] to-[#D4E8FA] rounded-2xl p-8 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                <Gift size={28} className="text-cta-alt" />
-              </div>
-              <div>
-                <p className="font-bold text-lg text-text-primary">Bulk Order Discount</p>
-                <p className="text-text-secondary text-sm mt-1">Order 3+ jugs and save up to 20% on your delivery</p>
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-2xl p-8 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                <Truck size={28} className="text-primary" />
-              </div>
-              <div>
-                <p className="font-bold text-lg text-text-primary">Free Delivery</p>
-                <p className="text-text-secondary text-sm mt-1">On your first order</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>
