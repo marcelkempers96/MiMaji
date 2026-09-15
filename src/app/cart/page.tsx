@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, Tag, Droplets } from "lucide-react";
 
 import Link from "next/link";
+import VoucherField from "@/components/VoucherField";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
@@ -50,7 +51,7 @@ function getDiscountedPrice(basePrice: number, qty: number) {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, deliveryFee } = useCart();
+  const { items, updateQuantity, removeItem, deliveryFee, deliveryDiscount, voucherDiscount, voucher } = useCart();
   const { user } = useAuth();
 
   const handleCheckout = () => {
@@ -72,7 +73,10 @@ export default function CartPage() {
   const discountedSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.discountedPrice * item.quantity, 0);
   const originalSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
   const totalSavings = originalSubtotal - discountedSubtotal;
-  const total = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
+  const total = Math.max(
+    discountedSubtotal + (items.length > 0 ? deliveryFee : 0) - deliveryDiscount - voucherDiscount,
+    0
+  );
 
   const cartContent = items.length === 0 ? (
     <div className="flex flex-col items-center justify-center px-4 pt-24 gap-4">
@@ -164,9 +168,25 @@ export default function CartPage() {
         )}
         <div className="flex justify-between items-center text-sm text-text-secondary mb-2">
           <span>Delivery Fee</span>
-          <span>KES {deliveryFee.toLocaleString()}</span>
+          {deliveryDiscount > 0 ? (
+            <span className="flex items-center gap-2">
+              <span className="line-through">KES {deliveryFee.toLocaleString()}</span>
+              <span className="text-[#2ECC71] font-semibold">FREE</span>
+            </span>
+          ) : (
+            <span>KES {deliveryFee.toLocaleString()}</span>
+          )}
         </div>
+        {voucherDiscount > 0 && (
+          <div className="flex justify-between items-center text-sm mb-2">
+            <span className="text-[#2ECC71] font-medium flex items-center gap-1">
+              <Tag size={12} /> Voucher {voucher?.code}
+            </span>
+            <span className="text-[#2ECC71] font-semibold">- KES {voucherDiscount.toLocaleString()}</span>
+          </div>
+        )}
         <div className="h-px bg-gray-100 my-2" />
+        <VoucherField />
         <div className="flex justify-between items-center">
           <span className="font-bold text-lg text-text-primary">Total</span>
           <span className="font-bold text-xl text-text-primary">KES {total.toLocaleString()}</span>
