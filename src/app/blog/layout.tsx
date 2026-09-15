@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { blog1NairobiWater, images } from "@/assets/images";
 import { blogPosts } from "@/data/blogPosts";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = "https://www.mimaji.co.ke";
 
 export const metadata: Metadata = {
   title: "MiMaji Blog | Order Water Online, Water Safety & Delivery in Nairobi",

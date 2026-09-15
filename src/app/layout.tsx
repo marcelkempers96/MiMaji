@@ -4,8 +4,8 @@ import Providers from "@/context/Providers";
 import AppShell from "@/components/layout/AppShell";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = "https://www.mimaji.co.ke";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

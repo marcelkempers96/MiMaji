@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { getBlogPost } from "@/data/blogPosts";
 import { images } from "@/assets/images";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = "https://www.mimaji.co.ke";
 
 export async function generateMetadata({
   params,

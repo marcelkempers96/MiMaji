@@ -12,7 +12,7 @@ const sections = [
   { title: "4. Controlling Cookies", body: "Most web browsers allow you to manage cookie preferences through their settings. You can typically choose to block all cookies, accept all cookies, or receive a notification when a cookie is set. Please note that disabling strictly necessary cookies may affect the functionality of certain parts of the Site.\n\nFor detailed instructions on managing cookies, consult your browser\u2019s help documentation or visit www.allaboutcookies.org." },
   { title: "5. Third-Party Cookies", body: "We may utilise third-party analytics services (such as Google Analytics) that place their own cookies on your device. These third parties process data in accordance with their own privacy policies, which we encourage you to review. We do not control nor accept responsibility for the cookies set by third parties." },
   { title: "6. Revisions to This Policy", body: "We may revise this Cookie Policy from time to time to reflect changes in technology, legislation, or our practices. Any updates will be published on this page with a revised \u201cLast updated\u201d date." },
-  { title: "7. Questions", body: "If you have any questions about our use of cookies, please contact us:\n\nEmail: privacy@mimaji.co.ke\nWebsite: www.mimaji.co.ke" },
+  { title: "7. Questions", body: "If you have any questions about our use of cookies, please contact us:\n\nEmail: privacy@mimaji.co.ke\nWebsite: mimaji.co.ke" },
 ];
 
 export default function CookiesPage() {
