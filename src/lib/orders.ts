@@ -43,6 +43,9 @@ export interface OrderRecord {
   payment_method: string | null;
   // Brand preference for vendor matching
   brand_preference: string[];
+  // Voucher applied at checkout, and what it took off the total
+  voucher_code?: string | null;
+  discount_amount?: number;
   // Customer info (populated from profiles join)
   customer_name?: string;
   customer_phone?: string;
@@ -292,6 +295,10 @@ export async function createOrder(params: {
   customerName?: string;
   /** Customer phone for admin visibility */
   customerPhone?: string;
+  /** Voucher code applied at checkout, if any */
+  voucherCode?: string;
+  /** Total taken off by that voucher, in KES */
+  discountAmount?: number;
 }): Promise<{ orderId: string | null; error: string | null }> {
   const status = params.initialStatus || "pending_payment";
 
@@ -327,6 +334,8 @@ export async function createOrder(params: {
       brand_preference: params.brandPreference || [],
       customer_name: params.customerName || undefined,
       customer_phone: params.customerPhone || undefined,
+      voucher_code: params.voucherCode || null,
+      discount_amount: params.discountAmount || 0,
     };
     const orders = getMockOrders();
     orders.push(order);
@@ -386,6 +395,8 @@ export async function createOrder(params: {
         brand_preference: params.brandPreference || [],
         customer_name: params.customerName || undefined,
         customer_phone: params.customerPhone || undefined,
+        voucher_code: params.voucherCode || null,
+        discount_amount: params.discountAmount || 0,
       };
       const orders = getMockOrders();
       orders.push(order);
@@ -427,9 +438,7 @@ export async function createOrder(params: {
 
     // Generate a temporary ID for the delivery code, then use the real DB id
     const tempId = crypto.randomUUID();
-    const { data, error } = await supabase
-      .from("orders")
-      .insert({
+    const basePayload = {
         customer_id: params.customerId,
         delivery_address: params.deliveryAddress,
         delivery_address_details: params.deliveryAddressDetails || null,
@@ -451,9 +460,28 @@ export async function createOrder(params: {
         brand_preference: params.brandPreference || [],
         customer_name: params.customerName || "",
         customer_phone: params.customerPhone || "",
-      })
+    };
+
+    // voucher_code/discount_amount arrive with migration 011. If that has not
+    // been applied yet, Supabase rejects the whole insert for the unknown
+    // column — so retry without them rather than failing the customer's order.
+    // The charged total is already correct either way; only the itemised
+    // discount on the order view and invoice is lost.
+    const withVoucher =
+      params.voucherCode || params.discountAmount
+        ? { ...basePayload, voucher_code: params.voucherCode || null, discount_amount: params.discountAmount || 0 }
+        : basePayload;
+
+    let { data, error } = await supabase
+      .from("orders")
+      .insert(withVoucher)
       .select("id")
       .single();
+
+    if (error && withVoucher !== basePayload && /column .*(voucher_code|discount_amount)/i.test(error.message || "")) {
+      console.warn("[orders] voucher columns missing — run migration 011; saving order without them");
+      ({ data, error } = await supabase.from("orders").insert(basePayload).select("id").single());
+    }
 
     clearTimeout(timeout);
 
@@ -463,6 +491,11 @@ export async function createOrder(params: {
       if (error.message?.includes("foreign key constraint")) {
         return { orderId: null, error: "Could not verify your account. Please log out and log back in." };
       }
+      return { orderId: null, error: "Failed to place order. Please try again." };
+    }
+
+    // `data` is a let now (the insert may be retried), so narrow it explicitly.
+    if (!data) {
       return { orderId: null, error: "Failed to place order. Please try again." };
     }
 
@@ -494,6 +527,8 @@ export async function createOrder(params: {
         brand_preference: params.brandPreference || [],
         customer_name: params.customerName || undefined,
         customer_phone: params.customerPhone || undefined,
+        voucher_code: params.voucherCode || null,
+        discount_amount: params.discountAmount || 0,
       };
       const mockOrders = getMockOrders();
       mockOrders.push(backupOrder);

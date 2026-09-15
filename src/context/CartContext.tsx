@@ -9,6 +9,15 @@ interface CartItem {
   quantity: number;
 }
 
+export interface AppliedVoucher {
+  code: string;
+  /** Waives the delivery fee entirely. */
+  freeDelivery: boolean;
+  /** Flat amount off the subtotal, for percentage/fixed vouchers. */
+  discountAmount: number;
+  description: string;
+}
+
 interface CartContextType {
   items: CartItem[];
   addItem: (item: CartItem) => void;
@@ -17,12 +26,31 @@ interface CartContextType {
   clearCart: () => void;
   totalItems: number;
   subtotal: number;
+  /** The standard fee, before any voucher. UI strikes this through. */
   deliveryFee: number;
+  /** What the voucher takes off the delivery fee (0 or the full fee). */
+  deliveryDiscount: number;
+  /** What the voucher takes off the subtotal. */
+  voucherDiscount: number;
+  voucher: AppliedVoucher | null;
+  applyVoucher: (v: AppliedVoucher) => void;
+  clearVoucher: () => void;
   total: number;
 }
 
 const DELIVERY_FEE = 100;
 const CART_STORAGE_KEY = "mimaji_cart";
+const VOUCHER_STORAGE_KEY = "mimaji_cart_voucher";
+
+function loadVoucherFromStorage(): AppliedVoucher | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(VOUCHER_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as AppliedVoucher) : null;
+  } catch {
+    return null;
+  }
+}
 
 function loadCartFromStorage(): CartItem[] {
   if (typeof window === "undefined") return [];
@@ -52,11 +80,19 @@ const CartContext = createContext<CartContextType>({
   totalItems: 0,
   subtotal: 0,
   deliveryFee: DELIVERY_FEE,
+  deliveryDiscount: 0,
+  voucherDiscount: 0,
+  voucher: null,
+  applyVoucher: () => {},
+  clearVoucher: () => {},
   total: 0,
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(loadCartFromStorage);
+  // The code is entered in the cart but consumed at /confirm, so it has to
+  // survive the navigation through /delivery.
+  const [voucher, setVoucher] = useState<AppliedVoucher | null>(loadVoucherFromStorage);
 
   // Persist cart to localStorage whenever it changes
   useEffect(() => {
@@ -89,12 +125,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const applyVoucher = useCallback((v: AppliedVoucher) => {
+    setVoucher(v);
+    try { localStorage.setItem(VOUCHER_STORAGE_KEY, JSON.stringify(v)); } catch {}
+  }, []);
+
+  const clearVoucher = useCallback(() => {
+    setVoucher(null);
+    try { localStorage.removeItem(VOUCHER_STORAGE_KEY); } catch {}
+  }, []);
+
+  // An emptied cart drops the voucher too, so a code cannot survive into an
+  // unrelated later order.
+  const clearCart = useCallback(() => {
+    setItems([]);
+    setVoucher(null);
+    try { localStorage.removeItem(VOUCHER_STORAGE_KEY); } catch {}
+  }, []);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const deliveryFee = items.length > 0 ? DELIVERY_FEE : 0;
-  const total = subtotal + deliveryFee;
+  const deliveryDiscount = voucher?.freeDelivery ? deliveryFee : 0;
+  const voucherDiscount = Math.min(voucher?.discountAmount || 0, subtotal);
+  const total = Math.max(subtotal + deliveryFee - deliveryDiscount - voucherDiscount, 0);
 
   return (
     <CartContext.Provider
@@ -107,6 +161,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         totalItems,
         subtotal,
         deliveryFee,
+        deliveryDiscount,
+        voucherDiscount,
+        voucher,
+        applyVoucher,
+        clearVoucher,
         total,
       }}
     >

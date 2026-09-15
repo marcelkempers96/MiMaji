@@ -88,8 +88,15 @@ export default function InvoicesPage() {
                   </span>
                   <button
                     onClick={() => {
-                      const deliveryFee = 100;
-                      const subtotal = order.price_total - deliveryFee;
+                      // price_total is already net of any voucher, so the
+                      // discount has to be added back to recover the subtotal —
+                      // the old `price_total - 100` understated it by exactly
+                      // the discount on every voucher order.
+                      const standardDeliveryFee = 100;
+                      const discount = order.discount_amount || 0;
+                      const deliveryWaived = discount >= standardDeliveryFee;
+                      const chargedDelivery = deliveryWaived ? 0 : standardDeliveryFee;
+                      const subtotal = order.price_total + discount - standardDeliveryFee;
                       const invoiceWindow = window.open("", "_blank");
                       if (invoiceWindow) {
                         invoiceWindow.document.write(`<!DOCTYPE html>
@@ -161,7 +168,16 @@ export default function InvoicesPage() {
   </table>
   <div class="totals">
     <div class="totals-row"><span>Subtotal</span><span>KES ${subtotal.toLocaleString()}</span></div>
-    <div class="totals-row"><span>Delivery Fee</span><span>KES ${deliveryFee.toLocaleString()}</span></div>
+    <div class="totals-row"><span>Delivery Fee</span><span>${
+      deliveryWaived
+        ? `<s style="color:#8899AA">KES ${standardDeliveryFee.toLocaleString()}</s> <strong style="color:#2ECC71">FREE</strong>`
+        : `KES ${chargedDelivery.toLocaleString()}`
+    }</span></div>
+    ${
+      order.voucher_code
+        ? `<div class="totals-row"><span>Voucher ${order.voucher_code}</span><span style="color:#2ECC71">- KES ${discount.toLocaleString()}</span></div>`
+        : ""
+    }
     <div class="totals-row grand"><span>Total</span><span>KES ${order.price_total.toLocaleString()}</span></div>
   </div>
   <div class="payment-info">

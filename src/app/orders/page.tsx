@@ -11,6 +11,7 @@ import DesktopFooter from "@/components/layout/DesktopFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useRouter } from "next/navigation";
+import OrderDiscountNote from "@/components/OrderDiscountNote";
 import { fetchUserOrders, OrderRecord, mapOrderStatus, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode, updateOrderStatus } from "@/lib/orders";
 import { getRewardsSummaryAsync } from "@/lib/rewards";
 import { buildWhatsAppOrderLink } from "@/lib/whatsappShare";
@@ -276,7 +277,10 @@ export default function OrdersPage() {
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>
                         </div>
-                        <span className="text-text-primary font-semibold text-sm">KES {order.price_total.toLocaleString()}</span>
+                        <div className="text-right">
+                          <span className="text-text-primary font-semibold text-sm">KES {order.price_total.toLocaleString()}</span>
+                          <OrderDiscountNote order={order} />
+                        </div>
                       </div>
                     </div>
 
@@ -430,7 +434,10 @@ export default function OrdersPage() {
                             {order.mpesa_ref ? ` · ${order.mpesa_ref}` : ""}
                           </span>
                         </div>
-                        <span className="font-bold text-text-secondary">KES {order.price_total.toLocaleString()}</span>
+                        <div className="text-right">
+                          <span className="font-bold text-text-secondary">KES {order.price_total.toLocaleString()}</span>
+                          <OrderDiscountNote order={order} />
+                        </div>
                       </div>
                     </div>
                     <p className="text-red-500 text-xs mt-3 font-medium">

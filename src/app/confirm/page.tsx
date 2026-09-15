@@ -100,7 +100,7 @@ type PaymentMethod = "stk-push" | "mpesa-app" | "cash";
 
 export default function ConfirmOrderPage() {
   const router = useRouter();
-  const { items, totalItems, deliveryFee, clearCart } = useCart();
+  const { items, totalItems, deliveryFee, deliveryDiscount, voucherDiscount, voucher, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const { selectedLocation } = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -270,7 +270,10 @@ export default function ConfirmOrderPage() {
   const discountedSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.discountedPrice * item.quantity, 0);
   const originalSubtotal = cartWithDiscounts.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
   const totalSavings = originalSubtotal - discountedSubtotal;
-  const cartTotal = discountedSubtotal + (items.length > 0 ? deliveryFee : 0);
+  const cartTotal = Math.max(
+    discountedSubtotal + (items.length > 0 ? deliveryFee : 0) - deliveryDiscount - voucherDiscount,
+    0
+  );
 
   const orderLitres = items.reduce((acc, item) => {
     const match = item.name.match(/(\d+)L/i);
@@ -364,6 +367,8 @@ export default function ConfirmOrderPage() {
         brandPreference,
         initialStatus,
         mpesaRef: mpesaRef || undefined,
+        voucherCode: voucher?.code,
+        discountAmount: deliveryDiscount + voucherDiscount,
       });
       orderId = result.orderId;
       orderError = result.error;
@@ -1156,8 +1161,21 @@ export default function ConfirmOrderPage() {
             )}
             <div className="flex justify-between items-center text-sm text-text-secondary mb-1">
               <span>Delivery Fee</span>
-              <span>KES {deliveryFee.toLocaleString()}</span>
+              {deliveryDiscount > 0 ? (
+                <span className="flex items-center gap-2">
+                  <span className="line-through">KES {deliveryFee.toLocaleString()}</span>
+                  <span className="text-[#2ECC71] font-semibold">FREE</span>
+                </span>
+              ) : (
+                <span>KES {deliveryFee.toLocaleString()}</span>
+              )}
             </div>
+            {voucherDiscount > 0 && (
+              <div className="flex justify-between items-center text-sm mb-1">
+                <span className="text-[#2ECC71] font-semibold">Voucher {voucher?.code}</span>
+                <span className="text-[#2ECC71] font-semibold">- KES {voucherDiscount.toLocaleString()}</span>
+              </div>
+            )}
 
             {/* Rewards Discount */}
             {rewardsDiscount > 0 && (
