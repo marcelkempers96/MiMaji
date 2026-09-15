@@ -5,6 +5,7 @@ import {
   appendToCollection,
   updateInCollection,
   deleteFromCollection,
+  writeCollection,
 } from "@/lib/fileStore";
 
 // Admin code from environment variable (fallback to hardcoded for dev only)
@@ -305,6 +306,17 @@ export async function POST(req: NextRequest) {
   if (hasServiceKey) {
     const sb = createServiceClient();
     try {
+      if (action === "set_config") {
+        // config is a key/value table; upsert so a key that was never seeded
+        // is created on first toggle rather than failing.
+        const { error } = await sb.from("config").upsert(
+          { key: String(body.key), value: String(body.value), updated_at: new Date().toISOString() },
+          { onConflict: "key" }
+        );
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ success: true });
+      }
+
       if (action === "update_order_status") {
         const updates: Record<string, unknown> = { status: body.status, updated_at: new Date().toISOString() };
         if (body.mpesa_ref) updates.mpesa_ref = body.mpesa_ref;
@@ -562,6 +574,15 @@ export async function POST(req: NextRequest) {
 
     if (action === "reactivate_vendor") {
       updateInCollection("vendors", body.vendorId, { active: true });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "set_config") {
+      const rows = readCollection<{ id: string; value: string }>("config");
+      const idx = rows.findIndex((r) => r.id === String(body.key));
+      if (idx === -1) rows.push({ id: String(body.key), value: String(body.value) });
+      else rows[idx].value = String(body.value);
+      writeCollection("config", rows);
       return NextResponse.json({ success: true });
     }
 

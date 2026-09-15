@@ -9,6 +9,7 @@ import TopBar from "@/components/layout/TopBar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { OrderRecord, formatOrderDate, formatOrderDateTime, formatOrderId, generateDeliveryCode } from "@/lib/orders";
+import { fetchConfigFlag, REQUIRE_DELIVERY_CODE } from "@/lib/appConfig";
 import { VendorStats, fetchVendorStats, StoreLocation } from "@/lib/vendor";
 import { supabase } from "@/lib/supabase";
 
@@ -34,6 +35,10 @@ export default function VendorPortalPage() {
   const [deliveryCodeError, setDeliveryCodeError] = useState("");
   const [deliveryCodeAttempts, setDeliveryCodeAttempts] = useState(0);
   const [deliveryCodeLocked, setDeliveryCodeLocked] = useState(false);
+  // Admin-controlled: when off, the vendor marks an order delivered without
+  // asking the customer for their code. Defaults to true so a failed read
+  // keeps the check rather than silently dropping it.
+  const [requireDeliveryCode, setRequireDeliveryCode] = useState(true);
 
   // Vendor profile data (read-only, loaded from Supabase via server API)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,7 +218,35 @@ export default function VendorPortalPage() {
     loadOrders();
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchConfigFlag(REQUIRE_DELIVERY_CODE, true).then((v) => {
+      if (!cancelled) setRequireDeliveryCode(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const markDelivered = async (orderId: string) => {
+    try {
+      await fetch("/api/vendor-order-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete", orderId }),
+      });
+    } catch (e) {
+      console.error("Complete error:", e);
+    }
+    loadOrders();
+  };
+
   const handleCompleteOrder = (orderId: string) => {
+    if (!requireDeliveryCode) {
+      markDelivered(orderId);
+      return;
+    }
+
     const order = orders.find((o) => o.id === orderId);
     if (order) {
       setDeliveryCodeModalOrder(order);
@@ -241,19 +274,11 @@ export default function VendorPortalPage() {
       setDeliveryCodeInput("");
       return;
     }
-    try {
-      await fetch("/api/vendor-order-action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "complete", orderId: deliveryCodeModalOrder.id }),
-      });
-    } catch (e) {
-      console.error("Complete error:", e);
-    }
+    const orderId = deliveryCodeModalOrder.id;
     setDeliveryCodeModalOrder(null);
     setDeliveryCodeAttempts(0);
     setDeliveryCodeLocked(false);
-    loadOrders();
+    await markDelivered(orderId);
   };
 
   const handleLogout = async () => {
