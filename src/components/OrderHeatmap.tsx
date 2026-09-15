@@ -119,12 +119,14 @@ export default function OrderHeatmap({ orders }: { orders: OrderRecord[] }) {
           </p>
         </div>
       ) : (
-        <div
-          ref={mapDivRef}
-          className="w-full h-64 rounded-xl overflow-hidden bg-background mb-4"
-        >
+        <div className="relative w-full h-64 rounded-xl overflow-hidden bg-background mb-4">
+          {/* Google Maps replaces this node's children, so React must never
+              render any of its own into it — doing so made React reconcile a
+              child Maps had already detached, which threw removeChild and
+              took the whole page down. The status text is a sibling overlay. */}
+          <div ref={mapDivRef} className="absolute inset-0" />
           {!mapsReady && (
-            <div className="h-full flex items-center justify-center px-6">
+            <div className="absolute inset-0 flex items-center justify-center px-6 pointer-events-none">
               <p className="text-text-secondary text-sm text-center">
                 {mapsFailed
                   ? "Map could not load. The area breakdown below is unaffected."

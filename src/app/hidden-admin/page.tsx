@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import RevenueChart from "@/components/RevenueChart";
 import TopProducts from "@/components/TopProducts";
-import OrderHeatmap from "@/components/OrderHeatmap";
 import { fetchConfigFlag, cacheConfigFlag, REQUIRE_DELIVERY_CODE } from "@/lib/appConfig";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
@@ -1857,11 +1857,15 @@ function AdminDashboardInner() {
               </div>
             </div>
 
-            <RevenueChart orders={orders} />
+            {/* Each card is isolated: a render error in one of them used to
+                blank the whole admin route rather than just its own box. */}
+            <ErrorBoundary label="Revenue chart">
+              <RevenueChart orders={orders} />
+            </ErrorBoundary>
 
-            <TopProducts orders={orders} />
-
-            <OrderHeatmap orders={orders} />
+            <ErrorBoundary label="Top products">
+              <TopProducts orders={orders} />
+            </ErrorBoundary>
           </section>
         )}
 
