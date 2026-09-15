@@ -1,11 +1,12 @@
 "use client";
 
-import { logo1, foundationImpact, bulkOrderBottles, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
+import { logo1, foundationImpact, waterDelivery, waterDeliveryMiMaji, threeBottles, trackOrder, rewards, officeBottle, impactWaterIsLife, mimajiLocations, mpesa1, order1, dev1, warehouse, clean1, watermany } from "@/assets/images";
 import { Droplets, ShoppingCart, MapPin, Truck, Gift, Info, FileText, Mail, Phone, LogIn, Heart, Trophy, MessageCircle, Users, Building2, Handshake, Scale, Shield, Cookie, CheckCircle2, QrCode } from "lucide-react";
 
 import Link from "next/link";
 import AuthLink from "@/components/AuthLink";
 import DesktopFooter from "@/components/layout/DesktopFooter";
+import InstallAppBanner from "@/components/InstallAppBanner";
 import { WhatsAppMobileBanner } from "@/components/WhatsAppBanner";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
@@ -138,30 +139,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bulk order offer — carries its own "Special Offer" label now that
-            the section heading above it is gone */}
-        <div className="relative overflow-hidden bg-[#EAF2FB] rounded-xl mb-5 min-h-[130px] flex">
-          <img
-            src={bulkOrderBottles.src}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-[#EAF2FB]/75" />
-          <div className="relative p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-              <Gift size={20} className="text-cta-alt" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-[#0F3D66] uppercase tracking-wide mb-0.5">
-                Special Offer
-              </p>
-              <p className="font-bold text-sm text-text-primary">Bulk Order Discount</p>
-              {/* text-secondary is only 1.4:1 over the photo, so body copy darkens */}
-              <p className="text-[#2C3E50] text-xs mt-0.5">Order 3+ jugs and save up to 20%</p>
-            </div>
-          </div>
-        </div>
+        <InstallAppBanner />
 
         {/* Rewards */}
         <h2 className="text-base font-bold text-text-primary mb-3">Rewards & Referrals</h2>
@@ -576,33 +554,6 @@ function DesktopHome({ user }: { user: { phone: string; name: string; role?: str
             <h3 className="font-bold text-text-primary text-lg mb-2">Earn Rewards</h3>
             <p className="text-text-secondary text-sm">Join Water Warriors! Earn points with every order for free water & discounts.</p>
             <Link href="/rewards" className="text-primary text-sm font-semibold mt-4 inline-block hover:underline">View Rewards →</Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Bulk order offer */}
-      <section className="bg-surface py-14">
-        <div className="max-w-6xl mx-auto px-8">
-          <div className="relative overflow-hidden bg-[#EAF2FB] rounded-2xl min-h-[190px] flex">
-            <img
-              src={bulkOrderBottles.src}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover object-center"
-            />
-            <div className="absolute inset-0 bg-[#EAF2FB]/75" />
-            <div className="relative p-8 flex items-center gap-6">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                <Gift size={28} className="text-cta-alt" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-[#0F3D66] uppercase tracking-wide mb-1">
-                  Special Offer
-                </p>
-                <p className="font-bold text-lg text-text-primary">Bulk Order Discount</p>
-                <p className="text-[#2C3E50] text-sm mt-1">Order 3+ jugs and save up to 20% on your delivery</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>
