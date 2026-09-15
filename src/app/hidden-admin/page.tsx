@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import RevenueChart from "@/components/RevenueChart";
+import TopProducts from "@/components/TopProducts";
+import OrderHeatmap from "@/components/OrderHeatmap";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
 import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay, mapSupabaseToVendor } from "@/lib/vendorStore";
@@ -1819,6 +1821,10 @@ function AdminDashboardInner() {
             </div>
 
             <RevenueChart orders={orders} />
+
+            <TopProducts orders={orders} />
+
+            <OrderHeatmap orders={orders} />
           </section>
         )}
 

@@ -8,6 +8,15 @@ function formatKES(amount: number): string {
   return `KES ${amount.toLocaleString("en-KE")}`;
 }
 
+/** Short form for on-bar labels, where a full "KES 14,775" will not fit. */
+function formatCompact(amount: number): string {
+  if (amount >= 1000) {
+    const k = amount / 1000;
+    return `${k >= 10 ? Math.round(k) : k.toFixed(1)}k`;
+  }
+  return String(amount);
+}
+
 type RevenuePeriod = "day" | "week" | "month" | "year";
 
 const REVENUE_PERIODS: { value: RevenuePeriod; label: string; range: string }[] = [
@@ -93,6 +102,10 @@ export default function RevenueChart({ orders }: { orders: OrderRecord[] }) {
   const revenueOrders = revenueBuckets.reduce((s, b) => s + b.count, 0);
   // Too many bars to label each one, so thin the axis to roughly 8 ticks.
   const labelEvery = Math.ceil(revenueBuckets.length / 8);
+  // A value over every bar only fits while the columns stay wide enough to
+  // hold it: at 24 hourly or 30 daily bars a column is ~11-15px and even
+  // "1.2k" collides with its neighbours, so those keep the hover readout.
+  const showBarValues = revenueBuckets.length <= 12;
 
   return (
     <div className="bg-surface shadow-card rounded-2xl p-5">
@@ -135,12 +148,22 @@ export default function RevenueChart({ orders }: { orders: OrderRecord[] }) {
               <span className="absolute top-0 left-0 text-[10px] text-text-secondary">
                 {formatKES(maxRevenue)}
               </span>
-              <div className="flex items-end gap-[2px] h-44 pt-5">
+              <div className={`flex items-end gap-[2px] h-44 ${showBarValues ? "pt-9" : "pt-5"}`}>
                 {revenueBuckets.map((b) => (
                   <div
                     key={b.key}
                     className="group relative flex-1 min-w-0 h-full flex flex-col justify-end items-center"
                   >
+                    {showBarValues && b.revenue > 0 && (
+                      /* absolute so the label does not eat into the height the
+                         bar is sizing itself against */
+                      <span
+                        className="absolute left-1/2 -translate-x-1/2 text-[9px] font-semibold text-text-primary whitespace-nowrap"
+                        style={{ bottom: `${Math.max((b.revenue / maxRevenue) * 100, 2)}%`, marginBottom: "2px" }}
+                      >
+                        {formatCompact(b.revenue)}
+                      </span>
+                    )}
                     {b.revenue > 0 ? (
                       <div
                         className="w-full rounded-t bg-primary/85 group-hover:bg-primary transition-colors"
