@@ -42,3 +42,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 supabase/.temp/
+
+# Local file-store data (no-Supabase fallback) — runtime state, not source
+/data

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import RevenueChart from "@/components/RevenueChart";
 import TopProducts from "@/components/TopProducts";
 import OrderHeatmap from "@/components/OrderHeatmap";
+import { fetchConfigFlag, cacheConfigFlag, REQUIRE_DELIVERY_CODE } from "@/lib/appConfig";
 import { OrderRecord, formatOrderId, formatOrderDate, formatOrderDateTime, fetchAllOrders, updateOrderStatus } from "@/lib/orders";
 import { VendorInfo, MOCK_VENDORS, fetchVendors, StoreLocation } from "@/lib/vendor";
 import { VendorRecord, loadVendorStore, loadVendorStoreAsync, saveVendorStore, createVendorAsync, updateVendor, updateVendorAsync, deleteVendor as deleteVendorFromStore, deleteVendorAsync, defaultVendorProducts, defaultServiceTimes, formatPhoneDisplay, formatServiceTimesDisplay, VendorProduct, ServiceDay, mapSupabaseToVendor } from "@/lib/vendorStore";
@@ -39,6 +40,7 @@ import {
   CheckCircle2,
   Plus,
   MapPin,
+  Shield,
 } from "lucide-react";
 
 
@@ -260,6 +262,9 @@ function AdminDashboardInner() {
   const [vendorDropdown, setVendorDropdown] = useState<string | null>(null);
   const [itemsPopup, setItemsPopup] = useState<{ orderId: string; items: Array<{ name: string; quantity: number; price: number }>; total: number } | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [requireCode, setRequireCode] = useState<boolean | null>(null);
+  const [savingCode, setSavingCode] = useState(false);
+  const [codeSaveError, setCodeSaveError] = useState("");
   const [cancelConfirm, setCancelConfirm] = useState<{ orderId: string; amount: number } | null>(null);
 
   // Users management
@@ -527,6 +532,38 @@ function AdminDashboardInner() {
 
   function vendorOrderCount(vendorId: string): number {
     return orders.filter((o: OrderRecord) => o.vendor_id === vendorId).length;
+  }
+
+  // ── Delivery-code requirement (admin-controlled, read by the vendor portal) ──
+  useEffect(() => {
+    let cancelled = false;
+    fetchConfigFlag(REQUIRE_DELIVERY_CODE, true).then((v) => {
+      if (!cancelled) setRequireCode(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleToggleRequireCode() {
+    if (requireCode === null || savingCode) return;
+    const next = !requireCode;
+    setSavingCode(true);
+    setCodeSaveError("");
+    const result = await adminPost({
+      action: "set_config",
+      key: REQUIRE_DELIVERY_CODE,
+      value: String(next),
+    });
+    setSavingCode(false);
+    if (result.error) {
+      // Leave the switch where it was: showing it flipped when the write
+      // failed would misreport what vendors will actually see.
+      setCodeSaveError(result.error);
+      return;
+    }
+    setRequireCode(next);
+    cacheConfigFlag(REQUIRE_DELIVERY_CODE, next);
   }
 
   // ── Status update ──
@@ -2102,6 +2139,48 @@ function AdminDashboardInner() {
             </div>
           </div>
         )}
+
+        {/* ═══ DELIVERY SETTINGS (always visible) ═══ */}
+        <div className="bg-surface shadow-card rounded-2xl p-5 mb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-light flex items-center justify-center shrink-0">
+                <Shield size={20} className="text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-text-primary text-sm">
+                  Require customer code on delivery
+                </h3>
+                <p className="text-sm text-text-secondary mt-0.5">
+                  {requireCode === null
+                    ? "Loading…"
+                    : requireCode
+                    ? "Vendors must key in the customer's 4-digit code to mark an order delivered."
+                    : "Vendors can mark an order delivered without asking for the customer's code."}
+                </p>
+                {codeSaveError && (
+                  <p className="text-xs text-cta-alt mt-1">Could not save: {codeSaveError}</p>
+                )}
+              </div>
+            </div>
+            <button
+              role="switch"
+              aria-checked={requireCode === true}
+              aria-label="Require customer code on delivery"
+              disabled={requireCode === null || savingCode}
+              onClick={handleToggleRequireCode}
+              className={`relative w-12 h-7 rounded-full shrink-0 transition-colors disabled:opacity-50 ${
+                requireCode ? "bg-primary" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${
+                  requireCode ? "left-6" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
 
         {/* ═══ SUPPORT NOTE (always visible at bottom) ═══ */}
         <div className="bg-surface shadow-card rounded-2xl p-5 flex items-start gap-3">
