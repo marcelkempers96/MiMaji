@@ -1,248 +1,128 @@
 "use client";
 
-import {
-  logo1,
-  blog1NairobiWater,
-  blog2NairobiWaterCosts,
-  blog3NairobiWaterDeliveryOptions,
-  blog4NairobiWaterCrisis,
-  blog5NairobiWaterTypes,
-} from "@/assets/images";
-import { Droplets, Heart, MapPin, Users, Globe, TrendingUp, ExternalLink } from "lucide-react";
-
 import Link from "next/link";
-import TopBar from "@/components/layout/TopBar";
-import DesktopFooter from "@/components/layout/DesktopFooter";
+import EditorialLayout from "@/components/EditorialLayout";
+import { Section, Prose, Pull, Figures, FactList } from "@/components/editorial";
 
 export default function ImpactPage() {
   return (
-    <div className="min-h-screen bg-background pb-16">
-      <TopBar title="Our Impact" showBack={true} />
+    <EditorialLayout
+      topBarTitle="Our Impact"
+      eyebrow="Impact"
+      title="Ten litres in every hundred"
+      standfirst="For every 100 litres ordered in Nairobi, 10 litres go to communities that have none. It is written into the price rather than paid out of whatever is left at year end."
+    >
+      <Section title="Why a fixed share, not a donation">
+        <Prose>
+          <p>
+            Corporate giving usually depends on a good year. A share of revenue does not. It
+            means the commitment is the same in a slow month as in a strong one, and that
+            anyone can check the arithmetic: order 100 litres, and 10 are accounted for
+            elsewhere.
+          </p>
+          <p>
+            It also means we cannot quietly stop. The contribution is a function of sales, so
+            the only way to reduce it is to sell less.
+          </p>
+        </Prose>
+        <Pull>
+          Access to water is not a reward for being in the right postcode.
+        </Pull>
+      </Section>
 
-      {/* Mobile Layout */}
-      <div className="max-w-md mx-auto px-4 pt-4 md:hidden">
-        <ImpactContent />
-      </div>
+      <Section title="Where the ten litres go">
+        <Prose>
+          <p>
+            The MiMaji Foundation directs that volume to rural communities in Kenya, where the
+            constraint is rarely a single delivery and almost always the infrastructure behind
+            it — a borehole that needs servicing, a tank that needs replacing, a school with no
+            clean supply at all.
+          </p>
+          <p>
+            Delivering bottled water to a village is a gesture. Keeping a source working is the
+            useful version, so the contribution is weighted towards supply that lasts beyond the
+            day it arrives.
+          </p>
+        </Prose>
+        <FactList
+          items={[
+            {
+              term: "The ratio",
+              detail:
+                "10 litres contributed for every 100 litres ordered. Applied to volume, not to margin, so it does not move with our costs.",
+            },
+            {
+              term: "Who it reaches",
+              detail:
+                "Rural communities in Kenya without reliable access to safe drinking water.",
+            },
+            {
+              term: "What it funds",
+              detail:
+                "Supply that persists — maintained sources and storage — rather than one-off drops.",
+            },
+            {
+              term: "How it is triggered",
+              detail:
+                "Automatically, by the order itself. No opt-in, no round-up at checkout, no surcharge.",
+            },
+          ]}
+        />
+      </Section>
 
-      {/* Desktop Layout */}
-      <div className="hidden md:block">
-        <DesktopNav />
-        <div className="max-w-5xl mx-auto px-8 py-12">
-          <ImpactContent />
-        </div>
-        <DesktopFooter />
-      </div>
-    </div>
+      <Section title="What your order adds up to">
+        <Prose>
+          <p>
+            A household ordering two 20L jugs a week contributes roughly 200 litres a year
+            without doing anything beyond buying the water it already needed. An office on a
+            standing weekly delivery contributes considerably more.
+          </p>
+        </Prose>
+        <Figures
+          items={[
+            { value: "10%", label: "Of every litre ordered" },
+            { value: "40L", label: "Two 20L jugs a week, contributed yearly" },
+            { value: "0", label: "Added to your bill for it" },
+            { value: "48", label: "Nairobi areas the model runs in" },
+          ]}
+        />
+        <Prose>
+          <p>
+            The second figure is the one worth sitting with. It is not a large number for one
+            household. It is a large number for a city of them.
+          </p>
+        </Prose>
+      </Section>
+
+      <Section title="Being straight about the limits">
+        <Prose>
+          <p>
+            This does not solve Kenya&apos;s water problem, and we would rather say so than imply
+            otherwise. It is one company routing a fixed share of what it sells towards the
+            people least likely to be served by a delivery network.
+          </p>
+          <p>
+            What makes it worth doing is that it grows on its own terms. Every new customer in
+            Kilimani or Kasarani raises the contribution without a board having to approve it.
+          </p>
+        </Prose>
+      </Section>
+
+      <Section title="Take part by ordering">
+        <Prose>
+          <p>
+            There is no separate donation to make.{" "}
+            <Link href="/buy" className="text-[#2979C1] hover:underline font-semibold">
+              Order water
+            </Link>{" "}
+            and the share is already counted. To understand how the water itself is checked, see{" "}
+            <Link href="/know-your-water" className="text-[#2979C1] hover:underline">
+              Know Your Water
+            </Link>
+            .
+          </p>
+        </Prose>
+      </Section>
+    </EditorialLayout>
   );
 }
-
-function ImpactContent() {
-  return (
-    <>
-      {/* Impact Main Image */}
-      <div className="rounded-2xl overflow-hidden mb-4">
-        <img src={blog4NairobiWaterCrisis.src} alt="MiMaji community water impact across Kenya" className="w-full h-48 md:h-72 object-cover rounded-2xl" />
-      </div>
-
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-br from-primary to-[#1a5a9a] rounded-2xl p-6 md:p-10 text-white mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <Heart size={28} className="text-white" />
-          <h1 className="text-2xl md:text-4xl font-extrabold">Water is Life</h1>
-        </div>
-        <p className="text-white/80 text-sm md:text-base max-w-xl leading-relaxed">
-          In Nairobi, we turn on a tap and expect water to flow. But across Kenya, 15 million people still walk hours for water that isn&apos;t even safe to drink. Children miss school for it. Mothers carry it on their backs. Communities are built, or broken, by access to it.
-        </p>
-        <p className="text-white/70 text-sm md:text-base max-w-xl mt-3 leading-relaxed">
-          MiMaji was born from a simple truth: water shouldn&apos;t be a privilege. Every order you place through MiMaji doesn&apos;t just bring clean water to your door, it helps carry it to someone who has never had that luxury.
-        </p>
-        <a
-          href="https://mimaji.org"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-white text-primary font-bold rounded-full px-5 py-2.5 mt-5 text-sm hover:bg-white/90 transition-colors"
-        >
-          <Globe size={16} />
-          Visit MiMaji.org (Non Profit)
-          <ExternalLink size={14} />
-        </a>
-      </div>
-
-      {/* Our Promise */}
-      <div className="bg-gradient-to-r from-[#E8F5E9] to-[#C8E6C9] rounded-2xl p-5 md:p-8 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-            <Droplets size={28} className="text-[#2ECC71]" />
-          </div>
-          <div>
-            <h2 className="font-extrabold text-lg md:text-xl text-text-primary mb-2">Our Promise</h2>
-            <p className="text-text-primary text-sm md:text-base font-medium">
-              For every <span className="font-extrabold text-[#2ECC71]">100 Litres</span> we deliver,
-              we commit <span className="font-extrabold text-[#2ECC71]">10 Litres</span> of
-              clean water to underserved communities across Kenya.
-            </p>
-            <p className="text-text-secondary text-xs md:text-sm mt-2">
-              It&apos;s not charity, it&apos;s how business should work. You take care of your family, and together we take care of ours. Every litre counts.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Impact Image Strip (from blog) */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <img src={blog1NairobiWater.src} alt="Clean water in Nairobi" className="w-full h-32 md:h-44 object-cover rounded-xl" />
-        <img src={blog5NairobiWaterTypes.src} alt="Types of drinking water in Nairobi" className="w-full h-32 md:h-44 object-cover rounded-xl" />
-      </div>
-
-      {/* Impact Stats */}
-      <h2 className="font-bold text-base md:text-xl text-text-primary mb-3">Our Impact So Far</h2>
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-surface shadow-card rounded-xl p-4 text-center">
-          <Droplets size={24} className="text-primary mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-primary">4,200L</p>
-          <p className="text-text-secondary text-xs">Clean Water Delivered</p>
-        </div>
-        <div className="bg-surface shadow-card rounded-xl p-4 text-center">
-          <Heart size={24} className="text-[#E8544E] mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-[#E8544E]">420L</p>
-          <p className="text-text-secondary text-xs">Donated to Rural Communities</p>
-        </div>
-        <div className="bg-surface shadow-card rounded-xl p-4 text-center">
-          <Users size={24} className="text-[#F5A623] mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-[#F5A623]">85+</p>
-          <p className="text-text-secondary text-xs">Households Served</p>
-        </div>
-        <div className="bg-surface shadow-card rounded-xl p-4 text-center">
-          <MapPin size={24} className="text-[#2ECC71] mx-auto mb-2" />
-          <p className="text-2xl font-extrabold text-[#2ECC71]">2</p>
-          <p className="text-text-secondary text-xs">Partner Communities</p>
-        </div>
-      </div>
-
-      {/* MajiMap Project */}
-      <div className="bg-surface shadow-card rounded-2xl p-5 md:p-8 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
-            <Globe size={24} className="text-primary" />
-          </div>
-          <div>
-            <h2 className="font-extrabold text-lg text-text-primary">MajiMap Project</h2>
-            <p className="text-text-secondary text-xs">Mapping water access across Kenya</p>
-          </div>
-        </div>
-        <p className="text-text-secondary text-sm mb-4">
-          We can&apos;t fix what we can&apos;t see. MajiMap is our long-term initiative to map every water access point, borehole, and distribution network across Kenya. The goal is simple: understand where water flows and where it doesn&apos;t, so we can direct help to the communities that need it most. It&apos;s ambitious. It&apos;s necessary. And it starts with every delivery we make.
-        </p>
-        <a
-          href="https://mimaji.org"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-primary text-sm font-semibold hover:underline mb-3"
-        >
-          Learn more at MiMaji.org
-          <ExternalLink size={12} />
-        </a>
-        <div className="bg-primary-light rounded-xl p-4 mb-4">
-          <h3 className="font-bold text-sm text-text-primary mb-2">How MajiMap Works</h3>
-          <ul className="text-text-secondary text-sm space-y-2">
-            <li className="flex items-start gap-2">
-              <MapPin size={16} className="text-primary mt-0.5 flex-shrink-0" />
-              <span>GPS mapping of boreholes, kiosks, and water points across rural Kenya</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <TrendingUp size={16} className="text-primary mt-0.5 flex-shrink-0" />
-              <span>Real-time data on water quality, availability, and pricing</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Users size={16} className="text-primary mt-0.5 flex-shrink-0" />
-              <span>Community-driven reporting and verification</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Heart size={16} className="text-[#E8544E] mt-0.5 flex-shrink-0" />
-              <span>Direct connection between urban customers and rural water needs</span>
-            </li>
-          </ul>
-        </div>
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl overflow-hidden min-h-[160px]">
-          <img src={blog2NairobiWaterCosts.src} alt="MajiMap: Mapping water access across Kenya" className="object-cover w-full h-full" />
-        </div>
-      </div>
-
-      {/* How You Help */}
-      <div className="bg-gradient-to-r from-[#FFF5EC] to-[#FFE8D4] rounded-2xl p-5 md:p-8 mb-6">
-        <h2 className="font-extrabold text-lg text-text-primary mb-4">How Your Order Makes a Difference</h2>
-        <img src={blog3NairobiWaterDeliveryOptions.src} alt="MiMaji water delivery in Nairobi" className="w-full h-40 object-cover rounded-xl mb-4" />
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary">1</div>
-            <div>
-              <p className="font-bold text-sm text-text-primary">You Order Clean Water</p>
-              <p className="text-text-secondary text-xs">Safe, KEBS certified water delivered straight to your home or office in Nairobi</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary">2</div>
-            <div>
-              <p className="font-bold text-sm text-text-primary">We Deliver, Rain or Shine</p>
-              <p className="text-text-secondary text-xs">Our riders bring it to your doorstep, because no one should have to carry water on their back</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0 text-sm font-bold text-[#2ECC71]">3</div>
-            <div>
-              <p className="font-bold text-sm text-text-primary">10% Flows to Those Who Need It</p>
-              <p className="text-text-secondary text-xs">For every 100L you order, 10L of clean water reaches a family in rural Kenya who would otherwise go without</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Non Profit CTA */}
-      <a
-        href="https://mimaji.org"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#2ECC71] to-[#27AE60] text-white rounded-2xl p-5 mb-4 hover:shadow-card transition-shadow"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-            <Globe size={20} className="text-white" />
-          </div>
-          <div>
-            <p className="font-extrabold text-sm">MiMaji.org Non Profit</p>
-            <p className="text-white/80 text-xs">Explore our community water projects across Africa</p>
-          </div>
-        </div>
-        <ExternalLink size={18} className="text-white/90 flex-shrink-0" />
-      </a>
-
-      {/* CTA */}
-      <Link
-        href="/buy"
-        className="block w-full bg-primary text-white text-center rounded-xl py-4 font-bold text-sm hover:bg-[#1a5a9a] transition-colors"
-      >
-        Order Water & Make an Impact
-      </Link>
-    </>
-  );
-}
-
-function DesktopNav() {
-  return (
-    <header className="bg-surface border-b border-[#E0E0E0]">
-      <div className="max-w-6xl mx-auto px-8 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center">
-          <img src={logo1.src} alt="MiMaji" className="h-8 w-auto" />
-        </Link>
-        <nav className="flex items-center gap-8">
-          <Link href="/buy" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Order Water</Link>
-          <Link href="/orders" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">My Orders</Link>
-          <Link href="/impact" className="text-primary font-medium text-sm">Impact</Link>
-          <Link href="/contact" className="text-text-secondary hover:text-primary font-medium text-sm transition-colors">Contact</Link>
-          <Link href="/login" className="bg-primary text-white rounded-full px-5 py-2 text-sm font-semibold hover:bg-[#1a5a9a] transition-colors">Log In</Link>
-        </nav>
-      </div>
-    </header>
-  );
-}
-

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Cookie Policy — MiMaji",
   description:
-    "Cookie policy for the MiMaji website and app. Learn how we use cookies to deliver clean water and improve your experience on mimaji.co.ke.",
+    "What MiMaji stores on your device and how to stop it. No advertising cookies, no cross-site tracking, and no cookie on this site touches payment details.",
   alternates: { canonical: "/cookies" },
 };
 
