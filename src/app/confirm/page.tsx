@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLocation, buildDisplayAddress } from "@/context/LocationContext";
 import { createOrder, formatOrderId, generateDeliveryCode, DeliveryAddressDetails } from "@/lib/orders";
 import { assignOrderToVendor } from "@/lib/vendor";
+import { trackEvent } from "@/lib/analytics";
 import { processOrderRewards, getRewardsSummaryAsync, useFreeLitresAsync } from "@/lib/rewards";
 import { getProductImage, products } from "@/data/products";
 import { buildWhatsAppOrderLink } from "@/lib/whatsappShare";
@@ -378,8 +379,18 @@ export default function ConfirmOrderPage() {
     }
 
     if (orderError || !orderId) {
+      // The one failure that costs a sale outright, so it is recorded rather
+      // than only logged — a rise here is invisible in page views alone.
+      trackEvent("order_failed", { reason: orderError || "unknown", paymentMethod });
       throw new Error(orderError || "Failed to create order");
     }
+
+    trackEvent("order_placed", {
+      orderId,
+      value: finalTotal,
+      paymentMethod,
+      voucher: voucher?.code || null,
+    });
 
     // Trigger vendor assignment — non-fatal, with timeout
     try {

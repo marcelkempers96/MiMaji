@@ -3,9 +3,10 @@ import Script from "next/script";
 import Providers from "@/context/Providers";
 import AppShell from "@/components/layout/AppShell";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import PageViewTracker from "@/components/analytics/PageViewTracker";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = "https://www.mimaji.co.ke";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -184,6 +185,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-background text-text-primary">
         <GoogleAnalytics />
+        <PageViewTracker />
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

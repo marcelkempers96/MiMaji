@@ -6,6 +6,7 @@ import { Minus, Plus, Trash2, Tag, Droplets } from "lucide-react";
 
 import Link from "next/link";
 import VoucherField from "@/components/VoucherField";
+import { trackEvent } from "@/lib/analytics";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { useCart } from "@/context/CartContext";
@@ -55,6 +56,7 @@ export default function CartPage() {
   const { user } = useAuth();
 
   const handleCheckout = () => {
+    trackEvent("begin_checkout", { items: items.length, signedIn: !!user });
     if (user) {
       router.push("/delivery");
     } else {

@@ -172,6 +172,49 @@ export async function GET(req: NextRequest) {
   if (hasServiceKey) {
     const sb = createServiceClient();
     try {
+      if (type === "analytics") {
+        // Rows are aggregated in the dashboard rather than in SQL, so the
+        // window is capped: enough for the longest view (12 months) without
+        // letting one request pull an unbounded table.
+        const days = Math.min(Math.max(Number(req.nextUrl.searchParams.get("days")) || 400, 1), 400);
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+        const [views, events] = await Promise.all([
+          sb
+            .from("page_views")
+            .select("path, source, medium, campaign, device, is_entry, session_id, visitor_id, created_at")
+            .gte("created_at", since)
+            .order("created_at", { ascending: false })
+            .limit(50000),
+          sb
+            .from("analytics_events")
+            .select("name, path, session_id, visitor_id, props, created_at")
+            .gte("created_at", since)
+            .order("created_at", { ascending: false })
+            .limit(50000),
+        ]);
+
+        if (views.error) {
+          // The tables arrive with migration 012. Say so plainly rather than
+          // showing an empty dashboard that looks like zero traffic.
+          const missing = /relation .*(page_views|analytics_events)/i.test(views.error.message || "");
+          return NextResponse.json(
+            {
+              error: missing
+                ? "Analytics tables not found — run migration 012_analytics.sql."
+                : views.error.message,
+            },
+            { status: missing ? 503 : 500 }
+          );
+        }
+
+        return NextResponse.json({
+          pageViews: views.data || [],
+          events: events.data || [],
+          truncated: (views.data?.length || 0) >= 50000,
+        });
+      }
+
       if (type === "orders") {
         const { data, error } = await sb
           .from("orders")
@@ -280,6 +323,15 @@ export async function GET(req: NextRequest) {
     if (type === "orders") return NextResponse.json(fileGetOrders());
     if (type === "users") return NextResponse.json(fileGetUsers());
     if (type === "subscriptions") return NextResponse.json(fileGetSubscriptions());
+    if (type === "analytics") {
+      // Analytics live only in Supabase; the file-store fallback has no
+      // equivalent, so say that rather than returning "Unknown type".
+      return NextResponse.json(
+        { error: "Analytics require Supabase. This deployment has no service key configured." },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json({ error: "Unknown type" }, { status: 400 });
   } catch (e) {
     console.error("Admin API file-store error:", e);
