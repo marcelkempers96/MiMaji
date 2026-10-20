@@ -432,41 +432,49 @@ function BottleTypeRow({
 
   return (
     <div className={`rounded-lg p-3 mb-2 last:mb-0 ${qty > 0 ? accentBg : "bg-gray-50"}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={qty > 0 ? accentColor : "text-text-secondary"}>{icon}</span>
-          <p className={`text-xs font-bold ${qty > 0 ? "text-text-primary" : "text-text-secondary"}`}>{label}</p>
-        </div>
-
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {/* Price */}
-          <div className="text-right mr-2">
+      <div className="flex items-center justify-between gap-2">
+        {/* Label and price stack, so the bigger stepper doesn't crush the
+            label into an ellipsis on a narrow phone. */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`flex-shrink-0 ${qty > 0 ? accentColor : "text-text-secondary"}`}>{icon}</span>
+            <p className={`text-xs font-bold truncate ${qty > 0 ? "text-text-primary" : "text-text-secondary"}`}>{label}</p>
+          </div>
+          <div className="mt-0.5">
             {hasDiscount ? (
               <>
-                <span className="text-text-secondary text-[10px] line-through mr-1">KES {basePrice}</span>
-                <span className={`font-bold text-xs ${accentColor}`}>KES {discountedPrice}</span>
+                <span className="text-text-secondary text-[11px] line-through mr-1">KES {basePrice}</span>
+                <span className={`font-bold text-sm ${accentColor}`}>KES {discountedPrice}</span>
               </>
             ) : (
-              <span className="font-bold text-xs text-text-primary">KES {basePrice}</span>
+              <span className="font-bold text-sm text-text-primary">KES {basePrice}</span>
             )}
           </div>
+        </div>
 
-          {/* Quantity Controls */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+
+          {/* Quantity Controls — 40px targets, close to the 44px touch-target
+              guideline and far easier to hit on a phone than the old 28px. */}
           <button
             onClick={() => onChangeQty(qty - 1)}
             disabled={qty === 0}
-            className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
-              qty === 0 ? "bg-gray-100 text-gray-300" : `${accentBg} ${accentColor}`
+            aria-label={`Remove one ${label}`}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${
+              qty === 0
+                ? "bg-gray-100 text-gray-300"
+                : `bg-white border border-black/10 shadow-sm ${accentColor}`
             }`}
           >
-            <Minus size={14} />
+            <Minus size={20} strokeWidth={2.5} />
           </button>
-          <span className="w-7 text-center font-bold text-xs text-text-primary">{qty}</span>
+          <span className="w-9 text-center font-extrabold text-base text-text-primary tabular-nums">{qty}</span>
           <button
             onClick={() => onChangeQty(qty + 1)}
-            className="w-7 h-7 rounded-md bg-primary text-white flex items-center justify-center"
+            aria-label={`Add one ${label}`}
+            className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm transition-all active:scale-95"
           >
-            <Plus size={14} />
+            <Plus size={20} strokeWidth={2.5} />
           </button>
         </div>
       </div>
