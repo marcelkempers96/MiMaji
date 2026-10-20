@@ -9,6 +9,7 @@ import { logo1 } from "@/assets/images";
 import TopBar from "@/components/layout/TopBar";
 import Button from "@/components/ui/Button";
 import { products, Product, waterBrands } from "@/data/products";
+import { trackEvent } from "@/lib/analytics";
 import { useCart } from "@/context/CartContext";
 import DesktopFooter from "@/components/layout/DesktopFooter";
 
@@ -94,6 +95,7 @@ export default function BuyWaterPage() {
       updateQuantity(cartId, qty);
     } else {
       addItem({ id: cartId, name: itemName, price: discountedPrice, quantity: qty });
+      trackEvent("add_to_cart", { item: itemName, quantity: qty, value: discountedPrice * qty });
     }
   };
 
@@ -113,6 +115,7 @@ export default function BuyWaterPage() {
         if (!existingItem) {
           const itemName = `${product.name} ${product.size} — ${bottleType === "new" ? "New" : "Refill"}`;
           addItem({ id: cartId, name: itemName, price: discountedPrice, quantity: sel.quantity });
+          trackEvent("add_to_cart", { item: itemName, quantity: sel.quantity, value: discountedPrice * sel.quantity });
         }
       }
     });

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import AdminAnalytics from "@/components/AdminAnalytics";
 import RevenueChart from "@/components/RevenueChart";
 import TopProducts from "@/components/TopProducts";
 import { fetchConfigFlag, cacheConfigFlag, REQUIRE_DELIVERY_CODE } from "@/lib/appConfig";
@@ -1859,6 +1860,10 @@ function AdminDashboardInner() {
 
             {/* Each card is isolated: a render error in one of them used to
                 blank the whole admin route rather than just its own box. */}
+            <ErrorBoundary label="Site analytics">
+              <AdminAnalytics adminCode={getAdminCode()} />
+            </ErrorBoundary>
+
             <ErrorBoundary label="Revenue chart">
               <RevenueChart orders={orders} />
             </ErrorBoundary>
