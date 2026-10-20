@@ -197,11 +197,19 @@ export async function GET(req: NextRequest) {
         if (views.error) {
           // The tables arrive with migration 012. Say so plainly rather than
           // showing an empty dashboard that looks like zero traffic.
-          const missing = /relation .*(page_views|analytics_events)/i.test(views.error.message || "");
+          // PostgREST answers a missing table from its schema cache
+          // (PGRST205, "Could not find the table ...") rather than passing
+          // through Postgres's own 42P01, so both shapes are matched.
+          const code = (views.error as { code?: string }).code || "";
+          const msg = views.error.message || "";
+          const missing =
+            code === "PGRST205" ||
+            code === "42P01" ||
+            /(relation|table).*(page_views|analytics_events)/i.test(msg);
           return NextResponse.json(
             {
               error: missing
-                ? "Analytics tables not found — run migration 012_analytics.sql."
+                ? "Analytics tables not found. Run supabase/migrations/012_analytics.sql in the Supabase SQL editor, then reload."
                 : views.error.message,
             },
             { status: missing ? 503 : 500 }
