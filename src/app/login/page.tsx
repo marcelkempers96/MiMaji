@@ -60,7 +60,6 @@ function LoginContent() {
   // Redirect if user is already logged in (e.g. navigating to /login while authenticated)
   useEffect(() => {
     if (!user) return;
-    setLoading(false);
     redirectAfterAuth(user.role);
   }, [user, redirectAfterAuth]);
 
